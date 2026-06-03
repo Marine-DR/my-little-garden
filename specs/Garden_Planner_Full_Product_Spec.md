@@ -1,34 +1,53 @@
 
-# Garden Planner – Flower Catalog Management
+# MyLittleGarden – Flower Catalog Management
+
 ## Complete UX/UI Product Specification
 
-Version: 1.0
-Date: 03/06/2026
+**Version:** 3.0
+**Date:** 03/06/2026
 
 ---
 
-# Final UX Direction — Garden Planner Flower List
+# Overview
 
-## Header
+The Flower Catalog is the administrative module used to manage flowers available in MyLittleGarden.
 
-```text
-🌿 Garden Planner
-```
+Users can:
 
-Right side:
+* Search, sort and filter flowers
+* Create, edit and delete flowers
+* Import flowers through CSV
+* Import flower images
+* Create flower lists from selections
+* Add flowers to existing lists
+* Manage catalog data used later in the Dessiner module
 
-```text
-[Listes]   [Dessiner]
-```
-
-Primary action:
-
-* **Dessiner** → filled green button
-* **Listes** → secondary outlined button
+A flower may belong to multiple lists.
 
 ---
 
-## Toolbar
+# Header
+
+Application title:
+
+```text
+🌿 MyLittleGarden
+```
+
+Navigation:
+
+```text
+[Mes listes]   [Dessiner]
+```
+
+Buttons:
+
+* **Dessiner** → Primary filled green button
+* **Mes listes** → Secondary outlined button
+
+---
+
+# Toolbar
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -44,9 +63,9 @@ Right side:
 
 ---
 
-## Active Filters
+# Active Filters
 
-Displayed as chips.
+Displayed as removable chips.
 
 Example:
 
@@ -56,21 +75,31 @@ Vivace ✕
 Floraison Été ✕
 ```
 
-Users immediately understand why they see certain results.
+---
+
+# Administration Actions
+
+Displayed above the flower grid.
+
+```text
+[+ Ajouter une fleur]
+[📄 Import CSV ▼]
+[🖼 Import Images ▼]
+```
 
 ---
 
-## Administration Actions
+# Flower Creation
 
-Displayed above the grid.
+Click:
 
 ```text
-[+ Ajouter une fleur]   [📄 Import CSV ▼]   [🖼 Import Images ▼]
++ Ajouter une fleur
 ```
 
-### Ajouter une fleur
-
 Opens a right-side drawer.
+
+## Drawer Layout
 
 ```text
 Nouvelle fleur
@@ -128,9 +157,50 @@ Plantation
 
 [Annuler] [Enregistrer]
 ```
+
 ---
 
-## CSV Import
+# Flower Editing
+
+Each row contains:
+
+```text
+✏️ Modifier
+```
+
+Editing opens the same drawer prefilled with existing data.
+
+```text
+Modifier la fleur
+```
+
+Only one flower may be edited at a time.
+
+---
+
+# Flower Deletion
+
+## Single Flower
+
+```text
+🗑 Supprimer
+```
+
+Confirmation modal:
+
+```text
+Supprimer Achillée ?
+
+Cette action est définitive.
+
+[Annuler] [Supprimer]
+```
+
+Delete action is red.
+
+---
+
+# CSV Import
 
 Dropdown:
 
@@ -145,39 +215,39 @@ Dropdown:
 📥 Télécharger modèle CSV
 ```
 
-CSV import uses a safe wizard:
+### Import Workflow
 
 ```text
 1. Upload du fichier
 2. Prévisualisation
 3. Validation
 4. Confirmation
-5. Résultat d'import
+5. Résultat
 ```
 
-Example validation:
+Validation example:
 
 ```text
 125 lignes détectées
 
 ✓ 120 lignes valides
-⚠ 3 lignes avec avertissements
-❌ 2 lignes invalides
+⚠ 3 avertissements
+❌ 2 erreurs
 ```
 
-For update/delete actions, matching is based on flower name because `flower_id` is managed by the backend.
-
-Recommended matching rule:
+Matching rule:
 
 ```text
 Nom
 ```
 
-If needed later:
+Future fallback:
 
 ```text
 Nom + Type
 ```
+
+Backend manages `flower_id`.
 
 ---
 
@@ -197,7 +267,7 @@ Importer plusieurs images (.zip)
 Télécharger modèle de nommage
 ```
 
-Accepted files:
+Accepted formats:
 
 ```text
 .jpg
@@ -207,10 +277,10 @@ Accepted files:
 .zip
 ```
 
-Image matching rule:
+Matching rule:
 
 ```text
-Nom du fichier image = Nom de la fleur
+Nom du fichier = Nom de la fleur
 ```
 
 Example:
@@ -219,13 +289,7 @@ Example:
 Achilée Ornementale.jpg
 ```
 
-matches:
-
-```text
-Achilée Ornementale
-```
-
-ZIP validation example:
+Result:
 
 ```text
 15 images détectées
@@ -236,24 +300,183 @@ ZIP validation example:
 
 ---
 
+# Flower Lists Management
+
+## Purpose
+
+Lists are named collections of flowers.
+
+Lists are used later in the Dessiner module to build flowerbeds.
+
+Rules:
+
+* One flower may belong to multiple lists
+* Lists are managed from the Mes listes module
+* Lists are not displayed in the Flower Catalog grid
+
+---
+
+# Selection Action Bar
+
+Displayed only when at least one flower is selected.
+
+Position:
+
+```text
+Administration Actions
+↓
+Selection Action Bar
+↓
+Flower Grid
+```
+
+Example:
+
+```text
+3 fleurs sélectionnées
+
+[Ajouter à une liste ▼]
+[Créer une liste]
+[Supprimer]
+```
+
+Administration actions remain visible.
+
+---
+
+# Create a List
+
+Available only when flowers are selected.
+
+```text
+[Créer une liste]
+```
+
+Modal:
+
+```text
+Créer une nouvelle liste
+
+Nom de la liste
+[________________]
+
+3 fleurs seront ajoutées à cette liste.
+
+[Annuler] [Créer]
+```
+
+Rules:
+
+* Name mandatory
+* Selected flowers automatically added
+* Empty lists cannot be created
+
+Success:
+
+```text
+✓ Liste créée
+
+Massif plein soleil
+
+3 fleurs ajoutées
+```
+
+Recommended wording:
+
+```text
+Créer une liste à partir de la sélection
+```
+
+---
+
+# Add to Existing Lists
+
+Button:
+
+```text
+[Ajouter à une liste ▼]
+```
+
+Modal:
+
+```text
+Ajouter à des listes
+
+Rechercher une liste...
+[________________]
+
+☑ Massif plein soleil
+☑ Prairie fleurie
+☐ Bordure terrasse
+☐ Coin ombragé
+
+3 fleurs seront ajoutées aux listes sélectionnées.
+
+[Annuler] [Ajouter]
+```
+
+Users can select multiple lists simultaneously.
+
+---
+
+# Duplicate Handling
+
+A flower can only appear once in a given list.
+
+Example:
+
+```text
+✓ 7 ajouts effectués
+⚠ 2 associations déjà existantes ignorées
+```
+
+Rules:
+
+* Existing associations ignored
+* Missing associations added
+* No error generated
+
+---
+
+# List Management Restrictions
+
+From the Flower Catalog users may:
+
+```text
+✓ Créer une liste
+✓ Ajouter à une liste
+✓ Supprimer des fleurs
+```
+
+Users may not:
+
+```text
+✗ Voir le contenu d'une liste
+✗ Renommer une liste
+✗ Supprimer une liste
+✗ Retirer une fleur d'une liste
+```
+
+These actions belong to the Mes listes module.
+
+---
+
 # Main Grid
 
 Default columns:
 
 | Selection | Photo | Nom | Hauteur | Type | Sol | Exposition | Floraison | Persistant | Plantation | Actions |
-| ---------- | ----- | --- | ------- | ---- | --- | ---------- | ---------- | ---------- | ---------- | ------- |
-
-The first column is used only for multi-row deletion.
+| --------- | ----- | --- | ------- | ---- | --- | ---------- | --------- | ---------- | ---------- | ------- |
 
 ---
 
-## Example Row
+# Example Row
 
 ```text
 ☐
 
-🌸  Achillée
-    Achillea millefolium
+🌸 Achillée
+Achillea millefolium
 
 50–80 cm
 Vivace
@@ -262,70 +485,38 @@ Drainé
 Juin→Sep
 ✓
 Printemps
+
 ✏️ 🗑️
 ```
 
 ---
 
-# Multi-Row Selection
+# Multi-Selection
 
-Multi-selection is available only for deletion.
+Multi-selection supports:
 
-When one or more rows are selected:
+* List creation
+* Adding to lists
+* Bulk deletion
+
+When selected:
 
 ```text
-2 fleurs sélectionnées       [Supprimer]
+3 fleurs sélectionnées
+
+[Ajouter à une liste ▼]
+[Créer une liste]
+[Supprimer]
 ```
 
 Delete confirmation:
 
 ```text
-Supprimer 2 fleurs ?
+Supprimer 3 fleurs ?
 
 Achillée
 Pavot
-
-Cette action est définitive.
-
-[Annuler] [Supprimer]
-```
-
-The delete button is red.
-
----
-
-# Row Actions
-
-Each row has:
-
-```text
-✏️ Modifier
-🗑 Supprimer
-```
-
-## Edit Flower
-
-Clicking **Modifier** opens a right-side drawer with the same structure as “Ajouter une fleur”.
-
-```text
-Modifier la fleur
-────────────────────────
-
-[Fields...]
-
-[Annuler] [Enregistrer]
-```
-
-Only one flower can be edited at a time.
-
----
-
-## Delete One Flower
-
-Clicking the delete icon opens a confirmation modal.
-
-```text
-Supprimer Achillée ?
+Acorus
 
 Cette action est définitive.
 
@@ -384,7 +575,7 @@ Width: 72px
 
 Rounded thumbnail.
 
-If no image exists:
+Fallback:
 
 ```text
 🌿
@@ -394,14 +585,12 @@ If no image exists:
 
 ## Nom
 
-Two lines:
-
 ```text
 Achillée
 Achillea millefolium
 ```
 
-Second line smaller and grey.
+Scientific name appears smaller and grey.
 
 ---
 
@@ -413,7 +602,7 @@ Single compact value.
 50–80 cm
 ```
 
-Sorting enabled.
+Sortable.
 
 Filter:
 
@@ -447,21 +636,17 @@ Ombre
 
 ## Floraison
 
-Use:
+Format:
 
 ```text
 Mai→Sep
 ```
 
-instead of month bars.
-
 Advantages:
 
-* extremely compact
-* sortable
-* easy to read
-* works in responsive layouts
-
+* Compact
+* Sortable
+* Responsive
 Examples:
 
 ```text
@@ -474,7 +659,7 @@ Juin→Oct
 
 ## Persistant
 
-Compact icons.
+Icons:
 
 ```text
 ✓
@@ -494,13 +679,13 @@ Semi-persistant
 
 # Column Filters
 
-Each column header contains:
+Header menu:
 
 ```text
 Nom ▼
 ```
 
-Click:
+Options:
 
 ```text
 Sort A→Z
@@ -512,8 +697,6 @@ Masquer colonne
 ---
 
 # Filtres Drawer
-
-Slide panel from the right.
 
 Width:
 
@@ -611,18 +794,20 @@ Range slider:
 ☐ Température
 ☐ Couleurs fleurs
 ☐ Couleurs feuilles
-☐ Espace
+☐ Espacement
 ```
 
 Drag-and-drop enabled.
 
-The following columns should not be removable:
+Mandatory columns:
 
 ```text
 Selection
 Nom
 Actions
 ```
+
+Cannot be removed.
 
 ---
 
@@ -681,49 +866,51 @@ CSV - Mise à jour
 
 ```css
 Inter SemiBold 20
+Inter Medium 14
 Inter Regular 14
 Inter Regular 12
-Inter Medium 14
 ```
 
 ---
 
-# Final Screen Mockup
+# Final Screen Structure
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ 🌿 Garden Planner                                [Listes]   [Dessiner]       │
+│ 🌿 MyLittleGarden                         [Mes listes]   [Dessiner]          │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 🔍 Rechercher une fleur, couleur, sol, exposition... [Filtres] [Colonnes]    │
+│ 🔍 Rechercher une fleur...                 [Filtres] [Colonnes]              │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ☀ Soleil ✕    Vivace ✕    Juin ✕                                            │
+│ ☀ Soleil ✕  Vivace ✕  Juin ✕                                            │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ [+ Ajouter une fleur]   [📄 Import CSV ▼]   [🖼 Import Images ▼]             │
+│ [+ Ajouter une fleur] [📄 Import CSV ▼] [🖼 Import Images ▼]               │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ☐ │ Photo │ Nom │ Hauteur │ Type │ Sol │ Expo │ Floraison │ Pers. │ Actions │
+│ 3 fleurs sélectionnées                                                  │
+│ [Ajouter à une liste ▼] [Créer une liste] [Supprimer]                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ☐ │ 🌸    │ Achillée │50-80│Vivace│Drainé│☀◐│Juin→Sep│✓│✏️ 🗑️              │
-│ ☐ │ 🌺    │ Pavot    │15-100│Vivace│Drainé│☀│Mai→Sep│✗│✏️ 🗑️              │
-│ ☐ │ 🌿    │ Acorus   │15-120│Vivace│Humide│☀◐│—│◐│✏️ 🗑️                  │
+│ Flower Grid                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 1–25 sur 524 fleurs                 ← Précédent   1 2 3 4 5   Suivant →     │
-│ Afficher [25 ▼]                                                              │
+│ Pagination                                                               │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-# Final Recommendation
+# Final UX Recommendations
 
-For this internal administrator screen, the best UX is:
-
-* A clean searchable table
-* 25 flowers per page by default
-* Add and edit through right-side drawers
-* Single-row delete with confirmation
-* Multi-row selection only for deletion
-* CSV import wizard for add, update, delete, and replace
-* Dedicated image import for single image or ZIP
+* Clean searchable table
+* 25 rows per page by default
+* Add/Edit via right-side drawers
+* Confirmation before deletion
+* Multi-selection for list management and deletion
+* Create lists directly from selected flowers
+* Add flowers to multiple existing lists
+* Automatically ignore duplicate flower/list associations
+* CSV import wizard with validation
+* Dedicated image import workflow
 * Image matching by flower name
-* Backend-managed `flower_id`
-* Import preview and validation before committing changes
+* Import preview before commit
+* Backend-managed flower identifiers
+* Separation of responsibilities between Flower Catalog and Mes listes modules
+
+This version should be considered the new master specification for the Flower Catalog module.
