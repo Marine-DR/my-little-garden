@@ -6,7 +6,9 @@ For now, this application will run on a computer with Windows or Linux.
 The application should be responsive to be well displayed on different screen size.
 Later, it can run on a server to allow to have some features available on a mobile phone via an application.
 
-The Database can contain several thousands of flowers.
+The Database can contain several thousands of flowers.  
+Each flower will have several attributes to allow to identify the most adapted plants for the current flowerbed projet. 
+Each flower will have one picture associated to ease the flower identification.
 
 # How it works
 MyLittleGarden contain a list of plants, mainly flowers, with some related attributes. Each plant is associated to a photo to allow to identify it easily.   
