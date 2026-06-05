@@ -20,7 +20,7 @@ When the design is done, a planting plan and a flower list are generated. The fl
 # MVP
 * Visualize a list of plants with the related attributes and photo.
 * Update the list of plants by .csv. Uploading a .csv file will delete and replace the existing list.
-* Filter the list base on different attributes.
+* Filter the list base on different attributes (for MVP, only soil type, sunlit exhibition and flowering period).
 * Create a list of plants and save it.
 
 # Main features 
