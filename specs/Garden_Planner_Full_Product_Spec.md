@@ -3,8 +3,8 @@
 
 ## Complete UX/UI Product Specification
 
-**Version:** 3.0
-**Date:** 03/06/2026
+**Version:** 3.1
+**Date:** 05/06/2026
 
 ---
 
@@ -138,7 +138,7 @@ Floraison
 [Juin ▼] → [Septembre ▼]
 
 Couleurs fleurs
-⚪ 🟡 🔴 🟣 🩷 🟠
+⚪ 🟡 🔴 🟣 🔵 🩷 🟠
 
 Couleurs feuilles
 🟢 🟡 🟤
@@ -465,8 +465,8 @@ These actions belong to the Mes listes module.
 
 Default columns:
 
-| Selection | Photo | Nom | Hauteur | Type | Sol | Exposition | Floraison | Persistant | Plantation | Actions |
-| --------- | ----- | --- | ------- | ---- | --- | ---------- | --------- | ---------- | ---------- | ------- |
+|  | Photo | Nom | Hauteur(cm) | Type | Sol | Exposition | Floraison | Couleurs fleurs| Couleurs feuilles | Température min(°C)| Persistant | Espacement(cm) | Plantation | Actions |
+| --------- | ----- | --- | ----------- | ---- | --- | ---------- | --------- | --------------- | ---------------- | ------------------- | ---------- | -------------- |---------- | ------- |
 
 ---
 
@@ -478,11 +478,14 @@ Default columns:
 🌸 Achillée
 Achillea millefolium
 
-50–80 cm
+50–80 
 Vivace
 Drainé
 ☀◐
 Juin→Sep
+⚪
+🟢
+-10
 ✓
 Printemps
 
@@ -587,11 +590,7 @@ Fallback:
 
 ```text
 Achillée
-Achillea millefolium
 ```
-
-Scientific name appears smaller and grey.
-
 ---
 
 ## Hauteur
@@ -599,7 +598,7 @@ Scientific name appears smaller and grey.
 Single compact value.
 
 ```text
-50–80 cm
+50–80
 ```
 
 Sortable.
@@ -754,7 +753,7 @@ Jan Fev Mar Avr Mai Jun Jul Aou Sep Oct Nov Dec
 Color chips:
 
 ```text
-🔴 🟡 ⚪ 🟣 🩷 🟠
+⚪ 🟡 🔴 🟣 🔵 🩷 🟠
 ```
 
 ## Hauteur
@@ -776,22 +775,19 @@ Range slider:
 # Colonnes Panel
 
 ```text
-☑ Selection
 ☑ Photo
-☑ Nom
-☑ Hauteur
+☑ Hauteur(cm)
 ☑ Type
 ☑ Sol
 ☑ Exposition
 ☑ Floraison
 ☑ Persistant
 ☑ Plantation
-☑ Actions
 
 ────────────
 
 ☐ Fleur/Autre
-☐ Température
+☐ Température min(°C)
 ☐ Couleurs fleurs
 ☐ Couleurs feuilles
 ☐ Espacement
