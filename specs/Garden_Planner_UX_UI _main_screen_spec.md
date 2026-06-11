@@ -4,7 +4,7 @@
 ## Complete UX/UI Product Specification
 
 **Version:** 3.1
-**Date:** 05/06/2026
+**Date:** 11/06/2026
 
 ---
 
@@ -465,8 +465,8 @@ These actions belong to the Mes listes module.
 
 Default columns:
 
-|  | Photo | Nom | Hauteur(cm) | Type | Sol | Exposition | Floraison | Couleurs fleurs| Couleurs feuilles | Température min(°C)| Persistant | Espacement(cm) | Plantation | Actions |
-| --------- | ----- | --- | ----------- | ---- | --- | ---------- | --------- | --------------- | ---------------- | ------------------- | ---------- | -------------- |---------- | ------- |
+|  | Photo | Nom | Hauteur(cm) | Type | Sol | Exposition | Floraison | Couleurs fleurs| Couleurs feuilles | T° min(°C)| Persistant | Espacement(cm) | Plantation | Actions |
+| --------- | ----- | --- | ----------- | ---- | --- | ---------- | --------- | --------------- | ------------ | ------------------- | ---------- | -------------- |---------- | ------- |
 
 ---
 
@@ -787,7 +787,7 @@ Range slider:
 ────────────
 
 ☐ Fleur/Autre
-☐ Température min(°C)
+☐ T° min(°C)
 ☐ Couleurs fleurs
 ☐ Couleurs feuilles
 ☐ Espacement
