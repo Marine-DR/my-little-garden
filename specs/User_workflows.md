@@ -65,7 +65,7 @@ Select the plants > click on the removing button > list the impacted designs > c
 ## Flowerbed design
 ### Cancel a design deletion
 Select and existing flowerbed > click on the deletion button > cancel the action > the flowerbed design is not deleted
-### Plants areas overlad
+### Plants areas overlap
 Place the plants > the plants areas are displaied in red and a warning is display when there are overlap > save the design > click to generate the buying list and the planting plan > display a message to indicate there are plants areas overlaping > confirm the generation > generate the document with a warning message on the planting plan
 ### Plants exceed the available space 
 Place the plants > the plants areas are displaied in red and a warning is display when plants exceed the available space > save the design > click to generate the buying list and the planting plan > display a message to indicate there are plants areas that exceed the available space > confirm the generation > generate the document with a warning message on the planting plan
