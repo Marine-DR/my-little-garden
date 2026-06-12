@@ -4,7 +4,7 @@
 ## Complete UX/UI Product Specification
 
 **Version:** 3.1
-**Date:** 11/06/2026
+**Date:** 12/06/2026
 
 ---
 
@@ -70,7 +70,7 @@ Displayed as removable chips.
 Example:
 
 ```text
-☀ Soleil ✕
+Soleil ✕
 Vivace ✕
 Floraison Été ✕
 ```
@@ -83,7 +83,7 @@ Displayed above the flower grid.
 
 ```text
 [+ Ajouter une fleur]
-[📄 Import CSV ▼]
+[🗋 Import CSV ▼]
 [🖼 Import Images ▼]
 ```
 
@@ -137,10 +137,10 @@ Température minimale
 Floraison
 [Juin ▼] → [Septembre ▼]
 
-Couleurs fleurs
+Couleur fleurs
 ⚪ 🟡 🔴 🟣 🔵 🩷 🟠
 
-Couleurs feuilles
+Couleur feuilles
 🟢 🟡 🟤
 
 Persistant
@@ -152,8 +152,10 @@ Espacement
 [40] à [60] cm
 
 Plantation
+☑ Été
 ☑ Printemps
 ☑ Automne
+☑ Hiver
 
 [Annuler] [Enregistrer]
 ```
@@ -165,7 +167,7 @@ Plantation
 Each row contains:
 
 ```text
-✏️ Modifier
+🖉 Modifier
 ```
 
 Editing opens the same drawer prefilled with existing data.
@@ -207,10 +209,10 @@ Dropdown:
 ```text
 📄 Import CSV
 ────────────────────────
-➕ Ajouter des fleurs
-✏️ Mettre à jour des fleurs
-➖ Supprimer des fleurs
-🔄 Remplacer tout le catalogue
++ Ajouter des fleurs
+🖉 Mettre à jour des fleurs
+- Supprimer des fleurs
+⮔ Remplacer tout le catalogue
 ────────────
 📥 Télécharger modèle CSV
 ```
@@ -300,25 +302,23 @@ Result:
 
 ---
 
-# Flower Lists Management
+# Flower Selection Management
 
 ## Purpose
 
-Lists are named collections of flowers.
+Selections are named collections of flowers.
 
-Lists are used later in the Dessiner module to build flowerbeds.
+Seletions are used later in the Dessiner module to build flowerbeds.
 
 Rules:
 
-* One flower may belong to multiple lists
-* Lists are managed from the Mes listes module
-* Lists are not displayed in the Flower Catalog grid
+* One flower may belong to multiple selections
+* Selections are managed from the Mes Sélections module
+* Selections are not displayed in the Flower Catalog grid
 
 ---
 
 # Selection Action Bar
-
-Displayed only when at least one flower is selected.
 
 Position:
 
@@ -335,8 +335,8 @@ Example:
 ```text
 3 fleurs sélectionnées
 
-[Ajouter à une liste ▼]
-[Créer une liste]
+[Ajouter à une sélection ▼]
+[Créer une sélection]
 [Supprimer]
 ```
 
@@ -349,18 +349,18 @@ Administration actions remain visible.
 Available only when flowers are selected.
 
 ```text
-[Créer une liste]
+[Créer une sélection]
 ```
 
 Modal:
 
 ```text
-Créer une nouvelle liste
+Créer une nouvelle sélection
 
-Nom de la liste
+Nom de la sélection
 [________________]
 
-3 fleurs seront ajoutées à cette liste.
+3 fleurs seront ajoutées à cette sélection.
 
 [Annuler] [Créer]
 ```
@@ -369,12 +369,12 @@ Rules:
 
 * Name mandatory
 * Selected flowers automatically added
-* Empty lists cannot be created
+* Empty selection cannot be created
 
 Success:
 
 ```text
-✓ Liste créée
+✓ sélection créée
 
 Massif plein soleil
 
@@ -384,25 +384,25 @@ Massif plein soleil
 Recommended wording:
 
 ```text
-Créer une liste à partir de la sélection
+Créer une sélection
 ```
 
 ---
 
-# Add to Existing Lists
+# Add to Existing Selection
 
 Button:
 
 ```text
-[Ajouter à une liste ▼]
+[Ajouter à une sélection ▼]
 ```
 
 Modal:
 
 ```text
-Ajouter à des listes
+Ajouter à des sélections
 
-Rechercher une liste...
+Rechercher une sélection...
 [________________]
 
 ☑ Massif plein soleil
@@ -410,18 +410,18 @@ Rechercher une liste...
 ☐ Bordure terrasse
 ☐ Coin ombragé
 
-3 fleurs seront ajoutées aux listes sélectionnées.
+3 fleurs seront ajoutées aux sélections sélectionnées.
 
 [Annuler] [Ajouter]
 ```
 
-Users can select multiple lists simultaneously.
+Users can select multiple selections simultaneously.
 
 ---
 
 # Duplicate Handling
 
-A flower can only appear once in a given list.
+A flower can only appear once in a given selection.
 
 Example:
 
@@ -438,26 +438,26 @@ Rules:
 
 ---
 
-# List Management Restrictions
+# Selections Management Restrictions
 
 From the Flower Catalog users may:
 
 ```text
-✓ Créer une liste
-✓ Ajouter à une liste
+✓ Créer une sélection
+✓ Ajouter à une sélection
 ✓ Supprimer des fleurs
 ```
 
 Users may not:
 
 ```text
-✗ Voir le contenu d'une liste
-✗ Renommer une liste
-✗ Supprimer une liste
-✗ Retirer une fleur d'une liste
+✗ Voir le contenu d'une sélection
+✗ Renommer une sélection
+✗ Supprimer une sélection
+✗ Retirer une fleur d'une sélection
 ```
 
-These actions belong to the Mes listes module.
+These actions belong to the Mes Sélections module.
 
 ---
 
@@ -465,8 +465,8 @@ These actions belong to the Mes listes module.
 
 Default columns:
 
-|  | Photo | Nom | Hauteur(cm) | Type | Sol | Exposition | Floraison | Couleurs fleurs| Couleurs feuilles | T° min(°C)| Persistant | Espacement(cm) | Plantation | Actions |
-| --------- | ----- | --- | ----------- | ---- | --- | ---------- | --------- | --------------- | ------------ | ------------------- | ---------- | -------------- |---------- | ------- |
+| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Actions |
+| - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |------- |
 
 ---
 
@@ -474,10 +474,7 @@ Default columns:
 
 ```text
 ☐
-
 🌸 Achillée
-Achillea millefolium
-
 50–80 
 Vivace
 Drainé
@@ -488,8 +485,10 @@ Juin→Sep
 -10
 ✓
 Printemps
+30
+Pintemps Automne
 
-✏️ 🗑️
+🖉 🗑️
 ```
 
 ---
@@ -498,8 +497,8 @@ Printemps
 
 Multi-selection supports:
 
-* List creation
-* Adding to lists
+* Selection creation
+* Adding to selection
 * Bulk deletion
 
 When selected:
@@ -507,8 +506,8 @@ When selected:
 ```text
 3 fleurs sélectionnées
 
-[Ajouter à une liste ▼]
-[Créer une liste]
+[Ajouter à une sélection ▼]
+[Créer une sélection]
 [Supprimer]
 ```
 
@@ -588,12 +587,16 @@ Fallback:
 
 ## Nom
 
+Text
+
 ```text
 Achillée
 ```
 ---
 
 ## Hauteur
+
+Display in column ↨ (cm)
 
 Single compact value.
 
@@ -603,13 +606,25 @@ Single compact value.
 
 Sortable.
 
-Filter:
+---
+
+## Type
+
+Text
 
 ```text
-Min [20]
-Max [150]
+Vivace
 ```
+---
 
+## Sol
+
+Text
+
+```text
+Drainée
+sec
+```
 ---
 
 ## Exposition
@@ -656,6 +671,47 @@ Juin→Oct
 
 ---
 
+## Fleur/Autre
+
+Text
+
+```text
+Fleur
+```
+---
+
+## Couleur Fleurs
+
+Display in column Couleur 🌸  
+Can contains several colors
+Text
+
+```text
+⚪ 🟡 🔴 🟣 
+🔵 🩷 🟠
+```
+---
+
+## Couleur Feuilles
+Display in column Couleur 🍃  
+Can contains several colors
+Text
+
+```text
+⚪ 🟡 🟢 🔴
+🟣 🟤
+```
+---
+
+## Température minimale
+Deisplay in column ❅ (°C)  
+Text
+
+```text
+-10
+```
+---
+
 ## Persistant
 
 Icons:
@@ -673,10 +729,28 @@ Persistant
 Caduc
 Semi-persistant
 ```
-
 ---
 
-# Column Filters
+## Espacement
+Display in column ↔ (cm)  
+Text
+
+```text
+30
+```
+---
+
+## Plantation
+
+Text
+
+```text
+Printemps,
+Autaumne
+```
+---
+
+# Column Sorting
 
 Header menu:
 
@@ -689,8 +763,6 @@ Options:
 ```text
 Sort A→Z
 Sort Z→A
-Filtrer
-Masquer colonne
 ```
 
 ---
@@ -702,7 +774,7 @@ Width:
 ```text
 360 px
 ```
-
+Allow multi selection for each field.  
 Contains:
 
 ## Type
@@ -712,6 +784,12 @@ Contains:
 ☐ Annuelle
 ☐ Graminée
 ☐ Arbuste
+```
+## Hauteur
+
+```text
+Min [20]
+Max [150]
 ```
 
 ## Fleur / autre
@@ -748,7 +826,7 @@ Month picker:
 Jan Fev Mar Avr Mai Jun Jul Aou Sep Oct Nov Dec
 ```
 
-## Couleurs fleurs
+## Couleur fleurs
 
 Color chips:
 
@@ -756,27 +834,50 @@ Color chips:
 ⚪ 🟡 🔴 🟣 🔵 🩷 🟠
 ```
 
-## Hauteur
+## Couleur feuilles
 
-Range slider:
+Color chips:
 
 ```text
-0 ───────────── 250 cm
+⚪ 🟡 🟢 🔴 🟣 🟤
 ```
 
 ## Température minimale
-
+Slider:
 ```text
--20 ───────────── 40 °C
+-40 ───────────── 0 °C
 ```
 
 ---
+
+## Persistant
+```text
+☑ Persistant
+☑ Semi-persistant
+☐ Caduc
+```
+
+---
+
+## Plantation
+```text
+☑ Printemps
+☑ Été
+☐ Automne
+☐ Hiver
+```
+## Espacement
+Ranger slider:
+```text
+10 ───────────── 100 cm
+```
+
 
 # Colonnes Panel
 
 ```text
 ☑ Photo
-☑ Hauteur(cm)
+☑ ↨ Hauteur(cm)
 ☑ Type
 ☑ Sol
 ☑ Exposition
@@ -787,10 +888,10 @@ Range slider:
 ────────────
 
 ☐ Fleur/Autre
-☐ T° min(°C)
-☐ Couleurs fleurs
-☐ Couleurs feuilles
-☐ Espacement
+☐ ❅ Température minimale (°C)
+☐ Couleur fleurs 🌸
+☐ Couleur feuilles 🍃
+☐ ↔ Espacement (cm)
 ```
 
 Drag-and-drop enabled.
@@ -849,40 +950,57 @@ CSV - Mise à jour
 ## Colors
 
 ```css
-#2F7D32
-#A5D6A7
-#F8FAF7
-#FFFFFF
-#E5E7EB
-#DC2626
-#F59E0B
+Default color #FFFFFF
+Background 1 #F8FAF7
+Background 2 #FAFBFA
+Border  #E5E7EB
+Primary Green #2F7D32
+Light Green #E8F2E6
+Primary button green hover #245E26
+Secondary button green hover #F4FFEE
+text #000000
+secondary text #969191
+Delete button hover #FFDDDD
+Delete or Error #DC2626
+Warning #F59E0B
+Secondary button disable #2F7D32 transparency 50%
+Delete Button disable #DC2626 transparency 50%
 ```
 
 ## Typography
 
 ```css
-Inter SemiBold 20
-Inter Medium 14
+App title Inter SemiBold 20
+Flower Name Inter SemiBold 16
+Column name Inter SemiBold 14 
+Primary and secondary button text Inter Medium 14
 Inter Regular 14
-Inter Regular 12
+Secondary text Inter Regular 12
+Current page and total number of Flower Inter SemiBold 12
+Page navigation button Inter Medium 14
 ```
 
 ---
+
+## Button Icons
+edit 🖉
+document 🗋
+Other button icons are in a dedicated folder named Button Icons
 
 # Final Screen Structure
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ 🌿 MyLittleGarden                         [Mes listes]   [Dessiner]          │
+│ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres]          │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ 🔍 Rechercher une fleur...                 [Filtres] [Colonnes]              │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ ☀ Soleil ✕  Vivace ✕  Juin ✕                                            │
+│ Soleil ✕  Vivace ✕  Juin ✕                                            │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ [+ Ajouter une fleur] [📄 Import CSV ▼] [🖼 Import Images ▼]               │
+│ [+ Ajouter une fleur] [🗋 Import CSV ▼] [🖼 Import Images ▼]               │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ 3 fleurs sélectionnées                                                  │
-│ [Ajouter à une liste ▼] [Créer une liste] [Supprimer]                   │
+│ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]                   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ Flower Grid                                                              │
 ├──────────────────────────────────────────────────────────────────────────────┤
