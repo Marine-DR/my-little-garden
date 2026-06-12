@@ -1027,4 +1027,3 @@ Other button icons are in a dedicated folder named Button Icons
 * Backend-managed flower identifiers
 * Separation of responsibilities between Flower Catalog and Mes listes modules
 
-This version should be considered the new master specification for the Flower Catalog module.
