@@ -1,5 +1,5 @@
 # Context
-MyLittleGarden is an application for Amateur gardener. It allows to create flowerbeds by selecting flower in a list and design the flowerbed based on the selection.
+MyLittleGarden is an application for Amateur gardener. It allows to create flowerbeds by selecting flowers in a list and design the flowerbed based on the selection.
 
 For now, this application will run on a computer with Windows or Linux. 
 The application should be responsive to be well displayed on different screen size.
