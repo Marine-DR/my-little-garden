@@ -933,9 +933,9 @@ CSV - Mise à jour
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ 🔍 Rechercher une fleur...                              [Filtres] [Colonnes] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│                                       1 filtre actif ✕  1 colonne cachée ✕   │
+│                                         1 filtre actif ✕  1 colonne cachée ✕ │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ [+ Ajouter une fleur] [🗋 Import CSV ▼] [🖼 Import Images ▼]               │
+│ [+ Ajouter une fleur] [🗋 Import CSV ▼] [🖼 Import Images ▼]                  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ 3 fleurs sélectionnées                                                       │
 │ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]              │
