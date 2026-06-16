@@ -64,15 +64,15 @@ Right side:
 ---
 
 # Active Filters
-
-Displayed as removable chips.
+Right side:
+1 display the number of active filters  
+1 display the number of hiden colunms
 
 Example:
 
 ```text
-Soleil ✕
-Vivace ✕
-Floraison Été ✕
+2 filtres actifs ✕  
+3 colonnes cachées ✕ 
 ```
 
 ---
@@ -177,28 +177,6 @@ Modifier la fleur
 ```
 
 Only one flower may be edited at a time.
-
----
-
-# Flower Deletion
-
-## Single Flower
-
-```text
-🗑 Supprimer
-```
-
-Confirmation modal:
-
-```text
-Supprimer Achillée ?
-
-Cette action est définitive.
-
-[Annuler] [Supprimer]
-```
-
-Delete action is red.
 
 ---
 
@@ -465,8 +443,8 @@ These actions belong to the Mes Sélections module.
 
 Default columns:
 
-| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Actions |
-| - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |------- |
+| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Modifier |
+| - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |-------- |
 
 ---
 
@@ -683,7 +661,8 @@ Fleur
 ## Couleur Fleurs
 
 Display in column Couleur 🌸  
-Can contains several colors
+Can contains several colors  
+Display color by line and add a second line in the cell if needed
 Text
 
 ```text
@@ -694,7 +673,8 @@ Text
 
 ## Couleur Feuilles
 Display in column Couleur 🍃  
-Can contains several colors
+Can contains several colors  
+Display color by line and add a second line in the cell if needed
 Text
 
 ```text
@@ -901,7 +881,7 @@ Mandatory columns:
 ```text
 Selection
 Nom
-Actions
+Modifier
 ```
 
 Cannot be removed.
@@ -949,20 +929,20 @@ CSV - Mise à jour
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres]          │
+│ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 🔍 Rechercher une fleur...                 [Filtres] [Colonnes]              │
+│ 🔍 Rechercher une fleur...                              [Filtres] [Colonnes] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Soleil ✕  Vivace ✕  Juin ✕                                            │
+│                                       1 filtre actif ✕  1 colonne cachée ✕   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ [+ Ajouter une fleur] [🗋 Import CSV ▼] [🖼 Import Images ▼]               │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 3 fleurs sélectionnées                                                  │
-│ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]                   │
+│ 3 fleurs sélectionnées                                                       │
+│ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]              │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Flower Grid                                                              │
+│ Flower Grid                                                                  │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Pagination                                                               │
+│ Pagination                                                                   │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 

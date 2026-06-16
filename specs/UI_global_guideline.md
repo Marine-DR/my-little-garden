@@ -157,7 +157,7 @@ All the screen with margins:
 - top and bottom 8px
 Table is centered horizontally.
 Footer, header and column name row always visible.
-### Feader
+### Header
 - Background #FFFFFFFF
 - Text secondary text Style 
 - Border #E5E7EBFF 1px
@@ -211,7 +211,7 @@ Footer, header and column name row always visible.
 - Corner radius 5px
 - When displayed to scroll in the table, displayed next to the table. Only on the scrolling content (no next to column name row and footer).
 
-## Search and filter
+## Tool bar
 Take all the width of the screen. Contains search bar, buttons and filter enabled button.
 - Background #FAFBFAFF
 - Border #E5E7EBFF 1px
@@ -239,7 +239,7 @@ Take all the width of the screen. Contains search bar, buttons and filter enable
 - contain icon Button-Icons/Left-Icons/search.svg
 - Icon size 18px by 18px in #969191FF
 
-## Actions bar
+## Administration Actions
 Take all the width of the screen.
 - Background #FFFFFFFF
 - Border #E5E7EBFF 1px
