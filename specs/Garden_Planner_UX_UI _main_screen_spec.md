@@ -4,7 +4,7 @@
 ## Complete UX/UI Product Specification
 
 **Version:** 3.1
-**Date:** 12/06/2026
+**Date:** 1/06/2026
 
 ---
 
@@ -37,42 +37,38 @@ Application title:
 Navigation:
 
 ```text
-[Mes listes]   [Dessiner]
+[Mes Sélections]   [Mes Parterres]
 ```
 
-Buttons:
-
-* **Dessiner** → Primary filled green button
-* **Mes listes** → Secondary outlined button
+Buttons: both in primary buttons style
 
 ---
 
 # Toolbar
+Left side:  
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ 🔍 Rechercher une fleur, couleur, sol, exposition...       │
+│ 🔍 Rechercher une fleur, couleur, sol, exposition...        │ [Filtres(0)]
 └─────────────────────────────────────────────────────────────┘
 ```
 
 Right side:
 
 ```text
-[Filtres] [Colonnes]
+[Colonnes(0)]
 ```
 
 ---
 
-# Active Filters
-Right side:
-1 display the number of active filters  
-1 display the number of hiden colunms
+## Active Filters
+The number of actif filter is indicated inside the button
 
 Example:
 
 ```text
-2 filtres actifs ✕  
-3 colonnes cachées ✕ 
+[Filtres(2)]
+[Colonnes(3)]
 ```
 
 ---
@@ -83,14 +79,14 @@ Displayed above the flower grid.
 
 ```text
 [+ Ajouter une fleur]
-[🗋 Import CSV ▼]
-[🖼 Import Images ▼]
+[🗋 Gérer le catalogue ▼]
+[🖼 Importer Images ▼]
 ```
 
 ---
 
 # Flower Creation
-
+To create one flower at the time.
 Click:
 
 ```text
@@ -157,7 +153,7 @@ Plantation
 ☑ Automne
 ☑ Hiver
 
-[Annuler] [Enregistrer]
+[Annuler] [Créer]
 ```
 
 ---
@@ -167,7 +163,7 @@ Plantation
 Each row contains:
 
 ```text
-🖉 Modifier
+🖉
 ```
 
 Editing opens the same drawer prefilled with existing data.
@@ -176,7 +172,8 @@ Editing opens the same drawer prefilled with existing data.
 Modifier la fleur
 ```
 
-Only one flower may be edited at a time.
+Only one flower may be edited at a time.  
+During the Flower edition, the button is replace by 2 buttons: Save and Cancel
 
 ---
 
@@ -185,14 +182,14 @@ Only one flower may be edited at a time.
 Dropdown:
 
 ```text
-📄 Import CSV
+📄 Importer CSV
 ────────────────────────
 + Ajouter des fleurs
 🖉 Mettre à jour des fleurs
 - Supprimer des fleurs
 ⮔ Remplacer tout le catalogue
 ────────────
-📥 Télécharger modèle CSV
+📥 Télécharger le catalogue CSV
 ```
 
 ### Import Workflow
@@ -286,7 +283,7 @@ Result:
 
 Selections are named collections of flowers.
 
-Seletions are used later in the Dessiner module to build flowerbeds.
+Seletions are used later in the Mes Parterres module to build flowerbeds.
 
 Rules:
 
@@ -443,7 +440,7 @@ These actions belong to the Mes Sélections module.
 
 Default columns:
 
-| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Modifier |
+| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Action |
 | - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |-------- |
 
 ---
@@ -662,7 +659,7 @@ Fleur
 
 Display in column Couleur 🌸  
 Can contains several colors  
-Display color by line and add a second line in the cell if needed
+Display 4 colors by line and add a second line in the cell if needed
 Text
 
 ```text
@@ -674,7 +671,7 @@ Text
 ## Couleur Feuilles
 Display in column Couleur 🍃  
 Can contains several colors  
-Display color by line and add a second line in the cell if needed
+Display 4 colors by line and add a second line in the cell if needed
 Text
 
 ```text
@@ -931,11 +928,9 @@ CSV - Mise à jour
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 🔍 Rechercher une fleur...                              [Filtres] [Colonnes] │
+│ 🔍 Rechercher une fleur...  [Filtres]                             [Colonnes] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│                                         1 filtre actif ✕  1 colonne cachée ✕ │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ [+ Ajouter une fleur] [🗋 Import CSV ▼] [🖼 Import Images ▼]                  │
+│ [+ Ajouter une fleur] [🗋 Gérer le catalogue ▼] [🖼 Importer Images ▼]        │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ 3 fleurs sélectionnées                                                       │
 │ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]              │
