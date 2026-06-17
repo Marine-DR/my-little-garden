@@ -17,5 +17,8 @@ TBC
 ## Need help?
 TBD
 
-## Contributor
-Currently, only me and ChatPT Codex (Sorry, I'm not a developer)
+## Contributors
+Marine DR
+Loic F.
+Florine J.
+ChatPT Codex (Sorry, I'm not a developer)
