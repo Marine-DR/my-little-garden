@@ -659,7 +659,7 @@ Fleur
 
 Display in column Couleur 🌸  
 Can contains several colors  
-Display 4 colors by line and add a second line in the cell if needed
+Display 4 colors by line and add a second line in the cell if needed  
 Text
 
 ```text
@@ -671,7 +671,7 @@ Text
 ## Couleur Feuilles
 Display in column Couleur 🍃  
 Can contains several colors  
-Display 4 colors by line and add a second line in the cell if needed
+Display 4 colors by line and add a second line in the cell if needed  
 Text
 
 ```text
