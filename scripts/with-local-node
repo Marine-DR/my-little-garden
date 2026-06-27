@@ -1,0 +1,16 @@
+#!/bin/sh
+
+set -eu
+
+repository_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+node_bin="$repository_root/.tools/node/bin"
+
+if [ ! -x "$node_bin/node" ]; then
+  echo "Local Node.js was not found at .tools/node." >&2
+  exit 1
+fi
+
+PATH="$node_bin:$repository_root/node_modules/.bin:$PATH"
+export PATH
+
+exec "$@"
