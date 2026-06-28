@@ -28,6 +28,16 @@ npm install
 npm test
 ```
 
+Build and open the desktop application with:
+
+```bash
+npm start
+```
+
+The catalog database is created in Electron's application-data directory on
+first launch. The catalog table reads that SQLite database in alphabetical
+order and displays 25 plants per page.
+
 The supported Node.js version is recorded in `package.json`; TypeScript and
 other JavaScript dependencies are recorded in `package.json` and `package-lock.json`.
 

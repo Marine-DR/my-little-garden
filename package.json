@@ -1,17 +1,38 @@
 {
   "name": "my-little-garden",
   "private": true,
+  "main": "dist/main/main/main.js",
   "scripts": {
     "build:core": "tsc -p packages/core/tsconfig.json",
-    "typecheck": "tsc -p packages/core/tsconfig.json --noEmit",
+    "build:desktop": "vite build && tsc -p apps/desktop/tsconfig.json",
+    "typecheck": "tsc -p packages/core/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.renderer.json --noEmit",
     "test:core": "npm run build:core && node packages/core/tests/plant.test.cjs",
     "test:database": "node packages/database/tests/initial-schema.test.cjs",
-    "test": "npm run typecheck && npm run test:core && npm run test:database"
+    "test:desktop": "vitest run",
+    "test": "npm run typecheck && npm run test:core && npm run test:database && npm run test:desktop",
+    "start": "npm run build:desktop && node scripts/start-electron.cjs"
   },
   "engines": {
     "node": ">=24 <25"
   },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  },
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "@testing-library/jest-dom": "^6.6.4",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "electron": "^42.5.0",
+    "jsdom": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.1.5",
+    "vitest": "^3.2.4"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true
   }
 }
