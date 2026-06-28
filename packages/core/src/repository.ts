@@ -15,9 +15,8 @@ export interface PlantPage {
  * and relationship rows in one transaction.
  */
 export interface PlantRepository {
-  saveGraph(input: PlantWriteInput): Promise<Plant>;
+  upsert(input: PlantWriteInput): Promise<Plant>;
   findById(id: string): Promise<Plant | null>;
   findByNormalizedName(normalizedName: string): Promise<Plant | null>;
   list(page: PlantPageRequest): Promise<PlantPage>;
 }
-

@@ -44,7 +44,7 @@ CREATE TABLE plants (
     bloom_end_month          INTEGER NOT NULL CHECK (
         bloom_end_month BETWEEN 1 AND 12
     ),
-    minimum_temperature_c    INTEGER,
+    minimum_temperature_celsius INTEGER,
     foliage_persistence      TEXT CHECK (
         foliage_persistence IN ('evergreen', 'semi_evergreen', 'deciduous')
     ),
@@ -136,10 +136,7 @@ CREATE INDEX idx_plant_planting_seasons_code_plant
 CREATE TABLE plant_photos (
     plant_id          TEXT PRIMARY KEY,
     managed_filename  TEXT NOT NULL UNIQUE,
-    original_filename TEXT NOT NULL,
-    media_type        TEXT NOT NULL CHECK (
-        media_type IN ('image/jpeg', 'image/png', 'image/webp')
-    ),
+    media_type        TEXT NOT NULL,
     checksum_sha256   TEXT NOT NULL,
     created_at        TEXT NOT NULL,
     FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE

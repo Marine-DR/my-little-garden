@@ -4,8 +4,8 @@ import {
   PHOTO_MEDIA_TYPES,
   PLANTING_SEASON_CODES,
   PLANT_KINDS,
-  type PlantWriteInput,
-} from './plant';
+} from './constants';
+import type { PlantWriteInput } from './plant';
 import { normalizeDatabaseKey } from './normalization';
 
 export interface ValidationIssue {
@@ -119,11 +119,11 @@ export function validatePlantWriteInput(
   }
 
   if (
-    plant.minimumTemperatureC !== null &&
-    !Number.isInteger(plant.minimumTemperatureC)
+    plant.minimumTemperatureCelsius !== null &&
+    !Number.isInteger(plant.minimumTemperatureCelsius)
   ) {
     add(
-      'minimumTemperatureC',
+      'minimumTemperatureCelsius',
       'not_integer',
       'Minimum temperature must be an integer.',
     );
@@ -174,9 +174,6 @@ export function validatePlantWriteInput(
     if (!plant.photo.managedFilename.trim()) {
       add('photo.managedFilename', 'required', 'Managed filename is required.');
     }
-    if (!plant.photo.originalFilename.trim()) {
-      add('photo.originalFilename', 'required', 'Original filename is required.');
-    }
     if (!PHOTO_MEDIA_TYPES.includes(plant.photo.mediaType)) {
       add('photo.mediaType', 'unsupported_media', 'Photo format is unsupported.');
     }
@@ -187,4 +184,3 @@ export function validatePlantWriteInput(
 
   return issues;
 }
-

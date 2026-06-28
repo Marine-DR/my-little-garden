@@ -6,11 +6,12 @@ This document defines the logical plant model and its SQLite representation for 
 
 Implementation artifacts:
 
-- [Initial SQLite migration](../packages/database/migrations/001_initial_schema.sql)
-- [Framework-independent plant types](../packages/core/src/plant.ts)
-- [Shared normalization](../packages/core/src/normalization.ts)
-- [Plant input validation](../packages/core/src/validation.ts)
-- [Database acceptance tests](../packages/database/tests/test_initial_schema.py)
+- [Initial SQLite migration](../../packages/database/migrations/001_initial_schema.sql)
+- [Framework-independent plant types](../../packages/core/src/plant.ts)
+- [Shared constants](../../packages/core/src/constants.ts)
+- [Shared normalization](../../packages/core/src/normalization.ts)
+- [Plant input validation](../../packages/core/src/validation.ts)
+- [Database acceptance tests](../../packages/database/tests/initial-schema.test.cjs)
 
 The model is designed to:
 
@@ -67,7 +68,7 @@ The main entity is named `plants`, because the catalog can contain flowers, foli
 | Floraison | `bloom_start_month`, `bloom_end_month` | INTEGER | Yes | Inclusive month numbers from 1 through 12 |
 | Couleurs fleurs | `plant_flower_colors` → `colors` | relationship | No | Zero or more colors |
 | Couleurs feuilles | `plant_leaf_colors` → `colors` | relationship | No | Zero or more colors |
-| Température min | `minimum_temperature_c` | INTEGER | No | Celsius |
+| Température min | `minimum_temperature_celsius` | INTEGER | No | Celsius |
 | Feuillage persistant | `foliage_persistence` | TEXT | No | `evergreen`, `semi_evergreen`, or `deciduous` |
 | Espace | `spacing_cm` | INTEGER | No | One non-negative value in centimeters |
 | Plantation | `plant_planting_seasons.season_code` | relationship | No | Zero or more closed season codes |
@@ -131,7 +132,7 @@ CREATE TABLE plants (
     bloom_end_month          INTEGER NOT NULL CHECK (
         bloom_end_month BETWEEN 1 AND 12
     ),
-    minimum_temperature_c    INTEGER,
+    minimum_temperature_celsius INTEGER,
     foliage_persistence      TEXT CHECK (
         foliage_persistence IN ('evergreen', 'semi_evergreen', 'deciduous')
     ),
@@ -252,15 +253,14 @@ Changing either set requires an intentional application update and database migr
 ### 5.5 Managed photo metadata
 
 Each plant can have at most one managed photo in the MVP. The binary image remains in application-managed storage; the database stores its metadata.
+Only the generated technical filename is retained. Supported media types are
+validated by the application so adding a format does not require a schema migration.
 
 ```sql
 CREATE TABLE plant_photos (
     plant_id         TEXT PRIMARY KEY,
     managed_filename TEXT NOT NULL UNIQUE,
-    original_filename TEXT NOT NULL,
-    media_type       TEXT NOT NULL CHECK (
-        media_type IN ('image/jpeg', 'image/png', 'image/webp')
-    ),
+    media_type       TEXT NOT NULL,
     checksum_sha256  TEXT NOT NULL,
     created_at       TEXT NOT NULL,
     FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE
@@ -339,7 +339,6 @@ export interface VocabularyValue {
 
 export interface PlantPhoto {
   managedFilename: string;
-  originalFilename: string;
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp';
   checksumSha256: string;
 }
@@ -355,13 +354,13 @@ export interface Plant {
   bloom: { startMonth: number; endMonth: number };
   flowerColors: VocabularyValue[];
   leafColors: VocabularyValue[];
-  minimumTemperatureC: number | null;
+  minimumTemperatureCelsius: number | null;
   foliagePersistence: FoliagePersistence | null;
   spacingCm: number | null;
   plantingSeasons: PlantingSeasonCode[];
   photo: PlantPhoto | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 ```
 
@@ -414,5 +413,5 @@ The plant write service must:
 Run the database acceptance suite from the repository root:
 
 ```bash
-python3 -B -m unittest discover -s packages/database/tests -v
+npm test
 ```

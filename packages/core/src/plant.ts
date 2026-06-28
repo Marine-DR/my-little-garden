@@ -1,33 +1,18 @@
-export const EXPOSURE_CODES = ['sun', 'partial_shade', 'shade'] as const;
+import type {
+  EXPOSURE_CODES,
+  FOLIAGE_PERSISTENCE_VALUES,
+  PHOTO_MEDIA_TYPES,
+  PLANTING_SEASON_CODES,
+  PLANT_KINDS,
+} from './constants';
+import type { NonEmptyArray } from './types';
+
 export type ExposureCode = (typeof EXPOSURE_CODES)[number];
-
-export const PLANTING_SEASON_CODES = [
-  'spring',
-  'summer',
-  'autumn',
-  'winter',
-] as const;
 export type PlantingSeasonCode = (typeof PLANTING_SEASON_CODES)[number];
-
-export const PLANT_KINDS = ['flower', 'foliage', 'grass', 'other'] as const;
 export type PlantKind = (typeof PLANT_KINDS)[number];
-
-export const FOLIAGE_PERSISTENCE_VALUES = [
-  'evergreen',
-  'semi_evergreen',
-  'deciduous',
-] as const;
 export type FoliagePersistence =
   (typeof FOLIAGE_PERSISTENCE_VALUES)[number];
-
-export const PHOTO_MEDIA_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-] as const;
 export type PhotoMediaType = (typeof PHOTO_MEDIA_TYPES)[number];
-
-export type NonEmptyArray<T> = readonly [T, ...T[]];
 
 export interface VocabularyValue {
   readonly id: number;
@@ -36,7 +21,6 @@ export interface VocabularyValue {
 
 export interface PlantPhoto {
   readonly managedFilename: string;
-  readonly originalFilename: string;
   readonly mediaType: PhotoMediaType;
   readonly checksumSha256: string;
 }
@@ -55,13 +39,13 @@ export interface Plant {
   };
   readonly flowerColors: readonly VocabularyValue[];
   readonly leafColors: readonly VocabularyValue[];
-  readonly minimumTemperatureC: number | null;
+  readonly minimumTemperatureCelsius: number | null;
   readonly foliagePersistence: FoliagePersistence | null;
   readonly spacingCm: number | null;
   readonly plantingSeasons: readonly PlantingSeasonCode[];
   readonly photo: PlantPhoto | null;
-  readonly createdAt: string;
-  readonly updatedAt: string;
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
 }
 
 /**
@@ -82,10 +66,9 @@ export interface PlantWriteInput {
   };
   readonly flowerColorLabels: readonly string[];
   readonly leafColorLabels: readonly string[];
-  readonly minimumTemperatureC: number | null;
+  readonly minimumTemperatureCelsius: number | null;
   readonly foliagePersistence: FoliagePersistence | null;
   readonly spacingCm: number | null;
   readonly plantingSeasons: readonly PlantingSeasonCode[];
   readonly photo: PlantPhoto | null;
 }
-
