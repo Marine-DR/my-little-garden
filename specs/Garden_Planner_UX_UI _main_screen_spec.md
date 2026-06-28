@@ -4,7 +4,7 @@
 ## Complete UX/UI Product Specification
 
 **Version:** 3.1
-**Date:** 12/06/2026
+**Date:** 1/06/2026
 
 ---
 
@@ -37,42 +37,38 @@ Application title:
 Navigation:
 
 ```text
-[Mes listes]   [Dessiner]
+[Mes Sélections]   [Mes Parterres]
 ```
 
-Buttons:
-
-* **Dessiner** → Primary filled green button
-* **Mes listes** → Secondary outlined button
+Buttons: both in primary buttons style
 
 ---
 
 # Toolbar
+Left side:  
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│ 🔍 Rechercher une fleur, couleur, sol, exposition...       │
+│ 🔍 Rechercher une fleur, couleur, sol, exposition...        │ [Filtres(0)]
 └─────────────────────────────────────────────────────────────┘
 ```
 
 Right side:
 
 ```text
-[Filtres] [Colonnes]
+[Colonnes(0)]
 ```
 
 ---
 
-# Active Filters
-
-Displayed as removable chips.
+## Active Filters
+The number of actif filter is indicated inside the button
 
 Example:
 
 ```text
-Soleil ✕
-Vivace ✕
-Floraison Été ✕
+[Filtres(2)]
+[Colonnes(3)]
 ```
 
 ---
@@ -83,14 +79,14 @@ Displayed above the flower grid.
 
 ```text
 [+ Ajouter une fleur]
-[🗋 Import CSV ▼]
-[🖼 Import Images ▼]
+[🗋 Gérer le catalogue ▼]
+[🖼 Importer Images ▼]
 ```
 
 ---
 
 # Flower Creation
-
+To create one flower at the time.
 Click:
 
 ```text
@@ -157,7 +153,7 @@ Plantation
 ☑ Automne
 ☑ Hiver
 
-[Annuler] [Enregistrer]
+[Annuler] [Créer]
 ```
 
 ---
@@ -167,7 +163,7 @@ Plantation
 Each row contains:
 
 ```text
-🖉 Modifier
+🖉
 ```
 
 Editing opens the same drawer prefilled with existing data.
@@ -176,29 +172,8 @@ Editing opens the same drawer prefilled with existing data.
 Modifier la fleur
 ```
 
-Only one flower may be edited at a time.
-
----
-
-# Flower Deletion
-
-## Single Flower
-
-```text
-🗑 Supprimer
-```
-
-Confirmation modal:
-
-```text
-Supprimer Achillée ?
-
-Cette action est définitive.
-
-[Annuler] [Supprimer]
-```
-
-Delete action is red.
+Only one flower may be edited at a time.  
+During the Flower edition, the button is replace by 2 buttons: Save and Cancel
 
 ---
 
@@ -207,14 +182,14 @@ Delete action is red.
 Dropdown:
 
 ```text
-📄 Import CSV
+📄 Importer CSV
 ────────────────────────
 + Ajouter des fleurs
 🖉 Mettre à jour des fleurs
 - Supprimer des fleurs
 ⮔ Remplacer tout le catalogue
 ────────────
-📥 Télécharger modèle CSV
+📥 Télécharger le catalogue CSV
 ```
 
 ### Import Workflow
@@ -308,7 +283,7 @@ Result:
 
 Selections are named collections of flowers.
 
-Seletions are used later in the Dessiner module to build flowerbeds.
+Seletions are used later in the Mes Parterres module to build flowerbeds.
 
 Rules:
 
@@ -465,8 +440,8 @@ These actions belong to the Mes Sélections module.
 
 Default columns:
 
-| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Actions |
-| - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |------- |
+| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Action |
+| - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |-------- |
 
 ---
 
@@ -683,7 +658,8 @@ Fleur
 ## Couleur Fleurs
 
 Display in column Couleur 🌸  
-Can contains several colors
+Can contains several colors  
+Display 4 colors by line and add a second line in the cell if needed  
 Text
 
 ```text
@@ -694,7 +670,8 @@ Text
 
 ## Couleur Feuilles
 Display in column Couleur 🍃  
-Can contains several colors
+Can contains several colors  
+Display 4 colors by line and add a second line in the cell if needed  
 Text
 
 ```text
@@ -901,7 +878,7 @@ Mandatory columns:
 ```text
 Selection
 Nom
-Actions
+Modifier
 ```
 
 Cannot be removed.
@@ -945,66 +922,22 @@ CSV - Mise à jour
 
 ---
 
-# Visual Style
-
-## Colors
-
-```css
-Default color #FFFFFF
-Background 1 #F8FAF7
-Background 2 #FAFBFA
-Border  #E5E7EB
-Primary Green #2F7D32
-Light Green #E8F2E6
-Primary button green hover #245E26
-Secondary button green hover #F4FFEE
-text #000000
-secondary text #969191
-Delete button hover #FFDDDD
-Delete or Error #DC2626
-Warning #F59E0B
-Secondary button disable #2F7D32 transparency 50%
-Delete Button disable #DC2626 transparency 50%
-```
-
-## Typography
-
-```css
-App title Inter SemiBold 20
-Flower Name Inter SemiBold 16
-Column name Inter SemiBold 14 
-Primary and secondary button text Inter Medium 14
-Inter Regular 14
-Secondary text Inter Regular 12
-Current page and total number of Flower Inter SemiBold 12
-Page navigation button Inter Medium 14
-```
-
----
-
-## Button Icons
-edit 🖉
-document 🗋
-Other button icons are in a dedicated folder named Button Icons
-
 # Final Screen Structure
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres]          │
+│ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 🔍 Rechercher une fleur...                 [Filtres] [Colonnes]              │
+│ 🔍 Rechercher une fleur...  [Filtres]                             [Colonnes] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Soleil ✕  Vivace ✕  Juin ✕                                            │
+│ [+ Ajouter une fleur] [🗋 Gérer le catalogue ▼] [🖼 Importer Images ▼]        │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ [+ Ajouter une fleur] [🗋 Import CSV ▼] [🖼 Import Images ▼]               │
+│ 3 fleurs sélectionnées                                                       │
+│ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]              │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 3 fleurs sélectionnées                                                  │
-│ [Ajouter à une Sélections ▼] [Créer une Sélections] [Supprimer]                   │
+│ Flower Grid                                                                  │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ Flower Grid                                                              │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ Pagination                                                               │
+│ Pagination                                                                   │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1027,4 +960,3 @@ Other button icons are in a dedicated folder named Button Icons
 * Backend-managed flower identifiers
 * Separation of responsibilities between Flower Catalog and Mes listes modules
 
-This version should be considered the new master specification for the Flower Catalog module.
