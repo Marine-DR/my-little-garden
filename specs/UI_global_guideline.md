@@ -98,7 +98,20 @@ When secondary button is disabled,apply the secondary button standard style and 
 #### Hover
 The delete button state change on mouse hover. On hover, the background color change to #FFDDDDFF and the border color change to #FFDDDDFF
 #### Disabled
-When delete button is disabled,apply the delete button standard style and change the text color to #dc262680 and the border color to #dc262680
+When delete button is disabled,apply the delete button standard style and change the text color to #dc262680 and the border color to #dc262680  
+### Checkbox
+#### Checked
+- Size 20px by 20px  
+- Background #FFFFFFFF    
+- Border  #E5E7EBFF
+- Corner radius 3px for the 4 corners   
+#### Checked  
+- Size 20px by 20px  
+- Background Primary Green #2F7D32FF  
+- Border Primary Green #2F7D32FF
+- Corner radius 3px for the 4 corners   
+- Icon color #FFFFFFFF  
+- Icon centered vertically and horizontally
 ### Pages navigation buttons
 #### Standard
 - Background #FFFFFFFF  

@@ -40,16 +40,20 @@ Select an existing flowerbed > click on the button to download the list and the 
 Select and existing flowerbed > click on the deletion button > confirm the action > the flowerbed is deleted
 # Back up Flow
 ## List of plants management
+### Issue during plant list replacement  
+Click on button to replace plant list > uplaod the new list > display the list of error > Aknowledge the issue > Cancel the replacement > List remains as before the replacement
 ### Cancel a plant deletion  
 * Several at the time:  
 Click on button to delete plants by batch > upload the .csv file with the plants to delete > Cancel the action > No change in the plants list
 * One by one:  
-Click on button to delete only 1 plant > cancel the action > pNo change in the plants list
+Click on button to delete only 1 plant > cancel the action > No change in the plants list
 ### Changes on plants used in a selection
 * Modify plants used in a selection:
 Modify one or several plants > display the list of affected selections > confirm the action > plants modified in mist and selections 
 * Delete plants used in a selection:  
-Select one or several plants > click on delete button > display the list of affected selections > confirm the deletion > plants removed from list and selection 
+Select one or several plants > click on delete button > display the list of affected selections > confirm the deletion > plants removed from list and selection   
+### 2 photos for the same plant
+Upload a photo > a photo already exist for this plant > display a message to select the photo to keep > update the photo related to the plant
 ## Flowers selection management
 ### Cancel a selection deletion
 Select the selection > click on deletion button > cancel the action > the selection is not deleted
