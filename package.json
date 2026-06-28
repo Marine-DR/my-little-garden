@@ -10,7 +10,8 @@
     "test:database": "node packages/database/tests/initial-schema.test.cjs",
     "test:desktop": "vitest run",
     "test": "npm run typecheck && npm run test:core && npm run test:database && npm run test:desktop",
-    "start": "npm run build:desktop && node scripts/start-electron.cjs"
+    "start": "npm run build:desktop && node scripts/start-electron.cjs",
+    "demo": "npm run build:desktop && node scripts/start-electron.cjs --demo"
   },
   "engines": {
     "node": ">=24 <25"

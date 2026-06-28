@@ -34,7 +34,8 @@ const SEASONS = {
 } as const;
 
 export function formatRange(minimum: number | null, maximum: number | null): string {
-  if (minimum === null || maximum === null) return EMPTY_VALUE;
+  if (minimum === null) return EMPTY_VALUE;
+  if (maximum === null) return String(minimum);
   return minimum === maximum ? String(minimum) : `${minimum}–${maximum}`;
 }
 

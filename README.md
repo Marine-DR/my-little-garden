@@ -34,6 +34,13 @@ Build and open the desktop application with:
 npm start
 ```
 
+Launch the isolated demo catalog, loaded from the bundled CSV on every run,
+with:
+
+```bash
+npm run demo
+```
+
 The catalog database is created in Electron's application-data directory on
 first launch. The catalog table reads that SQLite database in alphabetical
 order and displays 25 plants per page.

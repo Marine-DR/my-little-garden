@@ -60,12 +60,12 @@ The main entity is named `plants`, because the catalog can contain flowers, foli
 | French field | Database representation | SQLite type | Mandatory | Rules |
 |---|---|---:|:---:|---|
 | Nom | `plants.name`, `plants.normalized_name` | TEXT | Yes | Non-empty; normalized name is unique |
-| Hauteur | `height_min_cm`, `height_max_cm` | INTEGER | No | Both absent or both present; values non-negative; maximum greater than or equal to minimum |
+| Hauteur | `height_min_cm`, `height_max_cm` | INTEGER | No | Minimum may be provided alone; values non-negative; when present, maximum is greater than or equal to minimum |
 | Type | `type_id` → `plant_types` | INTEGER | No | Extensible vocabulary |
 | Fleur/autre | `plant_kind` | TEXT | No | `flower`, `foliage`, `grass`, or `other` |
 | Sol | `plant_soils` → `soil_types` | relationship | Yes | At least one soil; extensible vocabulary |
 | Exposition | `plant_exposures.exposure_code` | relationship | Yes | At least one closed exposure code |
-| Floraison | `bloom_start_month`, `bloom_end_month` | INTEGER | Yes | Inclusive month numbers from 1 through 12 |
+| Floraison | `bloom_start_month`, `bloom_end_month` | INTEGER | No | Both absent or both present; inclusive month numbers from 1 through 12 |
 | Couleurs fleurs | `plant_flower_colors` → `colors` | relationship | No | Zero or more colors |
 | Couleurs feuilles | `plant_leaf_colors` → `colors` | relationship | No | Zero or more colors |
 | Température min | `minimum_temperature_celsius` | INTEGER | No | Celsius |
@@ -120,16 +120,16 @@ CREATE TABLE plants (
         length(trim(name)) > 0 AND name = trim(name)
     ),
     normalized_name          TEXT NOT NULL CHECK (length(normalized_name) > 0),
-    height_min_cm            INTEGER,
-    height_max_cm            INTEGER,
+    height_min_cm            INTEGER CHECK (height_min_cm >= 0),
+    height_max_cm            INTEGER CHECK (height_max_cm >= 0),
     type_id                  INTEGER,
     plant_kind               TEXT CHECK (
         plant_kind IN ('flower', 'foliage', 'grass', 'other')
     ),
-    bloom_start_month        INTEGER NOT NULL CHECK (
+    bloom_start_month        INTEGER CHECK (
         bloom_start_month BETWEEN 1 AND 12
     ),
-    bloom_end_month          INTEGER NOT NULL CHECK (
+    bloom_end_month          INTEGER CHECK (
         bloom_end_month BETWEEN 1 AND 12
     ),
     minimum_temperature_celsius INTEGER,
@@ -142,14 +142,12 @@ CREATE TABLE plants (
 
     CONSTRAINT uq_plants_normalized_name UNIQUE (normalized_name),
     CONSTRAINT ck_plants_height_range CHECK (
-        (height_min_cm IS NULL AND height_max_cm IS NULL)
-        OR
-        (
-            height_min_cm IS NOT NULL
-            AND height_max_cm IS NOT NULL
-            AND height_min_cm >= 0
-            AND height_max_cm >= height_min_cm
-        )
+        height_max_cm IS NULL
+        OR (height_min_cm IS NOT NULL AND height_max_cm >= height_min_cm)
+    ),
+    CONSTRAINT ck_plants_bloom_completeness CHECK (
+        (bloom_start_month IS NULL AND bloom_end_month IS NULL)
+        OR (bloom_start_month IS NOT NULL AND bloom_end_month IS NOT NULL)
     ),
     CONSTRAINT fk_plants_type FOREIGN KEY (type_id)
         REFERENCES plant_types (id)
@@ -346,12 +344,12 @@ export interface PlantPhoto {
 export interface Plant {
   id: string;
   name: string;
-  heightCm: { min: number; max: number } | null;
+  heightCm: { min: number; max: number | null } | null;
   type: VocabularyValue | null;
   kind: PlantKind | null;
   soils: [VocabularyValue, ...VocabularyValue[]];
   exposures: [ExposureCode, ...ExposureCode[]];
-  bloom: { startMonth: number; endMonth: number };
+  bloom: { startMonth: number; endMonth: number } | null;
   flowerColors: VocabularyValue[];
   leafColors: VocabularyValue[];
   minimumTemperatureCelsius: number | null;
@@ -380,7 +378,7 @@ The plant write service must:
 - Names conflicting with another database plant ID are blocking errors.
 - Unknown exposure and planting-season values are blocking errors.
 - Unknown type, soil, and color values are displayed in the preview and created only after confirmation.
-- Missing name, soil, exposure, bloom start, or bloom end values are blocking errors.
+- Missing name, soil, or exposure values are blocking errors. Bloom may be absent; when supplied, both months are required.
 - All catalog, vocabulary, relationship, selection-impact, and photo-metadata changes occur in one transaction.
 - A failed import leaves the previous database state unchanged.
 
@@ -391,7 +389,7 @@ The plant write service must:
 | No duplicate plant names | Unique `plants.normalized_name` plus shared application normalization | Attempt exact, case-varied, whitespace-varied, and accent-varied duplicates; preview and database must reject them |
 | No application entry limit | UUID identifiers, paginated reads, indexed filters, and no configured maximum | Import and paginate at least 50,000 valid plants |
 | Full field list represented | Every requested field maps to a scalar column or normalized relationship | Persist and reload a plant containing every optional and mandatory attribute |
-| Mandatory information enforced | Service requires name, soil, exposure, and both bloom months; scalar columns are `NOT NULL` | Reject each missing mandatory value independently and verify rollback |
+| Mandatory information enforced | Service requires name, soil, and exposure; bloom is either absent or contains both months | Reject each missing mandatory value independently and verify rollback |
 | Multi-valued attributes supported | Junction tables with composite primary keys | Store several soils, exposures, colors, and seasons; reject duplicate associations |
 | Closed constants protected | SQLite `CHECK` constraints and TypeScript unions | Reject unsupported exposure and planting-season codes |
 | Extensible values supported | Unique normalized lookup tables | Import a new type, soil, and color; verify reuse by normalized variants |

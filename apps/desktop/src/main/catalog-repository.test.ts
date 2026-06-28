@@ -6,11 +6,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { listCatalogPlants } from './catalog-repository';
 
 const migration = readFileSync(resolve('packages/database/migrations/001_initial_schema.sql'), 'utf8');
+const optionalFieldsMigration = readFileSync(resolve('packages/database/migrations/002_optional_bloom_and_partial_height.sql'), 'utf8');
 let database: DatabaseSync | undefined;
 
 function createCatalog(): DatabaseSync {
   database = new DatabaseSync(':memory:');
   database.exec(migration);
+  database.exec(optionalFieldsMigration);
   const plant = database.prepare(`INSERT INTO plants (
     id, name, normalized_name, bloom_start_month, bloom_end_month, created_at, updated_at
   ) VALUES (?, ?, ?, 5, 9, '2026-06-28', '2026-06-28')`);

@@ -47,7 +47,12 @@ test('accepts a blooming period crossing the calendar year', () => {
   assert.deepEqual(validatePlantWriteInput(plant), []);
 });
 
-test('requires name, soil, exposure, and valid bloom months', () => {
+test('accepts plants without bloom and with only a minimum height', () => {
+  const plant = validPlant({ bloom: null, heightCm: { min: 42, max: null } });
+  assert.deepEqual(validatePlantWriteInput(plant), []);
+});
+
+test('requires name, soil, exposure, and validates provided bloom months', () => {
   const issues = validatePlantWriteInput(
     validPlant({
       name: '   ',

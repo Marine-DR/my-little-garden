@@ -49,9 +49,9 @@ export function validatePlantWriteInput(
 
   if (plant.heightCm !== null) {
     const { min, max } = plant.heightCm;
-    if (!Number.isInteger(min) || !Number.isInteger(max)) {
+    if (!Number.isInteger(min) || (max !== null && !Number.isInteger(max))) {
       add('heightCm', 'not_integer', 'Height values must be integers.');
-    } else if (min < 0 || max < min) {
+    } else if (min < 0 || (max !== null && max < min)) {
       add(
         'heightCm',
         'invalid_range',
@@ -89,11 +89,13 @@ export function validatePlantWriteInput(
     }
   }
 
-  if (!isMonth(plant.bloom.startMonth)) {
-    add('bloom.startMonth', 'invalid_month', 'Bloom start must be 1 to 12.');
-  }
-  if (!isMonth(plant.bloom.endMonth)) {
-    add('bloom.endMonth', 'invalid_month', 'Bloom end must be 1 to 12.');
+  if (plant.bloom !== null) {
+    if (!isMonth(plant.bloom.startMonth)) {
+      add('bloom.startMonth', 'invalid_month', 'Bloom start must be 1 to 12.');
+    }
+    if (!isMonth(plant.bloom.endMonth)) {
+      add('bloom.endMonth', 'invalid_month', 'Bloom end must be 1 to 12.');
+    }
   }
 
   if (hasDuplicates(plant.flowerColorLabels)) {

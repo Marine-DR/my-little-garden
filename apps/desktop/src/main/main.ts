@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron';
 import { listCatalogPlants } from './catalog-repository.js';
+import { seedDemoCatalog } from './demo-catalog.js';
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'garden-photo', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -15,10 +16,14 @@ function ensureSchema(db: DatabaseSync): void {
   const hasPlants = db.prepare(
     "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
   ).get();
-  if (hasPlants) return;
-
-  const migrationPath = join(app.getAppPath(), 'packages', 'database', 'migrations', '001_initial_schema.sql');
-  db.exec(readFileSync(migrationPath, 'utf8'));
+  const migrationDirectory = join(app.getAppPath(), 'packages', 'database', 'migrations');
+  if (!hasPlants) {
+    db.exec(readFileSync(join(migrationDirectory, '001_initial_schema.sql'), 'utf8'));
+  }
+  const version = Number(db.prepare('PRAGMA user_version').get()?.user_version ?? 0);
+  if (version < 2) {
+    db.exec(readFileSync(join(migrationDirectory, '002_optional_bloom_and_partial_height.sql'), 'utf8'));
+  }
 }
 
 async function createWindow(): Promise<void> {
@@ -41,11 +46,16 @@ async function createWindow(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  const demoMode = process.env.MY_LITTLE_GARDEN_DEMO === '1';
   const dataDirectory = app.getPath('userData');
   const photoDirectory = join(dataDirectory, 'images');
-  database = new DatabaseSync(join(dataDirectory, 'catalog.sqlite'));
+  database = new DatabaseSync(demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'));
   database.exec('PRAGMA foreign_keys = ON');
   ensureSchema(database);
+  if (demoMode) {
+    const csvPath = join(app.getAppPath(), 'apps', 'desktop', 'resources', 'demo-catalog.csv');
+    seedDemoCatalog(database, readFileSync(csvPath, 'utf8'));
+  }
 
   protocol.handle('garden-photo', (request) => {
     const filename = decodeURIComponent(new URL(request.url).pathname.slice(1));
