@@ -18,7 +18,7 @@ function validPlant(overrides = {}) {
     bloom: { startMonth: 5, endMonth: 9 },
     flowerColorLabels: ['Rose'],
     leafColorLabels: ['Vert'],
-    minimumTemperatureC: -10,
+    minimumTemperatureCelsius: -10,
     foliagePersistence: 'deciduous',
     spacingCm: 40,
     plantingSeasons: ['spring', 'autumn'],
@@ -29,6 +29,13 @@ function validPlant(overrides = {}) {
 
 test('normalizes case, diacritics, and repeated whitespace', () => {
   assert.equal(normalizeDatabaseKey('  ROSÉ   ancienne  '), 'rose ancienne');
+});
+
+test('preserves meaningful special characters in normalized names', () => {
+  assert.equal(
+    normalizeDatabaseKey("  L'ŒILLET—D'INDE & CIE.  "),
+    "l'œillet—d'inde & cie.",
+  );
 });
 
 test('accepts a complete valid plant', () => {
@@ -76,4 +83,18 @@ test('rejects invalid measurements and duplicate normalized vocabularies', () =>
     new Set(issues.map(({ field }) => field)),
     new Set(['heightCm', 'soilLabels', 'flowerColorLabels', 'spacingCm']),
   );
+});
+
+test('validates photo media types in the application layer', () => {
+  const issues = validatePlantWriteInput(
+    validPlant({
+      photo: {
+        managedFilename: 'plant-photo.avif',
+        mediaType: 'image/avif',
+        checksumSha256: 'a'.repeat(64),
+      },
+    }),
+  );
+
+  assert.deepEqual(issues.map(({ field }) => field), ['photo.mediaType']);
 });

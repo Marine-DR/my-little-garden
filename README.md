@@ -35,4 +35,3 @@ other JavaScript dependencies are recorded in `package.json` and `package-lock.j
 Marine DR
 Loic F.
 Florine J.
-ChatPT Codex (Sorry, I'm not a developer)
