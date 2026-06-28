@@ -1,0 +1,17 @@
+{
+  "name": "my-little-garden",
+  "private": true,
+  "scripts": {
+    "build:core": "tsc -p packages/core/tsconfig.json",
+    "typecheck": "tsc -p packages/core/tsconfig.json --noEmit",
+    "test:core": "npm run build:core && node packages/core/tests/plant.test.cjs",
+    "test:database": "node packages/database/tests/initial-schema.test.cjs",
+    "test": "npm run typecheck && npm run test:core && npm run test:database"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
