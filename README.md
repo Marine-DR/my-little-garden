@@ -19,17 +19,17 @@ TBD
 
 ## Local development tools
 
-The repository-local Node.js runtime is installed in `.tools/node` and is not
-tracked by Git. Run npm commands through the helper so Node and npm are placed
-on `PATH` for that command:
+Install Node.js 24 and npm with Homebrew, then install the project dependencies
+and run the test suite directly:
 
 ```bash
-./scripts/with-local-node npm test
+brew install node@24
+npm install
+npm test
 ```
 
-The selected runtime version is recorded in `.node-version`; TypeScript and
-other JavaScript dependencies are recorded in `package.json` and
-`package-lock.json`.
+The supported Node.js version is recorded in `package.json`; TypeScript and
+other JavaScript dependencies are recorded in `package.json` and `package-lock.json`.
 
 ## Contributors
 Marine DR

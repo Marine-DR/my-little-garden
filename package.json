@@ -1,7 +1,6 @@
 {
   "name": "my-little-garden",
   "private": true,
-  "packageManager": "npm@11.13.0",
   "scripts": {
     "build:core": "tsc -p packages/core/tsconfig.json",
     "typecheck": "tsc -p packages/core/tsconfig.json --noEmit",
