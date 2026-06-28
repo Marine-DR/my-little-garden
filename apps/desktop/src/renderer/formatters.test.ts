@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatBloom, formatList, formatNumber, formatRange, formatSeasons } from './formatters';
+import { colorEmoji, formatBloom, formatList, formatNumber, formatRange, formatSeasons } from './formatters';
 
 describe('catalog display formatters', () => {
   it('displays a dash for empty values', () => {
@@ -14,5 +14,8 @@ describe('catalog display formatters', () => {
     expect(formatRange(42, null)).toBe('42');
     expect(formatBloom(6, 9)).toBe('Juin→Sep');
     expect(formatSeasons(['spring', 'autumn'])).toBe('Printemps, Automne');
+    expect(colorEmoji('Rosé')).toBe('🩷');
+    expect(colorEmoji('Vert')).toBe('🟢');
+    expect(colorEmoji('Inconnue')).toBeNull();
   });
 });

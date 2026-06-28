@@ -33,6 +33,25 @@ const SEASONS = {
   winter: 'Hiver',
 } as const;
 
+const COLOR_EMOJIS: Record<string, string> = {
+  blanc: '⚪',
+  jaune: '🟡',
+  rouge: '🔴',
+  violet: '🟣',
+  bleu: '🔵',
+  rose: '🩷',
+  orange: '🟠',
+  vert: '🟢',
+  marron: '🟤',
+  brun: '🟤',
+  noir: '⚫',
+};
+
+export function colorEmoji(label: string): string | null {
+  const key = label.trim().normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+  return COLOR_EMOJIS[key] ?? null;
+}
+
 export function formatRange(minimum: number | null, maximum: number | null): string {
   if (minimum === null) return EMPTY_VALUE;
   if (maximum === null) return String(minimum);
@@ -56,7 +75,11 @@ export function formatKind(kind: CatalogPlant['kind']): string {
 }
 
 export function formatSeasons(seasons: CatalogPlant['plantingSeasons']): string {
-  return seasons.length === 0 ? EMPTY_VALUE : seasons.map((season) => SEASONS[season]).join(', ');
+  return seasons.length === 0 ? EMPTY_VALUE : seasonLabels(seasons).join(', ');
+}
+
+export function seasonLabels(seasons: CatalogPlant['plantingSeasons']): string[] {
+  return seasons.map((season) => SEASONS[season]);
 }
 
 export function formatNumber(value: number | null): string {

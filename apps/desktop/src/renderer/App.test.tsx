@@ -29,14 +29,16 @@ describe('App catalog', () => {
     render(<App />);
     const row = await screen.findByRole('row', { name: /Rose page 1/ });
     expect(screen.getAllByRole('columnheader').map((heading) => heading.textContent)).toEqual([
-      'Photo', 'Nom', 'Hauteur (cm)', 'Type', 'Fleur/autre', 'Sol', 'Exposition',
-      'Floraison', 'Couleurs fleurs', 'Couleurs feuilles', 'Température min',
-      'Feuillage persistant', 'Espace (cm)', 'Plantation',
+      'Photo', 'Nom', '↨ (cm)', 'Type', 'Fleur/autre', 'Sol', 'Exposition',
+      'Floraison', 'Couleurs 🌸', 'Couleurs 🍃', '❅ (°C)',
+      'Persistant', '↔ (cm)', 'Plantation',
     ]);
     expect(within(row).getAllByText('-')).toHaveLength(1);
     expect(row).toHaveTextContent('50–80');
     expect(row).toHaveTextContent('Juin→Sep');
-    expect(row).toHaveTextContent('Printemps, Automne');
+    expect(within(row).getByText('Printemps')).toBeInTheDocument();
+    expect(within(row).getByText('Automne')).toBeInTheDocument();
+    expect(within(row).getByRole('img', { name: 'Couleur Rose' })).toHaveTextContent('🩷');
   });
 
   it('loads the next group of 25 plants from the database boundary', async () => {

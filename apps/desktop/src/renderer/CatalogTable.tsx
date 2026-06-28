@@ -3,8 +3,23 @@ import { PlantPhoto } from './PlantPhoto';
 import { Pagination } from './Pagination';
 import {
   EMPTY_VALUE, EXPOSURES, PERSISTENCE, formatBloom, formatKind,
-  formatList, formatNumber, formatRange, formatSeasons,
+  colorEmoji, formatNumber, formatRange, seasonLabels,
 } from './formatters';
+
+function VerticalList({ values }: { readonly values: readonly string[] }) {
+  if (values.length === 0) return EMPTY_VALUE;
+  return <span className="vertical-list">{values.map((value) => <span key={value}>{value}</span>)}</span>;
+}
+
+function ColorList({ colors }: { readonly colors: readonly string[] }) {
+  if (colors.length === 0) return EMPTY_VALUE;
+  return <span className="color-list">{colors.map((color) => {
+    const emoji = colorEmoji(color);
+    return emoji
+      ? <span key={color} className="color-bubble" role="img" aria-label={`Couleur ${color}`} title={color}>{emoji}</span>
+      : <span key={color} className="unknown-color">{color}</span>;
+  })}</span>;
+}
 
 function PlantRow({ plant }: { readonly plant: CatalogPlant }) {
   const persistence = plant.foliagePersistence ? PERSISTENCE[plant.foliagePersistence] : null;
@@ -15,17 +30,17 @@ function PlantRow({ plant }: { readonly plant: CatalogPlant }) {
       <td>{formatRange(plant.heightMinCm, plant.heightMaxCm)}</td>
       <td>{plant.type ?? EMPTY_VALUE}</td>
       <td>{formatKind(plant.kind)}</td>
-      <td>{formatList(plant.soils)}</td>
+      <td><VerticalList values={plant.soils} /></td>
       <td className="icon-list">{plant.exposures.length === 0 ? EMPTY_VALUE : plant.exposures.map((code) => (
-        <abbr key={code} title={EXPOSURES[code].label}>{EXPOSURES[code].icon}</abbr>
+        <abbr key={code} className={`exposure-icon exposure-${code}`} title={EXPOSURES[code].label}>{EXPOSURES[code].icon}</abbr>
       ))}</td>
       <td>{formatBloom(plant.bloomStartMonth, plant.bloomEndMonth)}</td>
-      <td>{formatList(plant.flowerColors)}</td>
-      <td>{formatList(plant.leafColors)}</td>
+      <td><ColorList colors={plant.flowerColors} /></td>
+      <td><ColorList colors={plant.leafColors} /></td>
       <td>{formatNumber(plant.minimumTemperatureCelsius)}</td>
-      <td>{persistence ? <abbr title={persistence.label}>{persistence.icon}</abbr> : EMPTY_VALUE}</td>
+      <td>{persistence ? <abbr className={`persistence-icon persistence-${plant.foliagePersistence}`} title={persistence.label}>{persistence.icon}</abbr> : EMPTY_VALUE}</td>
       <td>{formatNumber(plant.spacingCm)}</td>
-      <td>{formatSeasons(plant.plantingSeasons)}</td>
+      <td><VerticalList values={seasonLabels(plant.plantingSeasons)} /></td>
     </tr>
   );
 }
@@ -47,11 +62,11 @@ export function CatalogTable({ data, onPageChange }: {
           <div className="table-scroll">
             <table>
               <thead><tr>
-                <th scope="col">Photo</th><th scope="col">Nom</th><th scope="col">Hauteur (cm)</th>
+                <th scope="col">Photo</th><th scope="col">Nom</th><th scope="col"><span className="header-symbol">↨</span> (cm)</th>
                 <th scope="col">Type</th><th scope="col">Fleur/autre</th><th scope="col">Sol</th>
-                <th scope="col">Exposition</th><th scope="col">Floraison</th><th scope="col">Couleurs fleurs</th>
-                <th scope="col">Couleurs feuilles</th><th scope="col">Température min</th>
-                <th scope="col">Feuillage persistant</th><th scope="col">Espace (cm)</th><th scope="col">Plantation</th>
+                <th scope="col">Exposition</th><th scope="col">Floraison</th><th scope="col">Couleurs 🌸</th>
+                <th scope="col">Couleurs 🍃</th><th scope="col"><span className="header-symbol">❅</span> (°C)</th>
+                <th scope="col">Persistant</th><th scope="col"><span className="header-symbol">↔</span> (cm)</th><th scope="col">Plantation</th>
               </tr></thead>
               <tbody>{data.items.map((plant) => <PlantRow key={plant.id} plant={plant} />)}</tbody>
             </table>

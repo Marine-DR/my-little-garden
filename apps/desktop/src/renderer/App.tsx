@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { CatalogPage } from '../shared/catalog';
 import appIcon from './assets/app-icon.png';
+import flowerbedIcon from './assets/flowerbed.png';
+import listIcon from './assets/list.svg';
 import { CatalogTable } from './CatalogTable';
 
 export function App() {
@@ -24,7 +26,10 @@ export function App() {
           <img src={appIcon} alt="" />
           MyLittleGarden
         </a>
-        <nav aria-label="Navigation principale"><button>Mes Sélections</button><button>Mes Parterres</button></nav>
+        <nav aria-label="Navigation principale">
+          <button><img src={listIcon} alt="" />Mes Sélections</button>
+          <button><img src={flowerbedIcon} alt="" />Mes Parterres</button>
+        </nav>
       </header>
       <main>
         {error ? <div className="error-banner" role="alert">{error}</div> : null}
