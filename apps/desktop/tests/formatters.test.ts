@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { colorEmoji, formatBloom, formatList, formatNumber, formatRange, formatSeasons } from './formatters';
+import {
+  colorEmoji,
+  formatBloom,
+  formatList,
+  formatNumber,
+  formatRange,
+  formatSeasons,
+} from '../src/renderer/formatters';
 
 describe('catalog display formatters', () => {
   it('displays a dash for empty values', () => {

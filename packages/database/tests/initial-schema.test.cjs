@@ -8,16 +8,11 @@ const migration = readFileSync(
   join(__dirname, '..', 'migrations', '001_initial_schema.sql'),
   'utf8',
 );
-const optionalFieldsMigration = readFileSync(
-  join(__dirname, '..', 'migrations', '002_optional_bloom_and_partial_height.sql'),
-  'utf8',
-);
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
   const database = new DatabaseSync(':memory:');
   database.exec(migration);
-  database.exec(optionalFieldsMigration);
   database.exec('PRAGMA foreign_keys = ON');
   t.after(() => database.close());
   return database;
@@ -168,24 +163,6 @@ test('plants may omit bloom and provide only a minimum height', (t) => {
     heightMin: 42,
     heightMax: null,
   }));
-});
-
-test('optional field migration preserves existing plants and relationships', (t) => {
-  const database = new DatabaseSync(':memory:');
-  database.exec(migration);
-  database.exec('PRAGMA foreign_keys = ON');
-  t.after(() => database.close());
-  insertPlant(database);
-  database.prepare("INSERT INTO soil_types (label, normalized_label, created_at) VALUES ('Drainé', 'draine', ?)").run(now);
-  database.prepare('INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, 1)')
-    .run('00000000-0000-4000-8000-000000000001');
-
-  database.exec(optionalFieldsMigration);
-
-  assert.equal(database.prepare('SELECT count(*) AS total FROM plants').get().total, 1);
-  assert.equal(database.prepare('SELECT count(*) AS total FROM plant_soils').get().total, 1);
-  assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
-  assert.equal(database.prepare('PRAGMA user_version').get().user_version, 2);
 });
 
 test('closed constants and duplicate associations are rejected', (t) => {

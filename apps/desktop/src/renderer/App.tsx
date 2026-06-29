@@ -12,12 +12,21 @@ export function App() {
 
   useEffect(() => {
     let active = true;
-    setError(null);
     window.catalogApi.listPlants(page)
-      .then((result) => { if (active) setData(result); })
+      .then((result) => {
+        if (active) {
+          setData(result);
+          setError(null);
+        }
+      })
       .catch(() => { if (active) setError('Le catalogue n’a pas pu être chargé.'); });
     return () => { active = false; };
   }, [page]);
+
+  const changePage = (nextPage: number): void => {
+    setError(null);
+    setPage(nextPage);
+  };
 
   return (
     <div className="app-shell">
@@ -34,7 +43,7 @@ export function App() {
       <main>
         {error ? <div className="error-banner" role="alert">{error}</div> : null}
         {!data && !error ? <div className="loading" role="status">Chargement du catalogue…</div> : null}
-        {data ? <CatalogTable data={data} onPageChange={setPage} /> : null}
+        {data ? <CatalogTable data={data} onPageChange={changePage} /> : null}
       </main>
     </div>
   );

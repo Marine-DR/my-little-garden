@@ -5,9 +5,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./apps/desktop/src/renderer/test-setup.ts'],
-    include: ['apps/desktop/src/**/*.test.{ts,tsx}'],
+    setupFiles: ['./apps/desktop/tests/test-setup.ts'],
+    include: ['apps/desktop/tests/**/*.test.{ts,tsx}'],
     restoreMocks: true,
   },
 });
-

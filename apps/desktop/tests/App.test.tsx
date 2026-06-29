@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CatalogPage, CatalogPlant } from '../shared/catalog';
-import { App } from './App';
+import type { CatalogPage, CatalogPlant } from '../src/shared/catalog';
+import { App } from '../src/renderer/App';
 
 const rose: CatalogPlant = {
   id: 'rose', name: 'Rose ancienne', photoUrl: null, heightMinCm: 50, heightMaxCm: 80,

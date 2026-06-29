@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
+import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron';
-import { listCatalogPlants } from './catalog-repository.js';
+import type { CatalogPage, CatalogPlant } from '../shared/catalog.js';
 import { seedDemoCatalog } from './demo-catalog.js';
 
 protocol.registerSchemesAsPrivileged([
@@ -11,6 +13,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 let database: DatabaseSync;
+let catalogRepository: PlantCatalogRepository;
+const CATALOG_PAGE_SIZE = 25;
 
 function ensureSchema(db: DatabaseSync): void {
   const hasPlants = db.prepare(
@@ -20,10 +24,55 @@ function ensureSchema(db: DatabaseSync): void {
   if (!hasPlants) {
     db.exec(readFileSync(join(migrationDirectory, '001_initial_schema.sql'), 'utf8'));
   }
-  const version = Number(db.prepare('PRAGMA user_version').get()?.user_version ?? 0);
-  if (version < 2) {
-    db.exec(readFileSync(join(migrationDirectory, '002_optional_bloom_and_partial_height.sql'), 'utf8'));
+}
+
+function photoUrl(filename: string | null): string | null {
+  if (!filename || basename(filename) !== filename) return null;
+  return `garden-photo:///${encodeURIComponent(filename)}`;
+}
+
+function toCatalogPlant(plant: Plant): CatalogPlant {
+  return {
+    id: plant.id,
+    name: plant.name,
+    photoUrl: photoUrl(plant.photo?.managedFilename ?? null),
+    heightMinCm: plant.heightCm?.min ?? null,
+    heightMaxCm: plant.heightCm?.max ?? null,
+    type: plant.type?.label ?? null,
+    kind: plant.kind,
+    soils: plant.soils.map(({ label }) => label),
+    exposures: plant.exposures,
+    bloomStartMonth: plant.bloom?.startMonth ?? null,
+    bloomEndMonth: plant.bloom?.endMonth ?? null,
+    flowerColors: plant.flowerColors.map(({ label }) => label),
+    leafColors: plant.leafColors.map(({ label }) => label),
+    minimumTemperatureCelsius: plant.minimumTemperatureCelsius,
+    foliagePersistence: plant.foliagePersistence,
+    spacingCm: plant.spacingCm,
+    plantingSeasons: plant.plantingSeasons,
+  };
+}
+
+async function listCatalogPage(requestedPage: number): Promise<CatalogPage> {
+  const normalizedPage = Math.max(1, Math.trunc(requestedPage) || 1);
+  let result = await catalogRepository.list({
+    offset: (normalizedPage - 1) * CATALOG_PAGE_SIZE,
+    limit: CATALOG_PAGE_SIZE,
+  });
+  const pageCount = Math.max(1, Math.ceil(result.total / CATALOG_PAGE_SIZE));
+  const page = Math.min(normalizedPage, pageCount);
+  if (page !== normalizedPage) {
+    result = await catalogRepository.list({
+      offset: (page - 1) * CATALOG_PAGE_SIZE,
+      limit: CATALOG_PAGE_SIZE,
+    });
   }
+  return {
+    items: result.items.map(toCatalogPlant),
+    page,
+    pageSize: CATALOG_PAGE_SIZE,
+    total: result.total,
+  };
 }
 
 async function createWindow(): Promise<void> {
@@ -52,6 +101,7 @@ app.whenReady().then(async () => {
   database = new DatabaseSync(demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'));
   database.exec('PRAGMA foreign_keys = ON');
   ensureSchema(database);
+  catalogRepository = new SqlitePlantCatalogRepository(database);
   if (demoMode) {
     const csvPath = join(app.getAppPath(), 'apps', 'desktop', 'resources', 'demo-catalog.csv');
     seedDemoCatalog(database, readFileSync(csvPath, 'utf8'));
@@ -65,7 +115,7 @@ app.whenReady().then(async () => {
     return net.fetch(pathToFileURL(join(photoDirectory, filename)).toString());
   });
 
-  ipcMain.handle('catalog:list', (_event, page: number) => listCatalogPlants(database, page));
+  ipcMain.handle('catalog:list', (_event, page: number) => listCatalogPage(page));
   await createWindow();
 
   app.on('activate', () => {
