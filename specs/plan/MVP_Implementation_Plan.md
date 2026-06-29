@@ -34,8 +34,8 @@ Core interfaces:
 
 ## Data and Import Behavior
 
-- Model all defined plant attributes: identity, name, photo, height range, type, flower/other category, soils, exposures, minimum temperature, flowering interval, flower and foliage colors, foliage persistence, spacing range, and planting seasons.
-- Require a unique name, one or more soils, one or more exposures, and flowering start/end months. Treat other fields and photos as optional, showing placeholders where absent.
+- Model all defined plant attributes: identity, name, photo, optional minimum/maximum height, type, flower/other category, soils, exposures, minimum temperature, optional flowering interval, flower and foliage colors, foliage persistence, spacing, and planting seasons.
+- Require a unique name, one or more soils, and one or more exposures. Treat other fields, flowering dates, and photos as optional, showing placeholders where absent.
 - Provide a downloadable UTF-8 CSV template. Use semicolon as the exported separator, accept semicolon or comma on import, and use `|` inside multi-value cells.
 - Support an optional `plant_id` UUID:
   - Match existing plants by UUID first.

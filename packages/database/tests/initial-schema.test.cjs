@@ -140,7 +140,7 @@ test('month, height, and spacing constraints reject invalid values', (t) => {
     { bloomEnd: 13 },
     { heightMin: -1, heightMax: 10 },
     { heightMin: 20, heightMax: 10 },
-    { heightMin: 20, heightMax: null },
+    { heightMin: null, heightMax: 20 },
     { spacing: -1 },
   ];
 
@@ -153,6 +153,16 @@ test('month, height, and spacing constraints reject invalid values', (t) => {
       }),
     );
   });
+});
+
+test('plants may omit bloom and provide only a minimum height', (t) => {
+  const database = createDatabase(t);
+  assert.doesNotThrow(() => insertPlant(database, {
+    bloomStart: null,
+    bloomEnd: null,
+    heightMin: 42,
+    heightMax: null,
+  }));
 });
 
 test('closed constants and duplicate associations are rejected', (t) => {
