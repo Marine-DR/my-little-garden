@@ -182,7 +182,7 @@ During the Flower edition, the button is replace by 2 buttons: Save and Cancel
 Dropdown:
 
 ```text
-📄 Importer CSV
+📄 Gérer le catalogue
 ────────────────────────
 + Ajouter des fleurs
 🖉 Mettre à jour des fleurs

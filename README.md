@@ -49,6 +49,7 @@ The supported Node.js version is recorded in `package.json`; TypeScript and
 other JavaScript dependencies are recorded in `package.json` and `package-lock.json`.
 
 ## Contributors
-Marine DR
-Loic F.
-Florine J.
+Marine DR  
+Loic F.  
+Florine J.  
+Co-autor ChatGPT Codex
