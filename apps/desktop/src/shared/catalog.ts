@@ -14,12 +14,11 @@ export interface CatalogPlant {
   readonly leafColors: readonly string[];
   readonly minimumTemperatureCelsius: number | null;
   readonly foliagePersistence:
-    | 'evergreen'
-    | 'semi_evergreen'
-    | 'deciduous'
-    | null;
+    'evergreen' | 'semi_evergreen' | 'deciduous' | null;
   readonly spacingCm: number | null;
-  readonly plantingSeasons: readonly ('spring' | 'summer' | 'autumn' | 'winter')[];
+  readonly plantingSeasons: readonly (
+    'spring' | 'summer' | 'autumn' | 'winter'
+  )[];
 }
 
 export interface CatalogPage {
@@ -32,4 +31,3 @@ export interface CatalogPage {
 export interface CatalogApi {
   listPlants(page: number): Promise<CatalogPage>;
 }
-

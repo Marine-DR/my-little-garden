@@ -3,8 +3,18 @@ import type { CatalogPlant } from '../shared/catalog';
 export const EMPTY_VALUE = '-';
 
 const MONTHS = [
-  'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
-  'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc',
+  'Jan',
+  'Fév',
+  'Mar',
+  'Avr',
+  'Mai',
+  'Juin',
+  'Juil',
+  'Août',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Déc',
 ];
 
 const KIND_LABELS: Record<NonNullable<CatalogPlant['kind']>, string> = {
@@ -48,11 +58,18 @@ const COLOR_EMOJIS: Record<string, string> = {
 };
 
 export function colorEmoji(label: string): string | null {
-  const key = label.trim().normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
+  const key = label
+    .trim()
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase();
   return COLOR_EMOJIS[key] ?? null;
 }
 
-export function formatRange(minimum: number | null, maximum: number | null): string {
+export function formatRange(
+  minimum: number | null,
+  maximum: number | null,
+): string {
   if (minimum === null) return EMPTY_VALUE;
   if (maximum === null) return String(minimum);
   return minimum === maximum ? String(minimum) : `${minimum}–${maximum}`;
@@ -74,11 +91,15 @@ export function formatKind(kind: CatalogPlant['kind']): string {
   return kind === null ? EMPTY_VALUE : KIND_LABELS[kind];
 }
 
-export function formatSeasons(seasons: CatalogPlant['plantingSeasons']): string {
+export function formatSeasons(
+  seasons: CatalogPlant['plantingSeasons'],
+): string {
   return seasons.length === 0 ? EMPTY_VALUE : seasonLabels(seasons).join(', ');
 }
 
-export function seasonLabels(seasons: CatalogPlant['plantingSeasons']): string[] {
+export function seasonLabels(
+  seasons: CatalogPlant['plantingSeasons'],
+): string[] {
   return seasons.map((season) => SEASONS[season]);
 }
 

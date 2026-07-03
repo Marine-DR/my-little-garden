@@ -6,4 +6,3 @@ const catalogApi: CatalogApi = {
 };
 
 contextBridge.exposeInMainWorld('catalogApi', catalogApi);
-

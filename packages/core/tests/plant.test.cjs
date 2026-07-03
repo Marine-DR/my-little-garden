@@ -101,5 +101,8 @@ test('validates photo media types in the application layer', () => {
     }),
   );
 
-  assert.deepEqual(issues.map(({ field }) => field), ['photo.mediaType']);
+  assert.deepEqual(
+    issues.map(({ field }) => field),
+    ['photo.mediaType'],
+  );
 });

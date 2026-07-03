@@ -32,12 +32,14 @@ function insertPlant(database, values = {}) {
   };
 
   database
-    .prepare(`
+    .prepare(
+      `
       INSERT INTO plants (
         id, name, normalized_name, height_min_cm, height_max_cm,
         bloom_start_month, bloom_end_month, spacing_cm, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
+    `,
+    )
     .run(
       plant.id,
       plant.name,
@@ -157,12 +159,14 @@ test('month, height, and spacing constraints reject invalid values', (t) => {
 
 test('plants may omit bloom and provide only a minimum height', (t) => {
   const database = createDatabase(t);
-  assert.doesNotThrow(() => insertPlant(database, {
-    bloomStart: null,
-    bloomEnd: null,
-    heightMin: 42,
-    heightMax: null,
-  }));
+  assert.doesNotThrow(() =>
+    insertPlant(database, {
+      bloomStart: null,
+      bloomEnd: null,
+      heightMin: 42,
+      heightMax: null,
+    }),
+  );
 });
 
 test('closed constants and duplicate associations are rejected', (t) => {
@@ -188,11 +192,13 @@ test('photo media types can evolve without a database migration', (t) => {
 
   assert.doesNotThrow(() =>
     database
-      .prepare(`
+      .prepare(
+        `
         INSERT INTO plant_photos (
           plant_id, managed_filename, media_type, checksum_sha256, created_at
         ) VALUES (?, ?, ?, ?, ?)
-      `)
+      `,
+      )
       .run(
         '00000000-0000-4000-8000-000000000001',
         'plant-photo.avif',
@@ -216,15 +222,24 @@ test('plant deletion cascades and vocabulary deletion is restricted', (t) => {
     .prepare('INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)')
     .run(plantId, soil.id);
   database
-    .prepare('INSERT INTO plant_exposures (plant_id, exposure_code) VALUES (?, ?)')
+    .prepare(
+      'INSERT INTO plant_exposures (plant_id, exposure_code) VALUES (?, ?)',
+    )
     .run(plantId, 'sun');
 
   assert.throws(() =>
     database.prepare('DELETE FROM soil_types WHERE id = ?').run(soil.id),
   );
   database.prepare('DELETE FROM plants WHERE id = ?').run(plantId);
-  assert.equal(database.prepare('SELECT count(*) AS total FROM plant_soils').get().total, 0);
-  assert.equal(database.prepare('SELECT count(*) AS total FROM plant_exposures').get().total, 0);
+  assert.equal(
+    database.prepare('SELECT count(*) AS total FROM plant_soils').get().total,
+    0,
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) AS total FROM plant_exposures').get()
+      .total,
+    0,
+  );
 });
 
 test('a failed graph write rolls back every table', (t) => {
@@ -240,7 +255,9 @@ test('a failed graph write rolls back every table', (t) => {
         .run('Argileux', 'argileux', now);
       insertPlant(database);
       database
-        .prepare('INSERT INTO plant_exposures (plant_id, exposure_code) VALUES (?, ?)')
+        .prepare(
+          'INSERT INTO plant_exposures (plant_id, exposure_code) VALUES (?, ?)',
+        )
         .run('00000000-0000-4000-8000-000000000001', 'unsupported');
       database.exec('COMMIT');
     } catch (error) {
@@ -249,8 +266,14 @@ test('a failed graph write rolls back every table', (t) => {
     }
   });
 
-  assert.equal(database.prepare('SELECT count(*) AS total FROM plants').get().total, 0);
-  assert.equal(database.prepare('SELECT count(*) AS total FROM soil_types').get().total, 0);
+  assert.equal(
+    database.prepare('SELECT count(*) AS total FROM plants').get().total,
+    0,
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) AS total FROM soil_types').get().total,
+    0,
+  );
 });
 
 test('catalog has no application-defined entry limit', (t) => {
@@ -277,16 +300,29 @@ test('catalog has no application-defined entry limit', (t) => {
   database.exec('BEGIN');
   for (let index = 0; index < total; index += 1) {
     const id = `00000000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`;
-    insertCatalogPlant.run(id, `Plant ${index}`, `plant ${index}`, 1, 12, now, now);
+    insertCatalogPlant.run(
+      id,
+      `Plant ${index}`,
+      `plant ${index}`,
+      1,
+      12,
+      now,
+      now,
+    );
     insertSoil.run(id, soil.id);
     insertExposure.run(id, 'sun');
   }
   database.exec('COMMIT');
 
-  assert.equal(database.prepare('SELECT count(*) AS total FROM plants').get().total, total);
+  assert.equal(
+    database.prepare('SELECT count(*) AS total FROM plants').get().total,
+    total,
+  );
   assert.equal(
     database
-      .prepare('SELECT id FROM plants ORDER BY normalized_name LIMIT 25 OFFSET ?')
+      .prepare(
+        'SELECT id FROM plants ORDER BY normalized_name LIMIT 25 OFFSET ?',
+      )
       .all(total - 25).length,
     25,
   );

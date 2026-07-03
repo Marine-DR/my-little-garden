@@ -6,11 +6,20 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 import { seedDemoCatalog } from '../src/main/demo-catalog';
 
-const initialMigration = readFileSync(resolve('packages/database/migrations/001_initial_schema.sql'), 'utf8');
-const demoCsv = readFileSync(resolve('apps/desktop/resources/demo-catalog.csv'), 'utf8');
+const initialMigration = readFileSync(
+  resolve('packages/database/migrations/001_initial_schema.sql'),
+  'utf8',
+);
+const demoCsv = readFileSync(
+  resolve('apps/desktop/resources/demo-catalog.csv'),
+  'utf8',
+);
 let database: DatabaseSync | undefined;
 
-afterEach(() => { database?.close(); database = undefined; });
+afterEach(() => {
+  database?.close();
+  database = undefined;
+});
 
 describe('demo catalog', () => {
   it('imports all four CSV rows including plants with optional bloom and height', async () => {
@@ -22,7 +31,10 @@ describe('demo catalog', () => {
     const repository = new SqlitePlantCatalogRepository(database);
     const catalog = await repository.list({ offset: 0, limit: 25 });
     expect(catalog.items.map(({ name }) => name)).toEqual([
-      'Achilée Ornementale', 'Acorus', 'Pavot', 'Test',
+      'Achilée Ornementale',
+      'Acorus',
+      'Pavot',
+      'Test',
     ]);
 
     const acorus = catalog.items.find(({ name }) => name === 'Acorus');
@@ -31,7 +43,9 @@ describe('demo catalog', () => {
     const testPlant = catalog.items.find(({ name }) => name === 'Test');
     expect(testPlant?.heightCm).toEqual({ min: 42, max: null });
 
-    const achillee = catalog.items.find(({ name }) => name === 'Achilée Ornementale');
+    const achillee = catalog.items.find(
+      ({ name }) => name === 'Achilée Ornementale',
+    );
     expect(achillee?.exposures).toEqual(['sun', 'partial_shade']);
   });
 
@@ -45,6 +59,8 @@ describe('demo catalog', () => {
     );
 
     expect(() => seedDemoCatalog(database!, invalidCsv)).toThrow(/soilLabels/u);
-    expect(database.prepare('SELECT count(*) AS total FROM plants').get()?.total).toBe(0);
+    expect(
+      database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
+    ).toBe(0);
   });
 });

@@ -8,4 +8,3 @@ export default defineConfig({
   plugins: [react()],
   build: { outDir: resolve(__dirname, 'dist/renderer'), emptyOutDir: true },
 });
-

@@ -67,9 +67,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     const ids = rows.map(({ id }) => id);
     const relationQueries = this.queries.relations(ids);
     const soils = groupValues(relationQueries.soils.all(...ids));
-    const flowerColors = groupValues(
-      relationQueries.flowerColors.all(...ids),
-    );
+    const flowerColors = groupValues(relationQueries.flowerColors.all(...ids));
     const leafColors = groupValues(relationQueries.leafColors.all(...ids));
     const exposures = groupCodes<ExposureCode>(
       relationQueries.exposures.all(...ids),
@@ -81,12 +79,14 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     const items: Plant[] = rows.map((row) => ({
       id: row.id,
       name: row.name,
-      heightCm: row.heightMinCm === null
-        ? null
-        : { min: row.heightMinCm, max: row.heightMaxCm },
-      type: row.typeId === null || row.typeLabel === null
-        ? null
-        : { id: row.typeId, label: row.typeLabel },
+      heightCm:
+        row.heightMinCm === null
+          ? null
+          : { min: row.heightMinCm, max: row.heightMaxCm },
+      type:
+        row.typeId === null || row.typeLabel === null
+          ? null
+          : { id: row.typeId, label: row.typeLabel },
       kind: row.kind,
       soils: requireNonEmpty(soils.get(row.id) ?? [], 'soil', row.id),
       exposures: requireNonEmpty(
@@ -94,22 +94,26 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
         'exposure',
         row.id,
       ),
-      bloom: row.bloomStartMonth === null || row.bloomEndMonth === null
-        ? null
-        : { startMonth: row.bloomStartMonth, endMonth: row.bloomEndMonth },
+      bloom:
+        row.bloomStartMonth === null || row.bloomEndMonth === null
+          ? null
+          : { startMonth: row.bloomStartMonth, endMonth: row.bloomEndMonth },
       flowerColors: flowerColors.get(row.id) ?? [],
       leafColors: leafColors.get(row.id) ?? [],
       minimumTemperatureCelsius: row.minimumTemperatureCelsius,
       foliagePersistence: row.foliagePersistence,
       spacingCm: row.spacingCm,
       plantingSeasons: plantingSeasons.get(row.id) ?? [],
-      photo: row.managedFilename && row.mediaType && row.checksumSha256
-        ? {
-            managedFilename: row.managedFilename,
-            mediaType: row.mediaType as NonNullable<Plant['photo']>['mediaType'],
-            checksumSha256: row.checksumSha256,
-          }
-        : null,
+      photo:
+        row.managedFilename && row.mediaType && row.checksumSha256
+          ? {
+              managedFilename: row.managedFilename,
+              mediaType: row.mediaType as NonNullable<
+                Plant['photo']
+              >['mediaType'],
+              checksumSha256: row.checksumSha256,
+            }
+          : null,
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.updatedAt),
     }));

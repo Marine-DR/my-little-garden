@@ -9,7 +9,10 @@ import type { CatalogPage, CatalogPlant } from '../shared/catalog.js';
 import { seedDemoCatalog } from './demo-catalog.js';
 
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'garden-photo', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+  {
+    scheme: 'garden-photo',
+    privileges: { standard: true, secure: true, supportFetchAPI: true },
+  },
 ]);
 
 let database: DatabaseSync;
@@ -17,12 +20,21 @@ let catalogRepository: PlantCatalogRepository;
 const CATALOG_PAGE_SIZE = 25;
 
 function ensureSchema(db: DatabaseSync): void {
-  const hasPlants = db.prepare(
-    "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
-  ).get();
-  const migrationDirectory = join(app.getAppPath(), 'packages', 'database', 'migrations');
+  const hasPlants = db
+    .prepare(
+      "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
+    )
+    .get();
+  const migrationDirectory = join(
+    app.getAppPath(),
+    'packages',
+    'database',
+    'migrations',
+  );
   if (!hasPlants) {
-    db.exec(readFileSync(join(migrationDirectory, '001_initial_schema.sql'), 'utf8'));
+    db.exec(
+      readFileSync(join(migrationDirectory, '001_initial_schema.sql'), 'utf8'),
+    );
   }
 }
 
@@ -91,19 +103,29 @@ async function createWindow(): Promise<void> {
   });
   window.setMenu(null);
 
-  await window.loadFile(join(app.getAppPath(), 'dist', 'renderer', 'index.html'));
+  await window.loadFile(
+    join(app.getAppPath(), 'dist', 'renderer', 'index.html'),
+  );
 }
 
 app.whenReady().then(async () => {
   const demoMode = process.env.MY_LITTLE_GARDEN_DEMO === '1';
   const dataDirectory = app.getPath('userData');
   const photoDirectory = join(dataDirectory, 'images');
-  database = new DatabaseSync(demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'));
+  database = new DatabaseSync(
+    demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'),
+  );
   database.exec('PRAGMA foreign_keys = ON');
   ensureSchema(database);
   catalogRepository = new SqlitePlantCatalogRepository(database);
   if (demoMode) {
-    const csvPath = join(app.getAppPath(), 'apps', 'desktop', 'resources', 'demo-catalog.csv');
+    const csvPath = join(
+      app.getAppPath(),
+      'apps',
+      'desktop',
+      'resources',
+      'demo-catalog.csv',
+    );
     seedDemoCatalog(database, readFileSync(csvPath, 'utf8'));
   }
 
@@ -115,7 +137,9 @@ app.whenReady().then(async () => {
     return net.fetch(pathToFileURL(join(photoDirectory, filename)).toString());
   });
 
-  ipcMain.handle('catalog:list', (_event, page: number) => listCatalogPage(page));
+  ipcMain.handle('catalog:list', (_event, page: number) =>
+    listCatalogPage(page),
+  );
   await createWindow();
 
   app.on('activate', () => {

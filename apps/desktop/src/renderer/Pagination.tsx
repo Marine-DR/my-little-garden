@@ -1,10 +1,18 @@
 function pagesAround(current: number, total: number): number[] {
   const start = Math.max(1, Math.min(current - 2, total - 4));
   const end = Math.min(total, start + 4);
-  return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index);
+  return Array.from(
+    { length: Math.max(0, end - start + 1) },
+    (_, index) => start + index,
+  );
 }
 
-export function Pagination({ page, total, pageSize, onChange }: {
+export function Pagination({
+  page,
+  total,
+  pageSize,
+  onChange,
+}: {
   readonly page: number;
   readonly total: number;
   readonly pageSize: number;
@@ -16,21 +24,31 @@ export function Pagination({ page, total, pageSize, onChange }: {
 
   return (
     <footer className="table-footer" aria-label="Pagination du catalogue">
-      <p className="result-count">{first}–{last} sur {total} fleurs</p>
+      <p className="result-count">
+        {first}–{last} sur {total} fleurs
+      </p>
       <nav className="pagination" aria-label="Pages du catalogue">
-        <button disabled={page === 1} onClick={() => onChange(page - 1)}>← Précédent</button>
+        <button disabled={page === 1} onClick={() => onChange(page - 1)}>
+          ← Précédent
+        </button>
         {pagesAround(page, pageCount).map((number) => (
           <button
             key={number}
             className={number === page ? 'current-page' : undefined}
             aria-current={number === page ? 'page' : undefined}
             onClick={() => onChange(number)}
-          >{number}</button>
+          >
+            {number}
+          </button>
         ))}
-        <button disabled={page === pageCount} onClick={() => onChange(page + 1)}>Suivant →</button>
+        <button
+          disabled={page === pageCount}
+          onClick={() => onChange(page + 1)}
+        >
+          Suivant →
+        </button>
       </nav>
       <p className="page-size">25 par page</p>
     </footer>
   );
 }
-

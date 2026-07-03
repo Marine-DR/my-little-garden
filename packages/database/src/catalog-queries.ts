@@ -1,7 +1,4 @@
-import type {
-  FoliagePersistence,
-  PlantKind,
-} from '@my-little-garden/core';
+import type { FoliagePersistence, PlantKind } from '@my-little-garden/core';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import {
   TypedQuery,

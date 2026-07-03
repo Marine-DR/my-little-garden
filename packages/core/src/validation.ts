@@ -177,7 +177,11 @@ export function validatePlantWriteInput(
       add('photo.managedFilename', 'required', 'Managed filename is required.');
     }
     if (!PHOTO_MEDIA_TYPES.includes(plant.photo.mediaType)) {
-      add('photo.mediaType', 'unsupported_media', 'Photo format is unsupported.');
+      add(
+        'photo.mediaType',
+        'unsupported_media',
+        'Photo format is unsupported.',
+      );
     }
     if (!SHA256_PATTERN.test(plant.photo.checksumSha256)) {
       add('photo.checksumSha256', 'invalid_checksum', 'SHA-256 is invalid.');
