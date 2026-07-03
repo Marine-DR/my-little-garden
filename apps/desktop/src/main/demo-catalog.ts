@@ -74,8 +74,38 @@ function parseCsvLine(line: string): string[] {
       value += character;
     }
   }
+  if (quoted) throw new Error('Guillemet non fermé dans le fichier CSV.');
   values.push(value);
   return values;
+}
+
+export const CATALOG_CSV_HEADERS = [
+  'Nom',
+  'Taille min',
+  'Taille Max',
+  'Type',
+  'Fleur/autre',
+  'Sol',
+  'Exposition',
+  'Floraison début',
+  'Flroaison fin',
+  'Couleurs fleurs',
+  'Couleurs feuilles',
+  'T° min (°C)',
+  'Feuillage persistant',
+  'Espace(cm)',
+  'Plantation',
+] as const;
+
+function assertHeaders(header: readonly string[]): void {
+  if (
+    header.length !== CATALOG_CSV_HEADERS.length ||
+    header.some((value, index) => value.trim() !== CATALOG_CSV_HEADERS[index])
+  ) {
+    throw new Error(
+      `En-têtes CSV invalides. Format attendu : ${CATALOG_CSV_HEADERS.join(',')}`,
+    );
+  }
 }
 
 function vocabularyId(
@@ -102,15 +132,20 @@ function exposures(value: string | undefined): ExposureCode[] {
   const codes = new Set<ExposureCode>();
   for (const item of list(value)) {
     const key = normalizeDatabaseKey(item);
+    let recognized = false;
     if (key.includes('soleil')) {
       codes.add('sun');
+      recognized = true;
     }
     if (key.includes('mi-ombre') || key.includes('mi ombre')) {
       codes.add('partial_shade');
+      recognized = true;
     }
     if (key === 'ombre') {
       codes.add('shade');
+      recognized = true;
     }
+    if (!recognized) throw new Error(`Exposition inconnue : ${item}`);
   }
   return [...codes];
 }
@@ -119,35 +154,45 @@ function seasons(value: string | undefined): PlantingSeasonCode[] {
   const codes = new Set<PlantingSeasonCode>();
   for (const item of list(value)) {
     const key = normalizeDatabaseKey(item);
-    if (key.startsWith('printemps')) {
-      codes.add('spring');
-    } else if (key.startsWith('ete')) {
-      codes.add('summer');
-    } else if (key.startsWith('automne')) {
-      codes.add('autumn');
-    } else if (key.startsWith('hiver')) {
-      codes.add('winter');
-    }
+    if (key.startsWith('printemps')) codes.add('spring');
+    else if (key.startsWith('ete')) codes.add('summer');
+    else if (key.startsWith('automne')) codes.add('autumn');
+    else if (key.startsWith('hiver')) codes.add('winter');
+    else throw new Error(`Saison de plantation inconnue : ${item}`);
   }
   return [...codes];
 }
 
-export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
+export function replaceCatalogFromCsv(
+  database: DatabaseSync,
+  csv: string,
+): number {
   const lines = csv
     .replace(/^\uFEFF/u, '')
     .split(/\r?\n/u)
     .filter((line) => line.trim());
-  const rows = lines.slice(1).map(parseCsvLine);
+  if (lines.length < 2)
+    throw new Error('Le fichier CSV ne contient aucune fleur.');
+  assertHeaders(parseCsvLine(lines[0]!));
+  const rows = lines.slice(1).map((line, index) => {
+    const row = parseCsvLine(line);
+    if (row.length !== CATALOG_CSV_HEADERS.length) {
+      throw new Error(
+        `Ligne ${index + 2} : ${row.length} colonnes trouvées, ${CATALOG_CSV_HEADERS.length} attendues.`,
+      );
+    }
+    return row;
+  });
   const now = new Date().toISOString();
   let imported = 0;
 
   database.exec('BEGIN IMMEDIATE');
   try {
-    for (const row of rows) {
+    database.exec('DELETE FROM plants');
+    for (const [rowIndex, row] of rows.entries()) {
       const name = optional(row[0]);
-      if (!name) {
-        continue;
-      }
+      if (!name)
+        throw new Error(`Ligne ${rowIndex + 2} : le nom est obligatoire.`);
       const type = optional(row[3]);
       const kindKey = normalizeDatabaseKey(row[4] ?? '');
       const kind: PlantKind | null =
@@ -160,8 +205,25 @@ export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
               : kindKey
                 ? 'other'
                 : null;
-      const bloomStart = MONTHS[normalizeDatabaseKey(row[7] ?? '')] ?? null;
-      const bloomEnd = MONTHS[normalizeDatabaseKey(row[8] ?? '')] ?? null;
+      const bloomStartText = optional(row[7]);
+      const bloomEndText = optional(row[8]);
+      const bloomStart = bloomStartText
+        ? (MONTHS[normalizeDatabaseKey(bloomStartText)] ?? null)
+        : null;
+      const bloomEnd = bloomEndText
+        ? (MONTHS[normalizeDatabaseKey(bloomEndText)] ?? null)
+        : null;
+      if (
+        (bloomStartText && bloomStart === null) ||
+        (bloomEndText && bloomEnd === null)
+      ) {
+        throw new Error(`Ligne ${rowIndex + 2} : mois de floraison inconnu.`);
+      }
+      if ((bloomStart === null) !== (bloomEnd === null)) {
+        throw new Error(
+          `Ligne ${rowIndex + 2} : les deux mois de floraison sont requis ensemble.`,
+        );
+      }
       const hasCompleteBloom = bloomStart !== null && bloomEnd !== null;
       const bloomStartValue = hasCompleteBloom ? bloomStart : null;
       const bloomEndValue = hasCompleteBloom ? bloomEnd : null;
@@ -174,6 +236,11 @@ export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
             : persistenceKey === 'semi'
               ? 'semi_evergreen'
               : null;
+      if (optional(row[12]) && persistence === null) {
+        throw new Error(
+          `Ligne ${rowIndex + 2} : valeur de feuillage persistant inconnue.`,
+        );
+      }
       const id = randomUUID();
       const heightMin = integer(row[1]);
       const heightMax = integer(row[2]);
@@ -213,7 +280,7 @@ export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
         const details = issues
           .map(({ field, message }) => `${field}: ${message}`)
           .join('; ');
-        throw new Error(`Invalid demo plant ${name}: ${details}`);
+        throw new Error(`Ligne ${rowIndex + 2} (${name}) : ${details}`);
       }
 
       database
@@ -284,4 +351,8 @@ export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
     throw error;
   }
   return imported;
+}
+
+export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
+  return replaceCatalogFromCsv(database, csv);
 }

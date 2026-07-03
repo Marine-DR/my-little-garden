@@ -41,10 +41,13 @@ function page(number: number): CatalogPage {
 
 describe('App catalog', () => {
   const listPlants = vi.fn<(page: number) => Promise<CatalogPage>>();
+  const replaceCatalog =
+    vi.fn<(filename: string, csv: string) => Promise<{ imported: number }>>();
 
   beforeEach(() => {
     listPlants.mockImplementation(async (number) => page(number));
-    window.catalogApi = { listPlants };
+    replaceCatalog.mockResolvedValue({ imported: 1 });
+    window.catalogApi = { listPlants, replaceCatalog };
   });
 
   afterEach(cleanup);
@@ -86,5 +89,37 @@ describe('App catalog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Suivant →' }));
     await waitFor(() => expect(listPlants).toHaveBeenLastCalledWith(2));
     expect(await screen.findByText('Rose page 2')).toBeInTheDocument();
+  });
+
+  it('opens catalog management and refreshes the first page after replacement', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Remplacer tout le catalogue/u }),
+    );
+    const input =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(['Nom,Sol,Exposition'], 'catalogue.csv', {
+      type: 'text/csv',
+    });
+    Object.defineProperty(file, 'text', {
+      value: async () => 'contenu csv',
+    });
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(replaceCatalog).toHaveBeenCalledWith(
+        'catalogue.csv',
+        'contenu csv',
+      ),
+    );
+    await waitFor(() => expect(listPlants).toHaveBeenLastCalledWith(1));
+    expect(
+      await screen.findByText(/catalogue a été remplacé avec succès/u),
+    ).toBeInTheDocument();
   });
 });

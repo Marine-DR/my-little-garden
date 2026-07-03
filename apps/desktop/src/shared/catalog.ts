@@ -30,4 +30,9 @@ export interface CatalogPage {
 
 export interface CatalogApi {
   listPlants(page: number): Promise<CatalogPage>;
+  replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
+}
+
+export interface CatalogImportResult {
+  readonly imported: number;
 }

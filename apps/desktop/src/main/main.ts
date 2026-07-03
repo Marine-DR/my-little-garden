@@ -7,6 +7,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron';
 import type { CatalogPage, CatalogPlant } from '../shared/catalog.js';
 import { seedDemoCatalog } from './demo-catalog.js';
+import { replaceCatalogFromCsv } from './demo-catalog.js';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -142,6 +143,15 @@ app.whenReady().then(async () => {
   ipcMain.handle('catalog:list', (_event, page: number) =>
     listCatalogPage(page),
   );
+  ipcMain.handle('catalog:replace', (_event, filename: string, csv: string) => {
+    if (!/\.csv$/iu.test(filename)) {
+      throw new Error('Le fichier sélectionné doit avoir l’extension .csv.');
+    }
+    if (typeof csv !== 'string') {
+      throw new Error('Le contenu du fichier CSV est invalide.');
+    }
+    return { imported: replaceCatalogFromCsv(database, csv) };
+  });
   await createWindow();
 
   app.on('activate', () => {

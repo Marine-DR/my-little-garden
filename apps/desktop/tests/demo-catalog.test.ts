@@ -4,7 +4,10 @@ import { resolve } from 'node:path';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
-import { seedDemoCatalog } from '../src/main/demo-catalog';
+import {
+  replaceCatalogFromCsv,
+  seedDemoCatalog,
+} from '../src/main/demo-catalog';
 
 const initialMigration = readFileSync(
   resolve('packages/database/migrations/001_initial_schema.sql'),
@@ -62,5 +65,51 @@ describe('demo catalog', () => {
     expect(
       database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
     ).toBe(0);
+  });
+
+  it('keeps the current catalog when replacement validation fails', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const invalidCsv = demoCsv.replace(
+      'Acorus,15,120,Vivace,Graminée,Lourd|humide,Soleil|mi-ombre',
+      'Acorus,15,120,Vivace,Graminée,,Soleil|mi-ombre',
+    );
+
+    expect(() => replaceCatalogFromCsv(database!, invalidCsv)).toThrow(
+      /soilLabels/u,
+    );
+    expect(
+      database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
+    ).toBe(4);
+  });
+
+  it('deletes the old catalog and imports every value in the replacement CSV', async () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const replacement = `${demoCsv.split(/\r?\n/u)[0]}\nNouvelle fleur,10,20,Vivace,Fleur,Sec|Drainé,Soleil|mi-ombre,Mars,Avril,Rose|Blanc,Vert,-5,oui,15,printemps|automne\n`;
+
+    expect(replaceCatalogFromCsv(database, replacement)).toBe(1);
+    const catalog = await new SqlitePlantCatalogRepository(database).list({
+      offset: 0,
+      limit: 25,
+    });
+    expect(catalog.total).toBe(1);
+    expect(catalog.items[0]).toMatchObject({
+      name: 'Nouvelle fleur',
+      exposures: ['sun', 'partial_shade'],
+      plantingSeasons: ['spring', 'autumn'],
+    });
+    expect(catalog.items[0]?.soils.map(({ label }) => label)).toEqual(
+      expect.arrayContaining(['Sec', 'Drainé']),
+    );
+    expect(
+      catalog.items[0]?.flowerColors.map(({ label }) =>
+        label.toLocaleLowerCase('fr'),
+      ),
+    ).toEqual(expect.arrayContaining(['rose', 'blanc']));
   });
 });
