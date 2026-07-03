@@ -1,4 +1,3 @@
-
 # MyLittleGarden – Flower Catalog Management
 
 ## Complete UX/UI Product Specification
@@ -14,13 +13,13 @@ The Flower Catalog is the administrative module used to manage flowers available
 
 Users can:
 
-* Search, sort and filter flowers
-* Create, edit and delete flowers
-* Import flowers through CSV
-* Import flower images
-* Create flower lists from selections
-* Add flowers to existing lists
-* Manage catalog data used later in the Dessiner module
+- Search, sort and filter flowers
+- Create, edit and delete flowers
+- Import flowers through CSV
+- Import flower images
+- Create flower lists from selections
+- Add flowers to existing lists
+- Manage catalog data used later in the Dessiner module
 
 A flower may belong to multiple lists.
 
@@ -45,7 +44,8 @@ Buttons: both in primary buttons style
 ---
 
 # Toolbar
-Left side:  
+
+Left side:
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -62,6 +62,7 @@ Right side:
 ---
 
 ## Active Filters
+
 The number of actif filter is indicated inside the button
 
 Example:
@@ -86,6 +87,7 @@ Displayed above the flower grid.
 ---
 
 # Flower Creation
+
 To create one flower at the time.
 Click:
 
@@ -182,7 +184,7 @@ During the Flower edition, the button is replace by 2 buttons: Save and Cancel
 Dropdown:
 
 ```text
-📄 Importer CSV
+📄 Gérer le catalogue
 ────────────────────────
 + Ajouter des fleurs
 🖉 Mettre à jour des fleurs
@@ -287,9 +289,9 @@ Seletions are used later in the Mes Parterres module to build flowerbeds.
 
 Rules:
 
-* One flower may belong to multiple selections
-* Selections are managed from the Mes Sélections module
-* Selections are not displayed in the Flower Catalog grid
+- One flower may belong to multiple selections
+- Selections are managed from the Mes Sélections module
+- Selections are not displayed in the Flower Catalog grid
 
 ---
 
@@ -342,9 +344,9 @@ Nom de la sélection
 
 Rules:
 
-* Name mandatory
-* Selected flowers automatically added
-* Empty selection cannot be created
+- Name mandatory
+- Selected flowers automatically added
+- Empty selection cannot be created
 
 Success:
 
@@ -407,9 +409,9 @@ Example:
 
 Rules:
 
-* Existing associations ignored
-* Missing associations added
-* No error generated
+- Existing associations ignored
+- Missing associations added
+- No error generated
 
 ---
 
@@ -440,8 +442,8 @@ These actions belong to the Mes Sélections module.
 
 Default columns:
 
-| | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸| Couleur 🍃 | ❅ (°C)| Persistant | ↔ (cm) | Plantation | Action |
-| - | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |-------- |
+|     | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸 | Couleur 🍃 | ❅ (°C) | Persistant | ↔ (cm) | Plantation | Action |
+| --- | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- | ------ |
 
 ---
 
@@ -450,7 +452,7 @@ Default columns:
 ```text
 ☐
 🌸 Achillée
-50–80 
+50–80
 Vivace
 Drainé
 ☀◐
@@ -472,9 +474,9 @@ Pintemps Automne
 
 Multi-selection supports:
 
-* Selection creation
-* Adding to selection
-* Bulk deletion
+- Selection creation
+- Adding to selection
+- Bulk deletion
 
 When selected:
 
@@ -567,6 +569,7 @@ Text
 ```text
 Achillée
 ```
+
 ---
 
 ## Hauteur
@@ -590,6 +593,7 @@ Text
 ```text
 Vivace
 ```
+
 ---
 
 ## Sol
@@ -600,6 +604,7 @@ Text
 Drainée
 sec
 ```
+
 ---
 
 ## Exposition
@@ -633,10 +638,10 @@ Mai→Sep
 
 Advantages:
 
-* Compact
-* Sortable
-* Responsive
-Examples:
+- Compact
+- Sortable
+- Responsive
+  Examples:
 
 ```text
 Mars→Mai
@@ -653,6 +658,7 @@ Text
 ```text
 Fleur
 ```
+
 ---
 
 ## Couleur Fleurs
@@ -663,12 +669,14 @@ Display 4 colors by line and add a second line in the cell if needed
 Text
 
 ```text
-⚪ 🟡 🔴 🟣 
+⚪ 🟡 🔴 🟣
 🔵 🩷 🟠
 ```
+
 ---
 
 ## Couleur Feuilles
+
 Display in column Couleur 🍃  
 Can contains several colors  
 Display 4 colors by line and add a second line in the cell if needed  
@@ -678,15 +686,18 @@ Text
 ⚪ 🟡 🟢 🔴
 🟣 🟤
 ```
+
 ---
 
 ## Température minimale
+
 Deisplay in column ❅ (°C)  
 Text
 
 ```text
 -10
 ```
+
 ---
 
 ## Persistant
@@ -706,15 +717,18 @@ Persistant
 Caduc
 Semi-persistant
 ```
+
 ---
 
 ## Espacement
+
 Display in column ↔ (cm)  
 Text
 
 ```text
 30
 ```
+
 ---
 
 ## Plantation
@@ -725,6 +739,7 @@ Text
 Printemps,
 Autaumne
 ```
+
 ---
 
 # Column Sorting
@@ -751,6 +766,7 @@ Width:
 ```text
 360 px
 ```
+
 Allow multi selection for each field.  
 Contains:
 
@@ -762,6 +778,7 @@ Contains:
 ☐ Graminée
 ☐ Arbuste
 ```
+
 ## Hauteur
 
 ```text
@@ -820,7 +837,9 @@ Color chips:
 ```
 
 ## Température minimale
+
 Slider:
+
 ```text
 -40 ───────────── 0 °C
 ```
@@ -828,6 +847,7 @@ Slider:
 ---
 
 ## Persistant
+
 ```text
 ☑ Persistant
 ☑ Semi-persistant
@@ -837,18 +857,21 @@ Slider:
 ---
 
 ## Plantation
+
 ```text
 ☑ Printemps
 ☑ Été
 ☐ Automne
 ☐ Hiver
 ```
+
 ## Espacement
+
 Ranger slider:
+
 ```text
 10 ───────────── 100 cm
 ```
-
 
 # Colonnes Panel
 
@@ -945,18 +968,17 @@ CSV - Mise à jour
 
 # Final UX Recommendations
 
-* Clean searchable table
-* 25 rows per page by default
-* Add/Edit via right-side drawers
-* Confirmation before deletion
-* Multi-selection for list management and deletion
-* Create lists directly from selected flowers
-* Add flowers to multiple existing lists
-* Automatically ignore duplicate flower/list associations
-* CSV import wizard with validation
-* Dedicated image import workflow
-* Image matching by flower name
-* Import preview before commit
-* Backend-managed flower identifiers
-* Separation of responsibilities between Flower Catalog and Mes listes modules
-
+- Clean searchable table
+- 25 rows per page by default
+- Add/Edit via right-side drawers
+- Confirmation before deletion
+- Multi-selection for list management and deletion
+- Create lists directly from selected flowers
+- Add flowers to multiple existing lists
+- Automatically ignore duplicate flower/list associations
+- CSV import wizard with validation
+- Dedicated image import workflow
+- Image matching by flower name
+- Import preview before commit
+- Backend-managed flower identifiers
+- Separation of responsibilities between Flower Catalog and Mes listes modules

@@ -16,4 +16,3 @@ export function normalizeDatabaseKey(value: string): string {
 
 export const normalizePlantName = normalizeDatabaseKey;
 export const normalizeVocabularyLabel = normalizeDatabaseKey;
-

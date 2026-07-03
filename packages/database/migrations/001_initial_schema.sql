@@ -32,16 +32,16 @@ CREATE TABLE plants (
         length(trim(name)) > 0 AND name = trim(name)
     ),
     normalized_name          TEXT NOT NULL CHECK (length(normalized_name) > 0),
-    height_min_cm            INTEGER,
-    height_max_cm            INTEGER,
+    height_min_cm            INTEGER CHECK (height_min_cm >= 0),
+    height_max_cm            INTEGER CHECK (height_max_cm >= 0),
     type_id                  INTEGER,
     plant_kind               TEXT CHECK (
         plant_kind IN ('flower', 'foliage', 'grass', 'other')
     ),
-    bloom_start_month        INTEGER NOT NULL CHECK (
+    bloom_start_month        INTEGER CHECK (
         bloom_start_month BETWEEN 1 AND 12
     ),
-    bloom_end_month          INTEGER NOT NULL CHECK (
+    bloom_end_month          INTEGER CHECK (
         bloom_end_month BETWEEN 1 AND 12
     ),
     minimum_temperature_celsius INTEGER,
@@ -54,14 +54,12 @@ CREATE TABLE plants (
 
     CONSTRAINT uq_plants_normalized_name UNIQUE (normalized_name),
     CONSTRAINT ck_plants_height_range CHECK (
-        (height_min_cm IS NULL AND height_max_cm IS NULL)
-        OR
-        (
-            height_min_cm IS NOT NULL
-            AND height_max_cm IS NOT NULL
-            AND height_min_cm >= 0
-            AND height_max_cm >= height_min_cm
-        )
+        height_max_cm IS NULL
+        OR (height_min_cm IS NOT NULL AND height_max_cm >= height_min_cm)
+    ),
+    CONSTRAINT ck_plants_bloom_completeness CHECK (
+        (bloom_start_month IS NULL AND bloom_end_month IS NULL)
+        OR (bloom_start_month IS NOT NULL AND bloom_end_month IS NOT NULL)
     ),
     CONSTRAINT fk_plants_type FOREIGN KEY (type_id)
         REFERENCES plant_types (id)

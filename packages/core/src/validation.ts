@@ -49,9 +49,9 @@ export function validatePlantWriteInput(
 
   if (plant.heightCm !== null) {
     const { min, max } = plant.heightCm;
-    if (!Number.isInteger(min) || !Number.isInteger(max)) {
+    if (!Number.isInteger(min) || (max !== null && !Number.isInteger(max))) {
       add('heightCm', 'not_integer', 'Height values must be integers.');
-    } else if (min < 0 || max < min) {
+    } else if (min < 0 || (max !== null && max < min)) {
       add(
         'heightCm',
         'invalid_range',
@@ -89,11 +89,13 @@ export function validatePlantWriteInput(
     }
   }
 
-  if (!isMonth(plant.bloom.startMonth)) {
-    add('bloom.startMonth', 'invalid_month', 'Bloom start must be 1 to 12.');
-  }
-  if (!isMonth(plant.bloom.endMonth)) {
-    add('bloom.endMonth', 'invalid_month', 'Bloom end must be 1 to 12.');
+  if (plant.bloom !== null) {
+    if (!isMonth(plant.bloom.startMonth)) {
+      add('bloom.startMonth', 'invalid_month', 'Bloom start must be 1 to 12.');
+    }
+    if (!isMonth(plant.bloom.endMonth)) {
+      add('bloom.endMonth', 'invalid_month', 'Bloom end must be 1 to 12.');
+    }
   }
 
   if (hasDuplicates(plant.flowerColorLabels)) {
@@ -175,7 +177,11 @@ export function validatePlantWriteInput(
       add('photo.managedFilename', 'required', 'Managed filename is required.');
     }
     if (!PHOTO_MEDIA_TYPES.includes(plant.photo.mediaType)) {
-      add('photo.mediaType', 'unsupported_media', 'Photo format is unsupported.');
+      add(
+        'photo.mediaType',
+        'unsupported_media',
+        'Photo format is unsupported.',
+      );
     }
     if (!SHA256_PATTERN.test(plant.photo.checksumSha256)) {
       add('photo.checksumSha256', 'invalid_checksum', 'SHA-256 is invalid.');

@@ -10,8 +10,7 @@ import type { NonEmptyArray } from './types';
 export type ExposureCode = (typeof EXPOSURE_CODES)[number];
 export type PlantingSeasonCode = (typeof PLANTING_SEASON_CODES)[number];
 export type PlantKind = (typeof PLANT_KINDS)[number];
-export type FoliagePersistence =
-  (typeof FOLIAGE_PERSISTENCE_VALUES)[number];
+export type FoliagePersistence = (typeof FOLIAGE_PERSISTENCE_VALUES)[number];
 export type PhotoMediaType = (typeof PHOTO_MEDIA_TYPES)[number];
 
 export interface VocabularyValue {
@@ -28,7 +27,10 @@ export interface PlantPhoto {
 export interface Plant {
   readonly id: string;
   readonly name: string;
-  readonly heightCm: { readonly min: number; readonly max: number } | null;
+  readonly heightCm: {
+    readonly min: number;
+    readonly max: number | null;
+  } | null;
   readonly type: VocabularyValue | null;
   readonly kind: PlantKind | null;
   readonly soils: NonEmptyArray<VocabularyValue>;
@@ -36,7 +38,7 @@ export interface Plant {
   readonly bloom: {
     readonly startMonth: number;
     readonly endMonth: number;
-  };
+  } | null;
   readonly flowerColors: readonly VocabularyValue[];
   readonly leafColors: readonly VocabularyValue[];
   readonly minimumTemperatureCelsius: number | null;
@@ -55,7 +57,10 @@ export interface Plant {
 export interface PlantWriteInput {
   readonly id: string;
   readonly name: string;
-  readonly heightCm: { readonly min: number; readonly max: number } | null;
+  readonly heightCm: {
+    readonly min: number;
+    readonly max: number | null;
+  } | null;
   readonly typeLabel: string | null;
   readonly kind: PlantKind | null;
   readonly soilLabels: readonly string[];
@@ -63,7 +68,7 @@ export interface PlantWriteInput {
   readonly bloom: {
     readonly startMonth: number;
     readonly endMonth: number;
-  };
+  } | null;
   readonly flowerColorLabels: readonly string[];
   readonly leafColorLabels: readonly string[];
   readonly minimumTemperatureCelsius: number | null;
