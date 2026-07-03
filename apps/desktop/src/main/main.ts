@@ -6,8 +6,11 @@ import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron';
 import type { CatalogPage, CatalogPlant } from '../shared/catalog.js';
-import { seedDemoCatalog } from './demo-catalog.js';
-import { replaceCatalogFromCsv } from './demo-catalog.js';
+import {
+  replaceCatalogFromCsv,
+  seedDemoCatalog,
+  validateCatalogCsvStructure,
+} from './demo-catalog.js';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -144,12 +147,17 @@ app.whenReady().then(async () => {
     listCatalogPage(page),
   );
   ipcMain.handle('catalog:replace', (_event, filename: string, csv: string) => {
+    const errors: string[] = [];
     if (!/\.csv$/iu.test(filename)) {
-      throw new Error('Le fichier sélectionné doit avoir l’extension .csv.');
+      errors.push(
+        "Le fichier n'a pas le bon format. Merci d'importer les données à l'aider d'un fichier .csv. Ce format peut être généré à partir d'un tableur Excell, Google sheet, etc.",
+      );
     }
     if (typeof csv !== 'string') {
       throw new Error('Le contenu du fichier CSV est invalide.');
     }
+    errors.push(...validateCatalogCsvStructure(csv));
+    if (errors.length > 0) throw new Error(errors.join('\n'));
     return { imported: replaceCatalogFromCsv(database, csv) };
   });
   await createWindow();

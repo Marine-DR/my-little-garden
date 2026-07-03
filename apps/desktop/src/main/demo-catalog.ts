@@ -88,7 +88,7 @@ export const CATALOG_CSV_HEADERS = [
   'Sol',
   'Exposition',
   'Floraison début',
-  'Flroaison fin',
+  'Floraison Fin',
   'Couleurs fleurs',
   'Couleurs feuilles',
   'T° min (°C)',
@@ -97,14 +97,77 @@ export const CATALOG_CSV_HEADERS = [
   'Plantation',
 ] as const;
 
-function assertHeaders(header: readonly string[]): void {
-  if (
-    header.length !== CATALOG_CSV_HEADERS.length ||
-    header.some((value, index) => value.trim() !== CATALOG_CSV_HEADERS[index])
-  ) {
-    throw new Error(
-      `En-têtes CSV invalides. Format attendu : ${CATALOG_CSV_HEADERS.join(',')}`,
-    );
+const TOO_MANY_COLUMNS_MESSAGE =
+  "Il y a plus de colonne qu'attendu dans le fichier. Si vous avez plusieurs éléments dans une cellule, merci d'utiliser | pour les séparer";
+
+function headerErrors(header: readonly string[]): string[] {
+  const actual = header.map((value) => value.trim());
+  const normalizedActual = actual.map((value) => value.toLocaleLowerCase('fr'));
+  const errors: string[] = [];
+  for (const expected of CATALOG_CSV_HEADERS) {
+    if (!normalizedActual.includes(expected.toLocaleLowerCase('fr'))) {
+      errors.push(
+        `La colonnes ${expected} n'est pas présente dans le fichier d'entrée`,
+      );
+    }
+  }
+  for (const value of actual) {
+    if (
+      value &&
+      !(CATALOG_CSV_HEADERS as readonly string[]).some(
+        (expected) =>
+          expected.toLocaleLowerCase('fr') === value.toLocaleLowerCase('fr'),
+      )
+    ) {
+      errors.push(
+        `La colonne ${value} présente dans le fichier n'a pas le bon nom ou ne fait pas parti des éléments supportés`,
+      );
+    }
+  }
+  if (header.length > CATALOG_CSV_HEADERS.length) {
+    errors.push(TOO_MANY_COLUMNS_MESSAGE);
+  }
+  return errors;
+}
+
+interface ParsedCatalogCsv {
+  readonly rows: readonly string[][];
+  readonly errors: readonly string[];
+}
+
+function parseCatalogCsv(csv: string): ParsedCatalogCsv {
+  const lines = csv
+    .replace(/^\uFEFF/u, '')
+    .split(/\r?\n/u)
+    .filter((line) => line.trim());
+  if (lines.length === 0) return { rows: [], errors: ['Le fichier est vide'] };
+  const errors = headerErrors(parseCsvLine(lines[0]!));
+  if (lines.length === 1) errors.unshift('Le fichier est vide');
+  const rows = lines.slice(1).map((line) => {
+    const row = parseCsvLine(line);
+    if (
+      row.length > CATALOG_CSV_HEADERS.length &&
+      !errors.includes(TOO_MANY_COLUMNS_MESSAGE)
+    ) {
+      errors.push(TOO_MANY_COLUMNS_MESSAGE);
+    } else if (row.length < CATALOG_CSV_HEADERS.length) {
+      for (const missing of CATALOG_CSV_HEADERS.slice(row.length)) {
+        const message = `La colonnes ${missing} n'est pas présente dans le fichier d'entrée`;
+        if (!errors.includes(message)) errors.push(message);
+      }
+    }
+    return row;
+  });
+  return { rows, errors };
+}
+
+export function validateCatalogCsvStructure(csv: string): readonly string[] {
+  try {
+    return parseCatalogCsv(csv).errors;
+  } catch (error) {
+    return [
+      error instanceof Error ? error.message : 'Le fichier CSV est invalide.',
+    ];
   }
 }
 
@@ -167,22 +230,8 @@ export function replaceCatalogFromCsv(
   database: DatabaseSync,
   csv: string,
 ): number {
-  const lines = csv
-    .replace(/^\uFEFF/u, '')
-    .split(/\r?\n/u)
-    .filter((line) => line.trim());
-  if (lines.length < 2)
-    throw new Error('Le fichier CSV ne contient aucune fleur.');
-  assertHeaders(parseCsvLine(lines[0]!));
-  const rows = lines.slice(1).map((line, index) => {
-    const row = parseCsvLine(line);
-    if (row.length !== CATALOG_CSV_HEADERS.length) {
-      throw new Error(
-        `Ligne ${index + 2} : ${row.length} colonnes trouvées, ${CATALOG_CSV_HEADERS.length} attendues.`,
-      );
-    }
-    return row;
-  });
+  const { rows, errors } = parseCatalogCsv(csv);
+  if (errors.length > 0) throw new Error(errors.join('\n'));
   const now = new Date().toISOString();
   let imported = 0;
 

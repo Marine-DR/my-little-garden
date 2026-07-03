@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   replaceCatalogFromCsv,
   seedDemoCatalog,
+  validateCatalogCsvStructure,
 } from '../src/main/demo-catalog';
 
 const initialMigration = readFileSync(
@@ -111,5 +112,52 @@ describe('demo catalog', () => {
         label.toLocaleLowerCase('fr'),
       ),
     ).toEqual(expect.arrayContaining(['rose', 'blanc']));
+  });
+
+  it('reports an empty file without changing the current catalog', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+
+    expect(() => replaceCatalogFromCsv(database!, '  \n')).toThrow(
+      'Le fichier est vide',
+    );
+    expect(
+      database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
+    ).toBe(4);
+  });
+
+  it('reports missing, unsupported, and excess columns together', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const lines = demoCsv.split(/\r?\n/u);
+    const invalidHeader = lines[0]!
+      .replace('Sol', 'Terrain')
+      .replace('Floraison Fin,', '')
+      .concat(',Colonne en trop,Encore une');
+    const invalidCsv = `${invalidHeader}\n${lines[1]},x,y\n`;
+
+    expect(() => replaceCatalogFromCsv(database!, invalidCsv)).toThrowError(
+      expect.objectContaining({
+        message: expect.stringMatching(
+          /La colonnes Sol n'est pas présente[\s\S]*La colonnes Floraison Fin n'est pas présente[\s\S]*La colonne Terrain présente[\s\S]*Il y a plus de colonne qu'attendu/u,
+        ),
+      }),
+    );
+    expect(
+      database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
+    ).toBe(4);
+  });
+
+  it('accepts the exact supported header without structural errors', () => {
+    expect(validateCatalogCsvStructure(demoCsv)).toEqual([]);
+  });
+
+  it('accepts column names regardless of letter case', () => {
+    const caseVariant = demoCsv.replace('Floraison Fin', 'floraison fin');
+    expect(validateCatalogCsvStructure(caseVariant)).toEqual([]);
   });
 });

@@ -9,6 +9,7 @@ export function App() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<CatalogPage | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importErrors, setImportErrors] = useState<readonly string[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -36,6 +37,7 @@ export function App() {
 
   const changePage = (nextPage: number): void => {
     setError(null);
+    setImportErrors([]);
     setPage(nextPage);
   };
 
@@ -67,8 +69,10 @@ export function App() {
               '',
             )
           : '';
-      setError(
-        `Le catalogue n’a pas été remplacé. ${detail || 'Le fichier CSV contient une erreur.'}`,
+      setImportErrors(
+        (detail || 'Le fichier CSV contient une erreur.')
+          .split(/\r?\n/u)
+          .filter(Boolean),
       );
     } finally {
       setImporting(false);
@@ -80,7 +84,7 @@ export function App() {
       <header className="app-header">
         <a
           className="brand"
-          href="#catalog-heading"
+          href="#catalog-table"
           aria-label="MyLittleGarden, catalogue"
         >
           <img src={appIcon} alt="" />
@@ -101,7 +105,7 @@ export function App() {
         <div className="catalog-actions">
           <div className="catalog-menu">
             <button
-              className="primary-button"
+              className="secondary-button"
               type="button"
               aria-expanded={menuOpen}
               aria-controls="catalog-menu-options"
@@ -140,6 +144,34 @@ export function App() {
         {success ? (
           <div className="success-banner" role="status">
             {success}
+          </div>
+        ) : null}
+        {importErrors.length > 0 ? (
+          <div className="modal-backdrop" role="presentation">
+            <section
+              className="error-modal"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="import-error-title"
+            >
+              <div className="error-modal-heading">
+                <h2 id="import-error-title">
+                  Le catalogue n’a pas été remplacé
+                </h2>
+                <button
+                  type="button"
+                  aria-label="Fermer le message d’erreur"
+                  onClick={() => setImportErrors([])}
+                >
+                  ×
+                </button>
+              </div>
+              <ul>
+                {importErrors.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            </section>
           </div>
         ) : null}
         {!data && !error ? (

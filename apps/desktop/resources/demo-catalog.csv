@@ -1,4 +1,4 @@
-Nom,Taille min,Taille Max,Type,Fleur/autre,Sol,Exposition,Floraison début,Flroaison fin,Couleurs fleurs,Couleurs feuilles,T° min (°C),Feuillage persistant,Espace(cm),Plantation
+Nom,Taille min,Taille Max,Type,Fleur/autre,Sol,Exposition,Floraison début,Floraison Fin,Couleurs fleurs,Couleurs feuilles,T° min (°C),Feuillage persistant,Espace(cm),Plantation
 Achilée Ornementale,50,80,Vivace,Fleur,Léger|drainer,Soleilmi-ombre,Juin,Septembre,Blanc|rose|rouge|jaune|orange,vert,-10,oui,40,printemps|automnes
 Pavot,15,100,Vivace,Fleur,Drainer,Soleil,Mai,Septembre,Blanc|rouge|violet|jaune|rose|orange|bleu,Vert,-10,Non,30,printemps|automnes
 Acorus,15,120,Vivace,Graminée,Lourd|humide,Soleil|mi-ombre,N/A,N/A,N/A,Vert|jaune,-10,semi,30,printemps

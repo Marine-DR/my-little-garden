@@ -45,6 +45,7 @@ describe('App catalog', () => {
     vi.fn<(filename: string, csv: string) => Promise<{ imported: number }>>();
 
   beforeEach(() => {
+    vi.clearAllMocks();
     listPlants.mockImplementation(async (number) => page(number));
     replaceCatalog.mockResolvedValue({ imported: 1 });
     window.catalogApi = { listPlants, replaceCatalog };
@@ -55,6 +56,10 @@ describe('App catalog', () => {
   it('shows every requested column and uses placeholders on a single plant row', async () => {
     render(<App />);
     const row = await screen.findByRole('row', { name: /Rose page 1/ });
+    expect(screen.queryByText('Catalogue des plantes')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    ).toHaveClass('secondary-button');
     expect(
       screen.getAllByRole('columnheader').map((heading) => heading.textContent),
     ).toEqual([
@@ -121,5 +126,40 @@ describe('App catalog', () => {
     expect(
       await screen.findByText(/catalogue a été remplacé avec succès/u),
     ).toBeInTheDocument();
+  });
+
+  it('displays all import errors in one closable dialog', async () => {
+    replaceCatalog.mockRejectedValueOnce(
+      new Error(
+        "La colonnes Sol n'est pas présente dans le fichier d'entrée\nLa colonne Terrain présente dans le fichier n'a pas le bon nom ou ne fait pas parti des éléments supportés",
+      ),
+    );
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Remplacer tout le catalogue/u }),
+    );
+    const input =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(['invalid'], 'catalogue.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'text', { value: async () => 'invalid' });
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getAllByRole('listitem')).toHaveLength(2);
+    expect(dialog).toHaveTextContent("La colonnes Sol n'est pas présente");
+    expect(dialog).toHaveTextContent('La colonne Terrain présente');
+    expect(replaceCatalog).toHaveBeenCalledTimes(1);
+    expect(listPlants).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Fermer le message d’erreur',
+      }),
+    );
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 });

@@ -73,7 +73,7 @@ The primary button state change on mouse hover. On hover, the background color c
 - Background #FFFFFFFF
 - Text #2F7D32FF Inter Medium 14
 - Icons #2F7D32FF
-- Border #FFFFFFFF 1px
+- Border #2F7D32FF 1px
 - Button heigh 33px
 - Button width ajusted to the content
 - Icon heigh 16px
