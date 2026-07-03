@@ -51,7 +51,10 @@ describe('App catalog', () => {
     window.catalogApi = { listPlants, replaceCatalog };
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it('shows every requested column and uses placeholders on a single plant row', async () => {
     render(<App />);
@@ -97,6 +100,7 @@ describe('App catalog', () => {
   });
 
   it('opens catalog management and refreshes the first page after replacement', async () => {
+    const timeoutSpy = vi.spyOn(window, 'setTimeout');
     render(<App />);
     await screen.findByText('Rose page 1');
 
@@ -126,6 +130,13 @@ describe('App catalog', () => {
     expect(
       await screen.findByText(/catalogue a été remplacé avec succès/u),
     ).toBeInTheDocument();
+    expect(timeoutSpy).toHaveBeenCalledWith(expect.any(Function), 60_000);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Fermer le message de succès' }),
+    );
+    expect(
+      screen.queryByText(/catalogue a été remplacé avec succès/u),
+    ).not.toBeInTheDocument();
   });
 
   it('displays all import errors in one closable dialog', async () => {

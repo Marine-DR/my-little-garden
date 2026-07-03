@@ -209,8 +209,27 @@ main {
   background: #ffdddd;
 }
 .success-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
   color: #245e26;
   background: #e8f2e6;
+}
+.success-banner button {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  color: #245e26;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.success-banner button:hover {
+  background: #f4ffee;
 }
 .catalog-card {
   overflow: hidden;

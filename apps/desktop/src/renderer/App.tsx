@@ -35,6 +35,12 @@ export function App() {
     };
   }, [page]);
 
+  useEffect(() => {
+    if (!success) return undefined;
+    const timeout = window.setTimeout(() => setSuccess(null), 60_000);
+    return () => window.clearTimeout(timeout);
+  }, [success]);
+
   const changePage = (nextPage: number): void => {
     setError(null);
     setImportErrors([]);
@@ -143,7 +149,14 @@ export function App() {
         ) : null}
         {success ? (
           <div className="success-banner" role="status">
-            {success}
+            <span>{success}</span>
+            <button
+              type="button"
+              aria-label="Fermer le message de succès"
+              onClick={() => setSuccess(null)}
+            >
+              ×
+            </button>
           </div>
         ) : null}
         {importErrors.length > 0 ? (
