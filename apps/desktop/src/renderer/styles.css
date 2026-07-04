@@ -107,6 +107,10 @@ main {
   background: #fff;
   border: 1px solid #2f7d32;
 }
+.secondary-button img {
+  width: 16px;
+  height: 16px;
+}
 .secondary-button:hover:not(:disabled) {
   background: #f4ffee;
   border-color: #f4ffee;
@@ -133,6 +137,10 @@ main {
   color: #2f7d32;
   background: #fff;
   border: 0;
+}
+.catalog-menu-options button span {
+  font-size: 20px;
+  line-height: 1;
 }
 .catalog-menu-options button:hover {
   background: #f4ffee;

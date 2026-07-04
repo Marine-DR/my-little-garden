@@ -33,6 +33,12 @@ export interface CatalogApi {
   replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
 }
 
-export interface CatalogImportResult {
-  readonly imported: number;
+export interface CatalogImportError {
+  readonly code: string;
+  readonly message: string;
+  readonly field?: string;
 }
+
+export type CatalogImportResult =
+  | { readonly ok: true; readonly imported: number }
+  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };

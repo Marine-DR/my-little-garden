@@ -7,7 +7,11 @@ import {
   within,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CatalogPage, CatalogPlant } from '../src/shared/catalog';
+import type {
+  CatalogImportResult,
+  CatalogPage,
+  CatalogPlant,
+} from '../src/shared/catalog';
 import { App } from '../src/renderer/App';
 
 const rose: CatalogPlant = {
@@ -42,12 +46,12 @@ function page(number: number): CatalogPage {
 describe('App catalog', () => {
   const listPlants = vi.fn<(page: number) => Promise<CatalogPage>>();
   const replaceCatalog =
-    vi.fn<(filename: string, csv: string) => Promise<{ imported: number }>>();
+    vi.fn<(filename: string, csv: string) => Promise<CatalogImportResult>>();
 
   beforeEach(() => {
     vi.clearAllMocks();
     listPlants.mockImplementation(async (number) => page(number));
-    replaceCatalog.mockResolvedValue({ imported: 1 });
+    replaceCatalog.mockResolvedValue({ ok: true, imported: 1 });
     window.catalogApi = { listPlants, replaceCatalog };
   });
 
@@ -140,11 +144,22 @@ describe('App catalog', () => {
   });
 
   it('displays all import errors in one closable dialog', async () => {
-    replaceCatalog.mockRejectedValueOnce(
-      new Error(
-        "La colonnes Sol n'est pas présente dans le fichier d'entrée\nLa colonne Terrain présente dans le fichier n'a pas le bon nom ou ne fait pas parti des éléments supportés",
-      ),
-    );
+    replaceCatalog.mockResolvedValueOnce({
+      ok: false,
+      errors: [
+        {
+          code: 'missing_column',
+          field: 'Sol',
+          message: "La colonne Sol n'est pas présente dans le fichier d'entrée",
+        },
+        {
+          code: 'unsupported_column',
+          field: 'Terrain',
+          message:
+            "La colonne Terrain présente dans le fichier n'a pas le bon nom ou ne fait pas partie des éléments supportés",
+        },
+      ],
+    });
     render(<App />);
     await screen.findByText('Rose page 1');
     fireEvent.click(
@@ -161,7 +176,7 @@ describe('App catalog', () => {
 
     const dialog = await screen.findByRole('alertdialog');
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(2);
-    expect(dialog).toHaveTextContent("La colonnes Sol n'est pas présente");
+    expect(dialog).toHaveTextContent("La colonne Sol n'est pas présente");
     expect(dialog).toHaveTextContent('La colonne Terrain présente');
     expect(replaceCatalog).toHaveBeenCalledTimes(1);
     expect(listPlants).toHaveBeenCalledTimes(1);

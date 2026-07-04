@@ -8,7 +8,7 @@ import {
   replaceCatalogFromCsv,
   seedDemoCatalog,
   validateCatalogCsvStructure,
-} from '../src/main/demo-catalog';
+} from '../src/main/catalog-import';
 
 const initialMigration = readFileSync(
   resolve('packages/database/migrations/001_initial_schema.sql'),
@@ -143,7 +143,7 @@ describe('demo catalog', () => {
     expect(() => replaceCatalogFromCsv(database!, invalidCsv)).toThrowError(
       expect.objectContaining({
         message: expect.stringMatching(
-          /La colonnes Sol n'est pas présente[\s\S]*La colonnes Floraison Fin n'est pas présente[\s\S]*La colonne Terrain présente[\s\S]*Il y a plus de colonne qu'attendu/u,
+          /La colonne Sol n'est pas présente[\s\S]*La colonne Floraison Fin n'est pas présente[\s\S]*La colonne Terrain présente[\s\S]*Il y a plus de colonne qu'attendu/u,
         ),
       }),
     );
@@ -159,5 +159,40 @@ describe('demo catalog', () => {
   it('accepts column names regardless of letter case', () => {
     const caseVariant = demoCsv.replace('Floraison Fin', 'floraison fin');
     expect(validateCatalogCsvStructure(caseVariant)).toEqual([]);
+  });
+
+  it('reports every invalid number and unsupported controlled value together', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const invalidCsv = demoCsv
+      .replace('Achilée Ornementale,50,80', 'Achilée Ornementale,haute,80.5')
+      .replace('Soleil|mi-ombre', 'Lumière')
+      .replace(
+        ',-10,oui,40,printemps|automne',
+        ',froid,toujours,large,mousson',
+      );
+
+    const errors = validateCatalogCsvStructure(invalidCsv);
+    expect(errors).toHaveLength(7);
+    const messages = errors.map(({ message }) => message).join('\n');
+    expect(messages).toMatch(/paramètre Taille min/u);
+    expect(messages).toMatch(/paramètre Taille Max/u);
+    expect(messages).toMatch(/paramètre T° min \(°C\)/u);
+    expect(messages).toMatch(/paramètre Espace\(cm\)/u);
+    expect(messages).toMatch(/colonne Exposition/u);
+    expect(messages).toMatch(/colonne Feuillage persistant/u);
+    expect(messages).toMatch(/colonne Plantation/u);
+    expect(() => replaceCatalogFromCsv(database!, invalidCsv)).toThrow();
+    expect(
+      database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
+    ).toBe(4);
+  });
+
+  it('accepts every controlled value including accented and plain summer', () => {
+    const header = demoCsv.split(/\r?\n/u)[0];
+    const csv = `${header}\nTest,1,2,Vivace,Fleur,Drainé,Soleil|mi-ombre|Ombre,Mai,Juin,Rose,Vert,-5,oui,10,Printemps|Été|Eté|Automne|Hiver\n`;
+    expect(validateCatalogCsvStructure(csv)).toEqual([]);
   });
 });
