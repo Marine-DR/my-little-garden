@@ -1,5 +1,9 @@
 {
   "name": "my-little-garden",
+  "version": "0.1.0",
+  "description": "Desktop gardening planner for designing and selecting plants",
+  "author": "My Little Garden contributors",
+  "desktopName": "My Little Garden",
   "private": true,
   "workspaces": [
     "packages/core",
@@ -10,6 +14,7 @@
     "build:core": "tsc -p packages/core/tsconfig.json",
     "build:database": "npm run build:core && tsc -p packages/database/tsconfig.json",
     "build:desktop": "npm run build:database && vite build && tsc -p apps/desktop/tsconfig.json",
+    "dist": "npm run build:desktop && electron-builder",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "npm run build:database && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/database/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.renderer.json --noEmit && tsc -p apps/desktop/tsconfig.tests.json --noEmit",
@@ -21,6 +26,49 @@
     "test": "npm run lint && npm run typecheck && npm run test:core && npm run test:database && npm run test:desktop",
     "start": "npm run build:desktop && node scripts/start-electron.cjs",
     "demo": "npm run build:desktop && node scripts/start-electron.cjs --demo"
+  },
+  "build": {
+    "appId": "com.mylittlegarden.desktop",
+    "productName": "My Little Garden",
+    "icon": "apps/desktop/src/renderer/assets/app-icon.png",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "apps/desktop/resources/**",
+      "packages/**",
+      "scripts/**",
+      "package.json",
+      "package-lock.json"
+    ],
+    "extraResources": [
+      {
+        "from": "apps/desktop/resources",
+        "to": "resources"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility",
+      "syncDesktopName": true,
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "apps/desktop/src/renderer/assets/app-icon.png"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "apps/desktop/src/renderer/assets/app-icon.png"
+    }
   },
   "engines": {
     "node": ">=24 <25"
@@ -40,6 +88,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
     "electron": "^42.5.0",
+    "electron-builder": "^26.0.0",
     "eslint": "^10.6.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
