@@ -4,6 +4,7 @@ import appIcon from './assets/app-icon.png';
 import flowerbedIcon from './assets/flowerbed.png';
 import listIcon from './assets/list.svg';
 import { CatalogTable } from './CatalogTable';
+import { CatalogManager } from './CatalogManager';
 
 export function App() {
   const [page, setPage] = useState(1);
@@ -40,7 +41,7 @@ export function App() {
       <header className="app-header">
         <a
           className="brand"
-          href="#catalog-heading"
+          href="#catalog-table"
           aria-label="MyLittleGarden, catalogue"
         >
           <img src={appIcon} alt="" />
@@ -58,6 +59,13 @@ export function App() {
         </nav>
       </header>
       <main>
+        <CatalogManager
+          onReplaced={(catalog) => {
+            setPage(1);
+            setData(catalog);
+            setError(null);
+          }}
+        />
         {error ? (
           <div className="error-banner" role="alert">
             {error}

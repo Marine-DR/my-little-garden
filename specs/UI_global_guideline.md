@@ -66,6 +66,12 @@ Other button icons are in a dedicated folder named Button-Icons
 
 The primary button state change on mouse hover. On hover, the background color change to #245E26FF and the border color change to #245E26FF
 
+#### Disabled
+
+When Primary button is disabled,apply the secondary button standard style and change the text color to #2f7d323f and the border color to #2f7d323f  
+The mouse hover indicate not-allowed  
+disabled title="Feature coming soon"
+
 ### Secondary buttons
 
 #### Standard
@@ -73,7 +79,7 @@ The primary button state change on mouse hover. On hover, the background color c
 - Background #FFFFFFFF
 - Text #2F7D32FF Inter Medium 14
 - Icons #2F7D32FF
-- Border #FFFFFFFF 1px
+- Border #2F7D32FF 1px
 - Button heigh 33px
 - Button width ajusted to the content
 - Icon heigh 16px

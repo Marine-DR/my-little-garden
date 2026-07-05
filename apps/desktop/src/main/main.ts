@@ -5,8 +5,17 @@ import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain, net, protocol } from 'electron';
-import type { CatalogPage, CatalogPlant } from '../shared/catalog.js';
-import { seedDemoCatalog } from './demo-catalog.js';
+import type {
+  CatalogImportError,
+  CatalogImportResult,
+  CatalogPage,
+  CatalogPlant,
+} from '../shared/catalog.js';
+import {
+  replaceCatalogFromCsv,
+  seedDemoCatalog,
+  validateCatalogCsvStructure,
+} from './catalog-import.js';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -141,6 +150,51 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('catalog:list', (_event, page: number) =>
     listCatalogPage(page),
+  );
+  ipcMain.handle(
+    'catalog:replace',
+    (_event, filename: string, csv: string): CatalogImportResult => {
+      const errors: CatalogImportError[] = [];
+      if (!/\.csv$/iu.test(filename)) {
+        errors.push({
+          code: 'invalid_file_type',
+          field: 'file',
+          message:
+            "Le fichier n'a pas le bon format. Merci d'importer les données à l'aide d'un fichier .csv. Ce format peut être généré à partir d'un tableur Excel, Google Sheets, etc.",
+        });
+      }
+      if (typeof csv !== 'string') {
+        return {
+          ok: false,
+          errors: [
+            {
+              code: 'invalid_csv',
+              message: 'Le contenu du fichier CSV est invalide.',
+            },
+          ],
+        };
+      }
+      errors.push(...validateCatalogCsvStructure(csv));
+      if (errors.length > 0) {
+        return { ok: false, errors };
+      }
+      try {
+        return { ok: true, imported: replaceCatalogFromCsv(database, csv) };
+      } catch (error) {
+        return {
+          ok: false,
+          errors: [
+            {
+              code: 'catalog_replacement_failed',
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Le catalogue n'a pas pu être remplacé.",
+            },
+          ],
+        };
+      }
+    },
   );
   await createWindow();
 

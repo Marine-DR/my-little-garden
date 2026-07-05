@@ -30,4 +30,15 @@ export interface CatalogPage {
 
 export interface CatalogApi {
   listPlants(page: number): Promise<CatalogPage>;
+  replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
 }
+
+export interface CatalogImportError {
+  readonly code: string;
+  readonly message: string;
+  readonly field?: string;
+}
+
+export type CatalogImportResult =
+  | { readonly ok: true; readonly imported: number }
+  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };

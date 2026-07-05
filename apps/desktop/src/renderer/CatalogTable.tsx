@@ -121,13 +121,11 @@ export function CatalogTable({
   readonly onPageChange: (page: number) => void;
 }) {
   return (
-    <section className="catalog-card" aria-labelledby="catalog-heading">
-      <div className="catalog-heading">
-        <h1 id="catalog-heading">Catalogue des plantes</h1>
-        <p className="catalog-total">
-          {data.total} {data.total > 1 ? 'plantes' : 'plante'}
-        </p>
-      </div>
+    <section
+      id="catalog-table"
+      className="catalog-card"
+      aria-label="Catalogue des plantes"
+    >
       {data.total === 0 ? (
         <div className="empty-state">
           <span aria-hidden="true">🌱</span>
