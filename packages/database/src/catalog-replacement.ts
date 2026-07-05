@@ -13,7 +13,9 @@ function vocabularyId(
   const existing = database
     .prepare(`SELECT id FROM ${table} WHERE normalized_label = ?`)
     .get(normalized);
-  if (existing) return Number(existing.id);
+  if (existing) {
+    return Number(existing.id);
+  }
   const result = database
     .prepare(
       `INSERT INTO ${table} (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id`,

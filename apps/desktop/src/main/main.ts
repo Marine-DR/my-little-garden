@@ -175,7 +175,9 @@ app.whenReady().then(async () => {
         };
       }
       errors.push(...validateCatalogCsvStructure(csv));
-      if (errors.length > 0) return { ok: false, errors };
+      if (errors.length > 0) {
+        return { ok: false, errors };
+      }
       try {
         return { ok: true, imported: replaceCatalogFromCsv(database, csv) };
       } catch (error) {

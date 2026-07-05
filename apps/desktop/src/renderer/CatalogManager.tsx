@@ -15,7 +15,9 @@ export function CatalogManager({
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!success) return undefined;
+    if (!success) {
+      return undefined;
+    }
     const timeout = window.setTimeout(() => setSuccess(null), 60_000);
     return () => window.clearTimeout(timeout);
   }, [success]);
@@ -25,7 +27,9 @@ export function CatalogManager({
   ): Promise<void> => {
     const file = event.target.files?.[0];
     event.target.value = '';
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     setImporting(true);
     setErrors([]);
     setSuccess(null);

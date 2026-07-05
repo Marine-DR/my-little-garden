@@ -28,17 +28,22 @@ const MONTHS: Record<string, number> = {
 };
 
 function optional(value: string | undefined): string | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const trimmed = value.trim();
   return !trimmed || normalizeDatabaseKey(trimmed) === 'n/a' ? null : trimmed;
 }
 
 function integer(value: string | undefined): number | null {
   const text = optional(value);
-  if (text === null) return null;
+  if (text === null) {
+    return null;
+  }
   const parsed = Number(text);
-  if (!Number.isInteger(parsed))
+  if (!Number.isInteger(parsed)) {
     throw new Error(`Invalid integer value: ${text}`);
+  }
   return parsed;
 }
 
@@ -101,7 +106,9 @@ function containsUnsupportedValue(
   supported: ReadonlySet<string>,
 ): boolean {
   const cell = value?.trim() ?? '';
-  if (!cell) return false;
+  if (!cell) {
+    return false;
+  }
   return cell
     .split('|')
     .map((item) => item.trim())
@@ -168,7 +175,9 @@ export function validateCatalogCsvStructure(
   try {
     const iterator = readCsvRows(csv);
     const header = iterator.next();
-    if (header.done) return [issue('empty_file', 'Le fichier est vide')];
+    if (header.done) {
+      return [issue('empty_file', 'Le fichier est vide')];
+    }
     const errors = headerErrors(header.value.values);
     let rowCount = 0;
     for (const { values: row } of iterator) {
@@ -191,8 +200,12 @@ export function validateCatalogCsvStructure(
           );
         }
       }
-      if (errors.some(({ code }) => code.includes('column'))) continue;
-      if (!rowHasExpectedShape) continue;
+      if (errors.some(({ code }) => code.includes('column'))) {
+        continue;
+      }
+      if (!rowHasExpectedShape) {
+        continue;
+      }
       const numericColumns = [
         ['Taille min', 1],
         ['Taille Max', 2],
@@ -238,8 +251,9 @@ export function validateCatalogCsvStructure(
         );
       }
     }
-    if (rowCount === 0)
+    if (rowCount === 0) {
       errors.unshift(issue('empty_file', 'Le fichier est vide'));
+    }
     return errors;
   } catch (error) {
     return [
@@ -301,8 +315,9 @@ export function replaceCatalogFromCsv(
   csv: string,
 ): number {
   const errors = validateCatalogCsvStructure(csv);
-  if (errors.length > 0)
+  if (errors.length > 0) {
     throw new Error(errors.map(({ message }) => message).join('\n'));
+  }
   return new SqliteCatalogReplacement(database).replace(plantInputs(csv));
 }
 
@@ -312,8 +327,9 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
   for (const { values: row, lineNumber } of rows) {
     const rowIndex = lineNumber - 2;
     const name = optional(row[0]);
-    if (!name)
+    if (!name) {
       throw new Error(`Ligne ${rowIndex + 2} : le nom est obligatoire.`);
+    }
     const type = optional(row[3]);
     const kindKey = normalizeDatabaseKey(row[4] ?? '');
     const kind: PlantKind | null =
