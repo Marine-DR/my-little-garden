@@ -39,7 +39,9 @@ function ensureSchema(db: DatabaseSync): void {
 }
 
 function photoUrl(filename: string | null): string | null {
-  if (!filename || basename(filename) !== filename) return null;
+  if (!filename || basename(filename) !== filename) {
+    return null;
+  }
   return `garden-photo:///${encodeURIComponent(filename)}`;
 }
 
@@ -143,12 +145,16 @@ app.whenReady().then(async () => {
   await createWindow();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) void createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      void createWindow();
+    }
   });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
 });
 
 app.on('before-quit', () => database?.close());

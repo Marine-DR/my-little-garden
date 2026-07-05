@@ -70,16 +70,24 @@ export function formatRange(
   minimum: number | null,
   maximum: number | null,
 ): string {
-  if (minimum === null) return EMPTY_VALUE;
-  if (maximum === null) return String(minimum);
+  if (minimum === null) {
+    return EMPTY_VALUE;
+  }
+  if (maximum === null) {
+    return String(minimum);
+  }
   return minimum === maximum ? String(minimum) : `${minimum}–${maximum}`;
 }
 
 export function formatBloom(start: number | null, end: number | null): string {
-  if (start === null || end === null) return EMPTY_VALUE;
+  if (start === null || end === null) {
+    return EMPTY_VALUE;
+  }
   const startLabel = MONTHS[start - 1];
   const endLabel = MONTHS[end - 1];
-  if (!startLabel || !endLabel) return EMPTY_VALUE;
+  if (!startLabel || !endLabel) {
+    return EMPTY_VALUE;
+  }
   return start === end ? startLabel : `${startLabel}→${endLabel}`;
 }
 

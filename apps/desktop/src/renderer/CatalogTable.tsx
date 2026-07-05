@@ -14,7 +14,9 @@ import {
 } from './formatters';
 
 function VerticalList({ values }: { readonly values: readonly string[] }) {
-  if (values.length === 0) return EMPTY_VALUE;
+  if (values.length === 0) {
+    return EMPTY_VALUE;
+  }
   return (
     <span className="vertical-list">
       {values.map((value) => (
@@ -25,7 +27,9 @@ function VerticalList({ values }: { readonly values: readonly string[] }) {
 }
 
 function ColorList({ colors }: { readonly colors: readonly string[] }) {
-  if (colors.length === 0) return EMPTY_VALUE;
+  if (colors.length === 0) {
+    return EMPTY_VALUE;
+  }
   return (
     <span className="color-list">
       {colors.map((color) => {

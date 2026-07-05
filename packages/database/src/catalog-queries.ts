@@ -129,7 +129,9 @@ export class CatalogQueries {
 
   relations(ids: readonly string[]): RelationQueries {
     const existing = this.relationsByPageSize.get(ids.length);
-    if (existing) return existing;
+    if (existing) {
+      return existing;
+    }
     const placeholders = ids.map(() => '?').join(', ');
     const queries: RelationQueries = {
       soils: new TypedQuery(

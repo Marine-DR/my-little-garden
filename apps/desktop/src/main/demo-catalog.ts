@@ -25,17 +25,22 @@ const MONTHS: Record<string, number> = {
 };
 
 function optional(value: string | undefined): string | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const trimmed = value.trim();
   return !trimmed || normalizeDatabaseKey(trimmed) === 'n/a' ? null : trimmed;
 }
 
 function integer(value: string | undefined): number | null {
   const text = optional(value);
-  if (text === null) return null;
+  if (text === null) {
+    return null;
+  }
   const parsed = Number(text);
-  if (!Number.isInteger(parsed))
+  if (!Number.isInteger(parsed)) {
     throw new Error(`Invalid integer value: ${text}`);
+  }
   return parsed;
 }
 
@@ -59,11 +64,15 @@ function parseCsvLine(line: string): string[] {
       if (quoted && line[index + 1] === '"') {
         value += '"';
         index += 1;
-      } else quoted = !quoted;
+      } else {
+        quoted = !quoted;
+      }
     } else if (character === ',' && !quoted) {
       values.push(value);
       value = '';
-    } else value += character;
+    } else {
+      value += character;
+    }
   }
   values.push(value);
   return values;
@@ -78,7 +87,9 @@ function vocabularyId(
   const existing = database
     .prepare(`SELECT id FROM ${table} WHERE normalized_label = ?`)
     .get(normalized);
-  if (existing) return Number(existing.id);
+  if (existing) {
+    return Number(existing.id);
+  }
   const result = database
     .prepare(
       `INSERT INTO ${table} (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id`,
@@ -91,10 +102,15 @@ function exposures(value: string | undefined): ExposureCode[] {
   const codes = new Set<ExposureCode>();
   for (const item of list(value)) {
     const key = normalizeDatabaseKey(item);
-    if (key.includes('soleil')) codes.add('sun');
-    if (key.includes('mi-ombre') || key.includes('mi ombre'))
+    if (key.includes('soleil')) {
+      codes.add('sun');
+    }
+    if (key.includes('mi-ombre') || key.includes('mi ombre')) {
       codes.add('partial_shade');
-    if (key === 'ombre') codes.add('shade');
+    }
+    if (key === 'ombre') {
+      codes.add('shade');
+    }
   }
   return [...codes];
 }
@@ -103,10 +119,15 @@ function seasons(value: string | undefined): PlantingSeasonCode[] {
   const codes = new Set<PlantingSeasonCode>();
   for (const item of list(value)) {
     const key = normalizeDatabaseKey(item);
-    if (key.startsWith('printemps')) codes.add('spring');
-    else if (key.startsWith('ete')) codes.add('summer');
-    else if (key.startsWith('automne')) codes.add('autumn');
-    else if (key.startsWith('hiver')) codes.add('winter');
+    if (key.startsWith('printemps')) {
+      codes.add('spring');
+    } else if (key.startsWith('ete')) {
+      codes.add('summer');
+    } else if (key.startsWith('automne')) {
+      codes.add('autumn');
+    } else if (key.startsWith('hiver')) {
+      codes.add('winter');
+    }
   }
   return [...codes];
 }
@@ -124,7 +145,9 @@ export function seedDemoCatalog(database: DatabaseSync, csv: string): number {
   try {
     for (const row of rows) {
       const name = optional(row[0]);
-      if (!name) continue;
+      if (!name) {
+        continue;
+      }
       const type = optional(row[3]);
       const kindKey = normalizeDatabaseKey(row[4] ?? '');
       const kind: PlantKind | null =

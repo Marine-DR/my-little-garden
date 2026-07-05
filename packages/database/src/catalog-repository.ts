@@ -62,7 +62,9 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     const total = this.queries.total();
     const rows = this.queries.page(limit, offset);
 
-    if (rows.length === 0) return { items: [], total };
+    if (rows.length === 0) {
+      return { items: [], total };
+    }
 
     const ids = rows.map(({ id }) => id);
     const relationQueries = this.queries.relations(ids);

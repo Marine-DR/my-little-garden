@@ -42,7 +42,9 @@ export function nullableStringColumn(
   column: string,
 ): string | null {
   const value = row[column];
-  if (value === null) return null;
+  if (value === null) {
+    return null;
+  }
   if (typeof value !== 'string') {
     throw new TypeError(`Expected ${column} to be a string or null.`);
   }
@@ -62,7 +64,9 @@ export function nullableNumberColumn(
   column: string,
 ): number | null {
   const value = row[column];
-  if (value === null) return null;
+  if (value === null) {
+    return null;
+  }
   if (typeof value !== 'number') {
     throw new TypeError(`Expected ${column} to be a number or null.`);
   }
