@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_pattern: 'release/*.AppImage'
+            artifact_name: appimage
+          - os: macos-latest
+            artifact_pattern: 'release/*.dmg'
+            artifact_name: dmg
+          - os: windows-latest
+            artifact_pattern: 'release/*.exe'
+            artifact_name: exe
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Read package version
+        run: echo "APP_VERSION=$(node -p \"require('./package.json').version\")" >> "$GITHUB_ENV"
+
+      - name: Build app
+        run: npm run dist
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-little-garden-${{ env.APP_VERSION }}-${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_pattern }}
+
+      - name: Upload release assets
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact_pattern }}

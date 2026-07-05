@@ -122,6 +122,15 @@ async function createWindow(): Promise<void> {
     minHeight: 600,
     autoHideMenuBar: true,
     backgroundColor: '#f8faf7',
+    icon: join(
+      app.getAppPath(),
+      'apps',
+      'desktop',
+      'src',
+      'renderer',
+      'assets',
+      'app-icon.png',
+    ),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

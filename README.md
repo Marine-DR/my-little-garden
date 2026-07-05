@@ -40,6 +40,12 @@ Build and open the desktop application with:
 npm start
 ```
 
+Create distributable desktop artifacts for Linux, macOS, and Windows with:
+
+```bash
+npm run dist
+```
+
 Launch the isolated demo catalog, loaded from the bundled CSV on every run,
 with:
 
