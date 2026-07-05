@@ -86,6 +86,8 @@ main {
   display: flex;
   justify-content: flex-start;
   margin-bottom: 15px;
+  gap: 15px;
+  align-items: flex-start;
 }
 .catalog-menu {
   position: relative;
@@ -314,6 +316,13 @@ td:last-child {
 .plant-photo {
   display: block;
   object-fit: cover;
+}
+.image-import-banner {
+  position: fixed;
+  z-index: 90;
+  right: 17px;
+  top: 68px;
+  max-width: 600px;
 }
 .photo-fallback {
   display: grid;

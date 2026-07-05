@@ -31,7 +31,25 @@ export interface CatalogPage {
 export interface CatalogApi {
   listPlants(page: number): Promise<CatalogPage>;
   replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
+  importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
+  deletePhoto(plantId: string): Promise<PhotoDeleteResult>;
 }
+
+export interface PhotoImportFile {
+  readonly name: string;
+  readonly bytes: Uint8Array;
+}
+
+export type PhotoImportResult =
+  | {
+      readonly ok: true;
+      readonly imported: number;
+      readonly unmatched: readonly string[];
+    }
+  | { readonly ok: false; readonly errors: readonly string[] };
+
+export type PhotoDeleteResult =
+  { readonly ok: true } | { readonly ok: false; readonly error: string };
 
 export interface CatalogImportError {
   readonly code: string;

@@ -1,10 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { readFile } from 'node:fs/promises';
 import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
-import { app, BrowserWindow, ipcMain, net, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, protocol } from 'electron';
 import type {
   CatalogImportError,
   CatalogImportResult,
@@ -16,6 +16,7 @@ import {
   seedDemoCatalog,
   validateCatalogCsvStructure,
 } from './catalog-import.js';
+import { deletePlantPhoto, importPlantPhotos } from './photo-import.js';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -51,7 +52,20 @@ function photoUrl(filename: string | null): string | null {
   if (!filename || basename(filename) !== filename) {
     return null;
   }
-  return `garden-photo:///${encodeURIComponent(filename)}`;
+  return `garden-photo://image/${encodeURIComponent(filename)}`;
+}
+
+function photoMediaType(filename: string): string | null {
+  if (filename.endsWith('.jpg')) {
+    return 'image/jpeg';
+  }
+  if (filename.endsWith('.png')) {
+    return 'image/png';
+  }
+  if (filename.endsWith('.webp')) {
+    return 'image/webp';
+  }
+  return null;
 }
 
 function toCatalogPlant(plant: Plant): CatalogPlant {
@@ -169,12 +183,28 @@ app.whenReady().then(async () => {
     seedDemoCatalog(database, readFileSync(csvPath, 'utf8'));
   }
 
-  protocol.handle('garden-photo', (request) => {
-    const filename = decodeURIComponent(new URL(request.url).pathname.slice(1));
-    if (!filename || basename(filename) !== filename) {
+  protocol.handle('garden-photo', async (request) => {
+    const url = new URL(request.url);
+    const filename = decodeURIComponent(url.pathname.slice(1));
+    const mediaType = photoMediaType(filename);
+    if (
+      url.hostname !== 'image' ||
+      !filename ||
+      basename(filename) !== filename ||
+      !mediaType
+    ) {
       return new Response('Invalid image path', { status: 400 });
     }
-    return net.fetch(pathToFileURL(join(photoDirectory, filename)).toString());
+    try {
+      return new Response(await readFile(join(photoDirectory, filename)), {
+        headers: {
+          'Content-Type': mediaType,
+          'Cache-Control': 'no-store',
+        },
+      });
+    } catch {
+      return new Response('Image not found', { status: 404 });
+    }
   });
 
   ipcMain.handle('catalog:list', (_event, page: number) =>
@@ -208,7 +238,15 @@ app.whenReady().then(async () => {
         return { ok: false, errors };
       }
       try {
-        return { ok: true, imported: replaceCatalogFromCsv(database, csv) };
+        const obsoletePhotos = database
+          .prepare('SELECT managed_filename FROM plant_photos')
+          .all()
+          .map((row) => String(row.managed_filename));
+        const imported = replaceCatalogFromCsv(database, csv);
+        for (const filename of obsoletePhotos) {
+          rmSync(join(photoDirectory, filename), { force: true });
+        }
+        return { ok: true, imported };
       } catch (error) {
         return {
           ok: false,
@@ -224,6 +262,12 @@ app.whenReady().then(async () => {
         };
       }
     },
+  );
+  ipcMain.handle('photos:import', (_event, files) =>
+    importPlantPhotos(database, photoDirectory, files),
+  );
+  ipcMain.handle('photos:delete', (_event, plantId: string) =>
+    deletePlantPhoto(database, photoDirectory, plantId),
   );
   await createWindow();
 

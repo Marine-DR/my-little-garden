@@ -1,26 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CatalogPage } from '../shared/catalog';
 import collapseIcon from './assets/collapse.svg';
 import expandIcon from './assets/expand.svg';
+import { useCloseOnOutsidePointer } from './useCloseOnOutsidePointer';
 
 export function CatalogManager({
   onReplaced,
+  onSuccess,
+  children,
 }: {
   readonly onReplaced: (catalog: CatalogPage) => void;
+  readonly onSuccess: (message: string) => void;
+  readonly children?: React.ReactNode;
 }) {
   const [errors, setErrors] = useState<readonly string[]>([]);
-  const [success, setSuccess] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const menu = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!success) {
-      return undefined;
-    }
-    const timeout = window.setTimeout(() => setSuccess(null), 60_000);
-    return () => window.clearTimeout(timeout);
-  }, [success]);
+  useCloseOnOutsidePointer(menu, menuOpen, () => setMenuOpen(false));
 
   const replaceCatalog = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -32,7 +31,6 @@ export function CatalogManager({
     }
     setImporting(true);
     setErrors([]);
-    setSuccess(null);
     setMenuOpen(false);
     try {
       const result = await window.catalogApi.replaceCatalog(
@@ -44,7 +42,7 @@ export function CatalogManager({
         return;
       }
       onReplaced(await window.catalogApi.listPlants(1));
-      setSuccess(
+      onSuccess(
         `Le catalogue a été remplacé avec succès (${result.imported} fleurs importées).`,
       );
     } catch {
@@ -57,7 +55,7 @@ export function CatalogManager({
   return (
     <>
       <div className="catalog-actions">
-        <div className="catalog-menu">
+        <div ref={menu} className="catalog-menu">
           <button
             className="secondary-button"
             type="button"
@@ -86,19 +84,8 @@ export function CatalogManager({
             onChange={(event) => void replaceCatalog(event)}
           />
         </div>
+        {children}
       </div>
-      {success ? (
-        <div className="success-banner" role="status">
-          <span>{success}</span>
-          <button
-            type="button"
-            aria-label="Fermer le message de succès"
-            onClick={() => setSuccess(null)}
-          >
-            ×
-          </button>
-        </div>
-      ) : null}
       {errors.length > 0 ? (
         <div className="modal-backdrop" role="presentation">
           <section
