@@ -14,6 +14,7 @@
     "format:check": "prettier --check .",
     "typecheck": "npm run build:database && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/database/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.renderer.json --noEmit && tsc -p apps/desktop/tsconfig.tests.json --noEmit",
     "lint": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write . && eslint . --fix",
     "test:core": "npm run build:core && node packages/core/tests/plant.test.cjs",
     "test:database": "npm run build:database && node --test packages/database/tests/initial-schema.test.cjs packages/database/tests/catalog-repository.test.cjs",
     "test:desktop": "vitest run",

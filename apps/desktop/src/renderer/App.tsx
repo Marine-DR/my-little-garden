@@ -21,7 +21,9 @@ export function App() {
         }
       })
       .catch(() => {
-        if (active) setError('Le catalogue n’a pas pu être chargé.');
+        if (active) {
+          setError('Le catalogue n’a pas pu être chargé.');
+        }
       });
     return () => {
       active = false;

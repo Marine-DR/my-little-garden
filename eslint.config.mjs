@@ -25,6 +25,7 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       '@typescript-eslint/consistent-type-imports': 'error',
+      curly: ['error', 'all'],
     },
   },
   {
