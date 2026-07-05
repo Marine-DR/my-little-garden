@@ -98,6 +98,22 @@ async function listCatalogPage(requestedPage: number): Promise<CatalogPage> {
   };
 }
 
+function resolveRendererEntry(): {
+  type: 'file' | 'url';
+  path?: string;
+  url?: string;
+} {
+  const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devServerUrl) {
+    return { type: 'url', url: devServerUrl };
+  }
+
+  return {
+    type: 'file',
+    path: join(app.getAppPath(), 'dist', 'renderer', 'index.html'),
+  };
+}
+
 async function createWindow(): Promise<void> {
   const window = new BrowserWindow({
     width: 1440,
@@ -114,9 +130,13 @@ async function createWindow(): Promise<void> {
   });
   window.setMenu(null);
 
-  await window.loadFile(
-    join(app.getAppPath(), 'dist', 'renderer', 'index.html'),
-  );
+  const entry = resolveRendererEntry();
+
+  if (entry.type === 'url' && entry.url) {
+    await window.loadURL(entry.url);
+  } else if (entry.path) {
+    await window.loadFile(entry.path);
+  }
 }
 
 app.whenReady().then(async () => {
