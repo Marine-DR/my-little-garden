@@ -3,6 +3,7 @@ import {
   type PlantWriteInput,
 } from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
+import { runInTransaction } from './transaction';
 
 function vocabularyId(
   database: DatabaseSync,
@@ -30,19 +31,14 @@ export class SqliteCatalogReplacement {
   replace(plants: Iterable<PlantWriteInput>): number {
     const now = new Date().toISOString();
     let imported = 0;
-    this.database.exec('BEGIN IMMEDIATE');
-    try {
+    return runInTransaction(this.database, () => {
       this.database.exec('DELETE FROM plants');
       for (const plant of plants) {
         this.insertPlant(plant, now);
         imported += 1;
       }
-      this.database.exec('COMMIT');
       return imported;
-    } catch (error) {
-      this.database.exec('ROLLBACK');
-      throw error;
-    }
+    });
   }
 
   private insertPlant(plant: PlantWriteInput, now: string): void {

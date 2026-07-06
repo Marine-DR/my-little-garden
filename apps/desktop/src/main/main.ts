@@ -1,10 +1,9 @@
 import { readFileSync, rmSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { readFile } from 'node:fs/promises';
 import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
-import { app, BrowserWindow, ipcMain, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import type {
   CatalogImportError,
   CatalogImportResult,
@@ -17,13 +16,9 @@ import {
   validateCatalogCsvStructure,
 } from './catalog-import.js';
 import { deletePlantPhoto, importPlantPhotos } from './photo-import.js';
+import { handlePhotoRequests, registerPhotoScheme } from './photo-protocol.js';
 
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: 'garden-photo',
-    privileges: { standard: true, secure: true, supportFetchAPI: true },
-  },
-]);
+registerPhotoScheme();
 
 let database: DatabaseSync;
 let catalogRepository: PlantCatalogRepository;
@@ -53,19 +48,6 @@ function photoUrl(filename: string | null): string | null {
     return null;
   }
   return `garden-photo://image/${encodeURIComponent(filename)}`;
-}
-
-function photoMediaType(filename: string): string | null {
-  if (filename.endsWith('.jpg')) {
-    return 'image/jpeg';
-  }
-  if (filename.endsWith('.png')) {
-    return 'image/png';
-  }
-  if (filename.endsWith('.webp')) {
-    return 'image/webp';
-  }
-  return null;
 }
 
 function toCatalogPlant(plant: Plant): CatalogPlant {
@@ -183,29 +165,7 @@ app.whenReady().then(async () => {
     seedDemoCatalog(database, readFileSync(csvPath, 'utf8'));
   }
 
-  protocol.handle('garden-photo', async (request) => {
-    const url = new URL(request.url);
-    const filename = decodeURIComponent(url.pathname.slice(1));
-    const mediaType = photoMediaType(filename);
-    if (
-      url.hostname !== 'image' ||
-      !filename ||
-      basename(filename) !== filename ||
-      !mediaType
-    ) {
-      return new Response('Invalid image path', { status: 400 });
-    }
-    try {
-      return new Response(await readFile(join(photoDirectory, filename)), {
-        headers: {
-          'Content-Type': mediaType,
-          'Cache-Control': 'no-store',
-        },
-      });
-    } catch {
-      return new Response('Image not found', { status: 404 });
-    }
-  });
+  handlePhotoRequests(photoDirectory);
 
   ipcMain.handle('catalog:list', (_event, page: number) =>
     listCatalogPage(page),

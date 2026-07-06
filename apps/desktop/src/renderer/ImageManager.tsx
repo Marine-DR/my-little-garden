@@ -39,7 +39,7 @@ export function ImageManager({
       );
       const result = await window.catalogApi.importPhotos(files);
       if (!result.ok) {
-        setErrors(result.errors);
+        setErrors(result.errors.map(({ message }) => message));
         return;
       }
       onImported();

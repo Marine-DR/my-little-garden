@@ -46,7 +46,13 @@ export type PhotoImportResult =
       readonly imported: number;
       readonly unmatched: readonly string[];
     }
-  | { readonly ok: false; readonly errors: readonly string[] };
+  | { readonly ok: false; readonly errors: readonly PhotoImportError[] };
+
+export interface PhotoImportError {
+  readonly code: string;
+  readonly message: string;
+  readonly field?: string;
+}
 
 export type PhotoDeleteResult =
   { readonly ok: true } | { readonly ok: false; readonly error: string };

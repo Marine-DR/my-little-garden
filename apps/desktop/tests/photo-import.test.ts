@@ -88,4 +88,21 @@ describe('plant photo import', () => {
       ]),
     ).toEqual({ ok: true, imported: 0, unmatched: ['Àcorus.png'] });
   });
+
+  it('returns structured validation errors for invalid images', () => {
+    expect(
+      importPlantPhotos(database, directory, [
+        { name: 'Acorus.txt', bytes: new Uint8Array([1, 2, 3]) },
+      ]),
+    ).toEqual({
+      ok: false,
+      errors: [
+        {
+          code: 'invalid_image',
+          field: 'Acorus.txt',
+          message: 'Acorus.txt n’est pas une image PNG, JPEG ou WebP valide.',
+        },
+      ],
+    });
+  });
 });
