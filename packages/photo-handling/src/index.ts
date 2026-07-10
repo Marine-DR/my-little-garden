@@ -87,7 +87,9 @@ function readZipEntries(file: PhotoImportFile): PhotoImportFile[] {
   if (file.bytes.length > MAX_ARCHIVE_BYTES) {
     throw new Error('Le fichier ZIP est trop volumineux.');
   }
-  const entries = Object.entries(unzipSync(file.bytes));
+  const entries = Object.entries(unzipSync(file.bytes)).filter(
+    ([rawName]) => !isIgnoredZipEntry(rawName),
+  );
   if (entries.length === 0) {
     throw new Error('Le fichier ZIP ne contient aucune image.');
   }
@@ -97,9 +99,6 @@ function readZipEntries(file: PhotoImportFile): PhotoImportFile[] {
   let totalSize = 0;
   return entries.map(([rawName, bytes]) => {
     const name = basename(rawName.replaceAll('\\', '/'));
-    if (!name) {
-      throw new Error('Le fichier ZIP contient une entrée invalide.');
-    }
     if (bytes.length > MAX_IMAGE_BYTES) {
       throw new Error(`${name} est trop volumineux.`);
     }
@@ -109,6 +108,18 @@ function readZipEntries(file: PhotoImportFile): PhotoImportFile[] {
     }
     return { name, bytes };
   });
+}
+
+function isIgnoredZipEntry(rawName: string): boolean {
+  const normalized = rawName.replaceAll('\\', '/');
+  const name = basename(normalized);
+  return (
+    normalized.endsWith('/') ||
+    normalized.startsWith('__MACOSX/') ||
+    name.startsWith('._') ||
+    name === '.DS_Store' ||
+    name === 'Thumbs.db'
+  );
 }
 
 function expandFiles(files: readonly PhotoImportFile[]): PhotoImportFile[] {

@@ -96,6 +96,21 @@ describe('plant photo import', () => {
     ).toBe(1);
   });
 
+  it('ignores folder and system metadata entries in zip files', () => {
+    const archive = zipSync({
+      'nested/': new Uint8Array(),
+      'nested/Acorus.png': png,
+      '__MACOSX/nested/._Acorus.png': new Uint8Array([0]),
+      'nested/.DS_Store': new Uint8Array([0]),
+    });
+
+    expect(
+      importPlantPhotos(database, directory, [
+        { name: 'photos.zip', bytes: archive },
+      ]),
+    ).toMatchObject({ ok: true, imported: 1, unmatched: [] });
+  });
+
   it('does not ignore differences other than letter case', () => {
     expect(
       importPlantPhotos(database, directory, [
