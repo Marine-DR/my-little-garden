@@ -23,6 +23,7 @@ Sort button in table #F8FAF700
 
 ```css
 App title Inter SemiBold 20
+Main page title Inter SamiBold 20
 Flower Name Inter SemiBold 16
 Column name Inter SemiBold 14
 Primary and secondary button text Inter Medium 14
@@ -94,7 +95,7 @@ disabled title="Feature coming soon"
 
 #### Hover
 
-The sondary button state change on mouse hover. On hover, the background color change to #F4FFEEFF and the border color change to #F4FFEEFF
+The sondary button state change on mouse hover. On hover, the background color change to #F4FFEEFF and the border color change to #2F7D32FF
 
 #### Disabled
 
@@ -203,6 +204,7 @@ To indicate what is the current page, the current page button use the same style
 ## Text
 
 - App title: Inter SemiBold 20 Primary Green #2F7D32
+- Main page title: Inter SemiBold 20 Primary Green #2F7D32
 - Primary text: Inter Regular 14 #000000ff
 - Secondary text: Inter Regular 12 #969191ff
 

@@ -48,6 +48,7 @@ Buttons: both in primary buttons style
 Left side:
 
 ```text
+Mon Catalogue
 ┌─────────────────────────────────────────────────────────────┐
 │ 🔍 Rechercher une fleur, couleur, sol, exposition...        │ [Filtres(0)]
 └─────────────────────────────────────────────────────────────┘
@@ -59,6 +60,8 @@ Right side:
 [Colonnes(0)]
 ```
 
+Screen name: Main page title style  
+Buttons: secondary buttons style
 ---
 
 ## Active Filters
@@ -84,6 +87,7 @@ Displayed above the flower grid.
 [🖼 Importer Images ▼]
 ```
 
+Buttons: secondary buttons style
 ---
 
 # Flower Creation
@@ -317,11 +321,13 @@ Example:
 [Supprimer]
 ```
 
-Administration actions remain visible.
+Administration actions remain visible.  
+Buttons: secondary buttons style
+Button Supprimer: Delete button style
 
 ---
 
-# Create a List
+# Create a Selection
 
 Available only when flowers are selected.
 
@@ -761,13 +767,11 @@ Sort Z→A
 
 # Filtres Drawer
 
-Width:
+Width: 600 px
 
-```text
-360 px
-```
+````
 
-Allow multi selection for each field.  
+Allow multi selection for each field.
 Contains:
 
 ## Type
@@ -777,7 +781,7 @@ Contains:
 ☐ Annuelle
 ☐ Graminée
 ☐ Arbuste
-```
+````
 
 ## Hauteur
 
@@ -951,7 +955,8 @@ CSV - Mise à jour
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ 🌿 MyLittleGarden                         [Mes Sélections]   [Mes Parterres] │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│ 🔍 Rechercher une fleur...  [Filtres]                             [Colonnes] │
+│ Mon Catalogue                                                                |
+| 🔍 Rechercher une fleur...  [Filtres]                             [Colonnes] │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │ [+ Ajouter une fleur] [🗋 Gérer le catalogue ▼] [🖼 Importer Images ▼]        │
 ├──────────────────────────────────────────────────────────────────────────────┤

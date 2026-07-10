@@ -11,6 +11,8 @@ import type {
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
+  PhotoDeleteResult,
+  PhotoImportResult,
 } from '../src/shared/catalog';
 import { App } from '../src/renderer/App';
 
@@ -47,12 +49,26 @@ describe('App catalog', () => {
   const listPlants = vi.fn<(page: number) => Promise<CatalogPage>>();
   const replaceCatalog =
     vi.fn<(filename: string, csv: string) => Promise<CatalogImportResult>>();
+  const importPhotos =
+    vi.fn<
+      (
+        files: readonly { name: string; bytes: Uint8Array }[],
+      ) => Promise<PhotoImportResult>
+    >();
+  const deletePhoto = vi.fn<(plantId: string) => Promise<PhotoDeleteResult>>();
 
   beforeEach(() => {
     vi.clearAllMocks();
     listPlants.mockImplementation(async (number) => page(number));
     replaceCatalog.mockResolvedValue({ ok: true, imported: 1 });
-    window.catalogApi = { listPlants, replaceCatalog };
+    importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
+    deletePhoto.mockResolvedValue({ ok: true });
+    window.catalogApi = {
+      listPlants,
+      replaceCatalog,
+      importPhotos,
+      deletePhoto,
+    };
   });
 
   afterEach(() => {
@@ -98,9 +114,36 @@ describe('App catalog', () => {
   it('loads the next group of 25 plants from the database boundary', async () => {
     render(<App />);
     await screen.findByText('Rose page 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Suivant →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
     await waitFor(() => expect(listPlants).toHaveBeenLastCalledWith(2));
     expect(await screen.findByText('Rose page 2')).toBeInTheDocument();
+  });
+
+  it('closes each expanded action menu when clicking outside', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    expect(
+      screen.getByRole('button', { name: /Remplacer tout le catalogue/u }),
+    ).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(
+      screen.queryByRole('button', { name: /Remplacer tout le catalogue/u }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Importer des images/u }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Importer une image' }),
+    ).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(
+      screen.queryByRole('button', { name: 'Importer une image' }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens catalog management and refreshes the first page after replacement', async () => {
@@ -187,5 +230,49 @@ describe('App catalog', () => {
       }),
     );
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('imports one plant image and refreshes the visible page', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Importer des images/u }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Importer une image' }));
+    const input = screen.getByLabelText('Sélectionner une image');
+    const file = new File([new Uint8Array([1, 2, 3])], 'Rose page 1.png', {
+      type: 'image/png',
+    });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: async () => new Uint8Array([1, 2, 3]).buffer,
+    });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => expect(importPhotos).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listPlants).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByText(/1 photo\(s\) importée\(s\)/u),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Remplacer tout le catalogue/u }),
+    );
+    const csvInput = document.querySelector<HTMLInputElement>(
+      'input[accept=".csv,text/csv"]',
+    );
+    const csv = new File(['catalogue'], 'catalogue.csv', { type: 'text/csv' });
+    Object.defineProperty(csv, 'text', { value: async () => 'catalogue' });
+    fireEvent.change(csvInput!, { target: { files: [csv] } });
+
+    expect(
+      await screen.findByText(/catalogue a été remplacé avec succès/u),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/1 photo\(s\) importée\(s\)/u),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 });

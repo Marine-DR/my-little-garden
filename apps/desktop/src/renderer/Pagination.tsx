@@ -1,3 +1,6 @@
+import nextIcon from './assets/next.svg';
+import previousIcon from './assets/previous.svg';
+
 function pagesAround(current: number, total: number): number[] {
   const start = Math.max(1, Math.min(current - 2, total - 4));
   const end = Math.min(total, start + 4);
@@ -29,7 +32,8 @@ export function Pagination({
       </p>
       <nav className="pagination" aria-label="Pages du catalogue">
         <button disabled={page === 1} onClick={() => onChange(page - 1)}>
-          ← Précédent
+          <img src={previousIcon} alt="" />
+          Précédent
         </button>
         {pagesAround(page, pageCount).map((number) => (
           <button
@@ -45,7 +49,8 @@ export function Pagination({
           disabled={page === pageCount}
           onClick={() => onChange(page + 1)}
         >
-          Suivant →
+          Suivant
+          <img src={nextIcon} alt="" />
         </button>
       </nav>
       <p className="page-size">25 par page</p>

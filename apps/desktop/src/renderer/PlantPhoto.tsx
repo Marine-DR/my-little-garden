@@ -7,8 +7,8 @@ export function PlantPhoto({
   readonly name: string;
   readonly url: string | null;
 }) {
-  const [failed, setFailed] = useState(false);
-  if (!url || failed) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  if (!url || failedUrl === url) {
     return (
       <span
         className="photo-fallback"
@@ -24,7 +24,7 @@ export function PlantPhoto({
       className="plant-photo"
       src={url}
       alt={name}
-      onError={() => setFailed(true)}
+      onError={() => setFailedUrl(url)}
     />
   );
 }
