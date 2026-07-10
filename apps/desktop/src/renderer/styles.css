@@ -115,7 +115,7 @@ main {
 }
 .secondary-button:hover:not(:disabled) {
   background: #f4ffee;
-  border-color: #f4ffee;
+  border-color: #2f7d32ff;
 }
 .secondary-button:disabled {
   color: rgb(47 125 50 / 50%);
@@ -136,13 +136,22 @@ main {
 .catalog-menu-options button {
   width: 100%;
   justify-content: flex-start;
+  text-align: left;
+  white-space: nowrap;
   color: #2f7d32;
   background: #fff;
   border: 0;
 }
+.image-menu-options {
+  min-width: 320px;
+}
 .catalog-menu-options button span {
   font-size: 20px;
   line-height: 1;
+}
+.catalog-menu-options button img {
+  width: 16px;
+  height: 16px;
 }
 .catalog-menu-options button:hover {
   background: #f4ffee;
@@ -429,6 +438,10 @@ abbr {
   min-width: 31px;
   height: 31px;
   padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   color: #2f7d32;
   background: transparent;
   border: 1px solid transparent;
@@ -436,6 +449,10 @@ abbr {
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
+}
+.pagination button img {
+  width: 12px;
+  height: 12px;
 }
 .pagination button:hover:not(:disabled) {
   background: #f4ffee;

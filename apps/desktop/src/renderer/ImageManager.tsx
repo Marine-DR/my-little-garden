@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import collapseIcon from './assets/collapse.svg';
 import expandIcon from './assets/expand.svg';
+import importPictureIcon from './assets/importPicture.svg';
+import importZipIcon from './assets/importZip.svg';
 import { useCloseOnOutsidePointer } from './useCloseOnOutsidePointer';
 
 export function ImageManager({
@@ -75,9 +77,11 @@ export function ImageManager({
         {menuOpen ? (
           <div className="catalog-menu-options image-menu-options">
             <button type="button" onClick={() => imageInput.current?.click()}>
+              <img src={importPictureIcon} alt="" />
               Importer une image
             </button>
             <button type="button" onClick={() => zipInput.current?.click()}>
+              <img src={importZipIcon} alt="" />
               Importer plusieurs images (.zip)
             </button>
           </div>

@@ -114,7 +114,7 @@ describe('App catalog', () => {
   it('loads the next group of 25 plants from the database boundary', async () => {
     render(<App />);
     await screen.findByText('Rose page 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Suivant →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
     await waitFor(() => expect(listPlants).toHaveBeenLastCalledWith(2));
     expect(await screen.findByText('Rose page 2')).toBeInTheDocument();
   });

@@ -95,7 +95,7 @@ disabled title="Feature coming soon"
 
 #### Hover
 
-The sondary button state change on mouse hover. On hover, the background color change to #F4FFEEFF and the border color change to #F4FFEEFF
+The sondary button state change on mouse hover. On hover, the background color change to #F4FFEEFF and the border color change to #2F7D32FF
 
 #### Disabled
 
