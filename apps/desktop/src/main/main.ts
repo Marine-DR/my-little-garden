@@ -1,7 +1,8 @@
 import { readFileSync, rmSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { join } from 'node:path';
 import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
+import { createPhotoUrl } from '@my-little-garden/photo-handling';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import type {
@@ -43,18 +44,11 @@ function ensureSchema(db: DatabaseSync): void {
   }
 }
 
-function photoUrl(filename: string | null): string | null {
-  if (!filename || basename(filename) !== filename) {
-    return null;
-  }
-  return `garden-photo://image/${encodeURIComponent(filename)}`;
-}
-
 function toCatalogPlant(plant: Plant): CatalogPlant {
   return {
     id: plant.id,
     name: plant.name,
-    photoUrl: photoUrl(plant.photo?.managedFilename ?? null),
+    photoUrl: createPhotoUrl(plant.photo?.managedFilename ?? null),
     heightMinCm: plant.heightCm?.min ?? null,
     heightMaxCm: plant.heightCm?.max ?? null,
     type: plant.type?.label ?? null,

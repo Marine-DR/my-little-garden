@@ -1,9 +1,18 @@
-import { basename, extname } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { basename, extname, join } from 'node:path';
 import { unzipSync } from 'fflate';
 
 const MAX_ARCHIVE_ENTRIES = 2_000;
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 const MAX_ARCHIVE_BYTES = 250 * 1024 * 1024;
+export const PHOTO_PROTOCOL_SCHEME = 'garden-photo';
+const PHOTO_PROTOCOL_HOST = 'image';
+
+export const PHOTO_PROTOCOL_PRIVILEGES = {
+  standard: true,
+  secure: true,
+  supportFetchAPI: true,
+};
 
 export interface PhotoImportFile {
   readonly name: string;
@@ -147,4 +156,48 @@ export function validatePhotoFiles(files: readonly PhotoImportFile[]): {
     }
   }
   return { images, errors };
+}
+
+export function photoMediaType(filename: string): string | null {
+  if (filename.endsWith('.jpg')) {
+    return 'image/jpeg';
+  }
+  if (filename.endsWith('.png')) {
+    return 'image/png';
+  }
+  if (filename.endsWith('.webp')) {
+    return 'image/webp';
+  }
+  return null;
+}
+
+export function createPhotoUrl(filename: string | null): string | null {
+  if (!filename || basename(filename) !== filename) {
+    return null;
+  }
+  return `${PHOTO_PROTOCOL_SCHEME}://${PHOTO_PROTOCOL_HOST}/${encodeURIComponent(filename)}`;
+}
+
+export async function handlePhotoProtocolRequest(
+  photoDirectory: string,
+  requestUrl: string,
+): Promise<Response> {
+  const url = new URL(requestUrl);
+  const filename = decodeURIComponent(url.pathname.slice(1));
+  const mediaType = photoMediaType(filename);
+  if (
+    url.hostname !== PHOTO_PROTOCOL_HOST ||
+    !filename ||
+    basename(filename) !== filename ||
+    !mediaType
+  ) {
+    return new Response('Invalid image path', { status: 400 });
+  }
+  try {
+    return new Response(await readFile(join(photoDirectory, filename)), {
+      headers: { 'Content-Type': mediaType, 'Cache-Control': 'no-store' },
+    });
+  } catch {
+    return new Response('Image not found', { status: 404 });
+  }
 }
