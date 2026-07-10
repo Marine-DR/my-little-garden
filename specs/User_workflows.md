@@ -4,7 +4,7 @@
 
 ### Replace the current plants list
 
-Click on button to replace > upload the .csv file with the new list > The list of plants contains only the plants from the .csv
+Click on button to replace > upload the .csv file with the new list > Confirm the action > The list of plants contains only the plants from the .csv
 
 ### Add new plants in the list
 

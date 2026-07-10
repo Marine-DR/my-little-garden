@@ -1,3 +1,10 @@
+import type {
+  PhotoImportFile,
+  PhotoImportResult,
+} from '@my-little-garden/photo-handling';
+
+export type { PhotoImportFile, PhotoImportResult };
+
 export interface CatalogPlant {
   readonly id: string;
   readonly name: string;
@@ -33,25 +40,6 @@ export interface CatalogApi {
   replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
   importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
   deletePhoto(plantId: string): Promise<PhotoDeleteResult>;
-}
-
-export interface PhotoImportFile {
-  readonly name: string;
-  readonly bytes: Uint8Array;
-}
-
-export type PhotoImportResult =
-  | {
-      readonly ok: true;
-      readonly imported: number;
-      readonly unmatched: readonly string[];
-    }
-  | { readonly ok: false; readonly errors: readonly PhotoImportError[] };
-
-export interface PhotoImportError {
-  readonly code: string;
-  readonly message: string;
-  readonly field?: string;
 }
 
 export type PhotoDeleteResult =

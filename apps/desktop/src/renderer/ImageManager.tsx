@@ -49,7 +49,8 @@ export function ImageManager({
       onSuccess(
         `${result.imported} photo(s) importée(s) avec succès.${warning}`,
       );
-    } catch {
+    } catch (error) {
+      console.error('Photo import failed', error);
       setErrors(['Les images n’ont pas pu être importées.']);
     } finally {
       setBusy(false);

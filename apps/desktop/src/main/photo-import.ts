@@ -1,51 +1,48 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
-import { runInTransaction } from '@my-little-garden/database';
-import type { DatabaseSync } from 'node:sqlite';
-import type {
-  PhotoDeleteResult,
-  PhotoImportFile,
-  PhotoImportResult,
-} from '../shared/catalog.js';
+import {
+  runInTransaction,
+  SqlitePlantPhotoRepository,
+  type PlantPhotoTarget,
+} from '@my-little-garden/database';
 import {
   validatePhotoFiles,
+  type PhotoImportFile,
+  type PhotoImportResult,
   type ValidImage,
-} from './photo-file-validation.js';
+} from '@my-little-garden/photo-handling';
+import type { DatabaseSync } from 'node:sqlite';
+import type { PhotoDeleteResult } from '../shared/catalog.js';
 
 function caseInsensitiveName(value: string): string {
   return value.normalize('NFC').toLocaleLowerCase('fr');
 }
 
-export function importPlantPhotos(
-  database: DatabaseSync,
-  photoDirectory: string,
-  files: readonly PhotoImportFile[],
-): PhotoImportResult {
-  try {
-    const validation = validatePhotoFiles(files);
-    if (validation.errors.length > 0) {
-      return { ok: false, errors: validation.errors };
-    }
-    const { images } = validation;
-
-    const plants = database.prepare('SELECT id, name FROM plants').all();
-    const byName = new Map(
-      plants.map((row) => [
-        caseInsensitiveName(String(row.name)),
-        String(row.id),
-      ]),
+function matchImagesToPlants(
+  images: readonly ValidImage[],
+  plants: readonly PlantPhotoTarget[],
+):
+  | { ok: true; matched: Map<string, ValidImage>; unmatched: string[] }
+  | { ok: false; result: PhotoImportResult } {
+  const byName = new Map(
+    plants.map((plant) => [
+      caseInsensitiveName(plant.plantName),
+      plant.plantId,
+    ]),
+  );
+  const matched = new Map<string, ValidImage>();
+  const unmatched: string[] = [];
+  for (const image of images) {
+    const plantId = byName.get(
+      caseInsensitiveName(basename(image.name, extname(image.name))),
     );
-    const matched = new Map<string, ValidImage>();
-    const unmatched: string[] = [];
-    for (const image of images) {
-      const plantId = byName.get(
-        caseInsensitiveName(basename(image.name, extname(image.name))),
-      );
-      if (!plantId) {
-        unmatched.push(image.name);
-      } else if (matched.has(plantId)) {
-        return {
+    if (!plantId) {
+      unmatched.push(image.name);
+    } else if (matched.has(plantId)) {
+      return {
+        ok: false,
+        result: {
           ok: false,
           errors: [
             {
@@ -55,68 +52,127 @@ export function importPlantPhotos(
                 'Plusieurs images correspondent à la même plante dans l’import.',
             },
           ],
-        };
-      } else {
-        matched.set(plantId, image);
-      }
+        },
+      };
+    } else {
+      matched.set(plantId, image);
     }
+  }
+  return { ok: true, matched, unmatched };
+}
 
-    mkdirSync(photoDirectory, { recursive: true });
-    const staged: {
-      plantId: string;
-      temporary: string;
-      managed: string;
-      previous: string | null;
-      image: ValidImage;
-    }[] = [];
-    for (const [plantId, image] of matched) {
-      const managed = `${randomUUID()}${image.extension}`;
-      const temporary = join(photoDirectory, `.${managed}.tmp`);
-      writeFileSync(temporary, image.bytes, { flag: 'wx' });
-      const previousRow = database
-        .prepare('SELECT managed_filename FROM plant_photos WHERE plant_id = ?')
-        .get(plantId);
-      staged.push({
-        plantId,
-        temporary,
-        managed,
-        previous: previousRow ? String(previousRow.managed_filename) : null,
-        image,
+function currentPhotoByPlant(
+  plants: readonly PlantPhotoTarget[],
+): Map<string, string | null> {
+  return new Map(plants.map((plant) => [plant.plantId, plant.managedFilename]));
+}
+
+function checksum(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function removeStagedFiles(
+  photoDirectory: string,
+  staged: readonly StagedPhoto[],
+): void {
+  for (const item of staged) {
+    rmSync(item.temporary, { force: true });
+    rmSync(join(photoDirectory, item.managed), { force: true });
+  }
+}
+
+function removePreviousFiles(
+  photoDirectory: string,
+  staged: readonly StagedPhoto[],
+): void {
+  for (const item of staged) {
+    if (item.previous) {
+      rmSync(join(photoDirectory, item.previous), { force: true });
+    }
+  }
+}
+
+type StagedPhoto = {
+  plantId: string;
+  temporary: string;
+  managed: string;
+  previous: string | null;
+  image: ValidImage;
+};
+
+function stagePhotos(
+  photoDirectory: string,
+  matched: ReadonlyMap<string, ValidImage>,
+  previousByPlant: ReadonlyMap<string, string | null>,
+): StagedPhoto[] {
+  mkdirSync(photoDirectory, { recursive: true });
+  const staged: StagedPhoto[] = [];
+  for (const [plantId, image] of matched) {
+    const managed = `${randomUUID()}${image.extension}`;
+    const temporary = join(photoDirectory, `.${managed}.tmp`);
+    writeFileSync(temporary, image.bytes, { flag: 'wx' });
+    staged.push({
+      plantId,
+      temporary,
+      managed,
+      previous: previousByPlant.get(plantId) ?? null,
+      image,
+    });
+  }
+  return staged;
+}
+
+function persistPhotos(
+  database: DatabaseSync,
+  repository: SqlitePlantPhotoRepository,
+  photoDirectory: string,
+  staged: readonly StagedPhoto[],
+): void {
+  runInTransaction(database, () => {
+    const createdAt = new Date().toISOString();
+    for (const item of staged) {
+      renameSync(item.temporary, join(photoDirectory, item.managed));
+      repository.upsert({
+        plantId: item.plantId,
+        managedFilename: item.managed,
+        mediaType: item.image.mediaType,
+        checksumSha256: checksum(item.image.bytes),
+        createdAt,
       });
     }
+  });
+}
+
+export function importPlantPhotos(
+  database: DatabaseSync,
+  photoDirectory: string,
+  files: readonly PhotoImportFile[],
+): PhotoImportResult {
+  try {
+    const repository = new SqlitePlantPhotoRepository(database);
+    const validation = validatePhotoFiles(files);
+    if (validation.errors.length > 0) {
+      return { ok: false, errors: validation.errors };
+    }
+    const plants = repository.listTargets();
+    const matching = matchImagesToPlants(validation.images, plants);
+    if (!matching.ok) {
+      return matching.result;
+    }
+    const staged = stagePhotos(
+      photoDirectory,
+      matching.matched,
+      currentPhotoByPlant(plants),
+    );
 
     try {
-      runInTransaction(database, () => {
-        const upsert = database.prepare(`INSERT INTO plant_photos
-          (plant_id, managed_filename, media_type, checksum_sha256, created_at)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(plant_id) DO UPDATE SET managed_filename=excluded.managed_filename,
-            media_type=excluded.media_type, checksum_sha256=excluded.checksum_sha256,
-            created_at=excluded.created_at`);
-        for (const item of staged) {
-          renameSync(item.temporary, join(photoDirectory, item.managed));
-          upsert.run(
-            item.plantId,
-            item.managed,
-            item.image.mediaType,
-            createHash('sha256').update(item.image.bytes).digest('hex'),
-            new Date().toISOString(),
-          );
-        }
-      });
+      persistPhotos(database, repository, photoDirectory, staged);
     } catch (error) {
-      for (const item of staged) {
-        rmSync(item.temporary, { force: true });
-        rmSync(join(photoDirectory, item.managed), { force: true });
-      }
+      removeStagedFiles(photoDirectory, staged);
       throw error;
     }
-    for (const item of staged) {
-      if (item.previous) {
-        rmSync(join(photoDirectory, item.previous), { force: true });
-      }
-    }
-    return { ok: true, imported: staged.length, unmatched };
+    removePreviousFiles(photoDirectory, staged);
+    return { ok: true, imported: staged.length, unmatched: matching.unmatched };
   } catch (error) {
     return {
       ok: false,
@@ -139,16 +195,12 @@ export function deletePlantPhoto(
   plantId: string,
 ): PhotoDeleteResult {
   try {
-    const row = database
-      .prepare('SELECT managed_filename FROM plant_photos WHERE plant_id = ?')
-      .get(plantId);
-    if (!row) {
-      return { ok: true };
+    const filename = new SqlitePlantPhotoRepository(database).deleteByPlantId(
+      plantId,
+    );
+    if (filename) {
+      rmSync(join(photoDirectory, filename), { force: true });
     }
-    database
-      .prepare('DELETE FROM plant_photos WHERE plant_id = ?')
-      .run(plantId);
-    rmSync(join(photoDirectory, String(row.managed_filename)), { force: true });
     return { ok: true };
   } catch {
     return { ok: false, error: 'La photo n’a pas pu être supprimée.' };

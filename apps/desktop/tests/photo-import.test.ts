@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { zipSync } from 'fflate';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { deletePlantPhoto, importPlantPhotos } from '../src/main/photo-import';
 
@@ -79,6 +80,20 @@ describe('plant photo import', () => {
       database.prepare('SELECT count(*) AS total FROM plant_photos').get()!
         .total,
     ).toBe(0);
+  });
+
+  it('imports images from zip files', () => {
+    const archive = zipSync({ 'nested/Acorus.png': png });
+
+    expect(
+      importPlantPhotos(database, directory, [
+        { name: 'photos.zip', bytes: archive },
+      ]),
+    ).toMatchObject({ ok: true, imported: 1, unmatched: [] });
+    expect(
+      database.prepare('SELECT count(*) AS total FROM plant_photos').get()!
+        .total,
+    ).toBe(1);
   });
 
   it('does not ignore differences other than letter case', () => {
