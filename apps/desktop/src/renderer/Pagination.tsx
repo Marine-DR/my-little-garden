@@ -28,7 +28,7 @@ export function Pagination({
   return (
     <footer className="table-footer" aria-label="Pagination du catalogue">
       <p className="result-count">
-        {first}–{last} sur {total} fleurs
+        {first}-{last} sur {total} fleurs
       </p>
       <nav className="pagination" aria-label="Pages du catalogue">
         <button disabled={page === 1} onClick={() => onChange(page - 1)}>
@@ -53,7 +53,16 @@ export function Pagination({
           <img src={nextIcon} alt="" />
         </button>
       </nav>
-      <p className="page-size">25 par page</p>
+      <div className="page-size-area">
+        <button
+          className="page-size-control"
+          type="button"
+          aria-label="Nombre de fleurs par page: 25"
+          disabled
+        >
+          25▼
+        </button>
+      </div>
     </footer>
   );
 }

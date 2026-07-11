@@ -26,6 +26,14 @@ function createCatalog(t) {
   `,
     )
     .get();
+  const humidSoil = database
+    .prepare(
+      `
+    INSERT INTO soil_types (label, normalized_label, created_at)
+    VALUES ('Humide', 'humide', '2026-06-28') RETURNING id
+  `,
+    )
+    .get();
   for (let index = 0; index < 30; index += 1) {
     const suffix = String(index).padStart(2, '0');
     const id = `plant-${suffix}`;
@@ -37,6 +45,19 @@ function createCatalog(t) {
     database
       .prepare('INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)')
       .run(id, Number(soil.id));
+    if (index === 1) {
+      database
+        .prepare(
+          'INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)',
+        )
+        .run(id, Number(humidSoil.id));
+      database
+        .prepare(
+          `UPDATE plants SET bloom_start_month = 11, bloom_end_month = 2
+           WHERE id = ?`,
+        )
+        .run(id);
+    }
     database
       .prepare(
         `
@@ -44,6 +65,16 @@ function createCatalog(t) {
     `,
       )
       .run(id);
+    if (index === 1) {
+      database
+        .prepare(
+          `
+        INSERT INTO plant_exposures (plant_id, exposure_code)
+        VALUES (?, 'shade')
+      `,
+        )
+        .run(id);
+    }
   }
   return new SqlitePlantCatalogRepository(database);
 }
@@ -55,8 +86,11 @@ test('lists one alphabetically sorted domain plant per name', async (t) => {
   assert.equal(result.total, 30);
   assert.equal(result.items.length, 25);
   assert.equal(result.items[0].name, 'Achillée');
-  assert.deepEqual(result.items[0].soils, [{ id: 1, label: 'Drainé' }]);
-  assert.deepEqual(result.items[0].exposures, ['sun']);
+  assert.deepEqual(result.items[0].soils, [
+    { id: 1, label: 'Drainé' },
+    { id: 2, label: 'Humide' },
+  ]);
+  assert.deepEqual(result.items[0].exposures, ['sun', 'shade']);
   assert.equal(new Set(result.items.map(({ name }) => name)).size, 25);
 });
 
@@ -66,4 +100,36 @@ test('uses offset and limit for subsequent pages', async (t) => {
 
   assert.equal(result.total, 30);
   assert.equal(result.items.length, 5);
+});
+
+test('filters by soil, exposure, and cyclic bloom months', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      soils: ['Humide'],
+      exposures: ['shade'],
+      bloomMonths: [1],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].name, 'Achillée');
+});
+
+test('uses OR inside one filter category and AND between categories', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      soils: ['Humide', 'Drainé'],
+      exposures: ['shade'],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.equal(result.items[0].name, 'Achillée');
 });

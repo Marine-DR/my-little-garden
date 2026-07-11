@@ -115,9 +115,11 @@ function PlantRow({ plant }: { readonly plant: CatalogPlant }) {
 
 export function CatalogTable({
   data,
+  isFiltered,
   onPageChange,
 }: {
   readonly data: CatalogPage;
+  readonly isFiltered: boolean;
   readonly onPageChange: (page: number) => void;
 }) {
   return (
@@ -130,7 +132,11 @@ export function CatalogTable({
         <div className="empty-state">
           <span aria-hidden="true">🌱</span>
           <h2>Aucune plante trouvée</h2>
-          <p>Le catalogue est vide pour le moment.</p>
+          <p>
+            {isFiltered
+              ? 'Aucune plante ne correspond aux filtres appliqués.'
+              : 'Le catalogue est vide pour le moment.'}
+          </p>
         </div>
       ) : (
         <>

@@ -59,8 +59,8 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
   async list(request: PlantPageRequest): Promise<PlantPage> {
     const offset = Math.max(0, Math.trunc(request.offset));
     const limit = Math.max(1, Math.trunc(request.limit));
-    const total = this.queries.total();
-    const rows = this.queries.page(limit, offset);
+    const total = this.queries.total(request.filters);
+    const rows = this.queries.page(limit, offset, request.filters);
 
     if (rows.length === 0) {
       return { items: [], total };

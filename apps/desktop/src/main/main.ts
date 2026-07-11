@@ -1,12 +1,19 @@
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
+import {
+  EXPOSURE_CODES,
+  type ExposureCode,
+  type Plant,
+  type PlantCatalogRepository,
+} from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { createPhotoUrl } from '@my-little-garden/photo-handling';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import type {
   CatalogImportError,
+  CatalogFilterOptions,
+  CatalogFilters,
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
@@ -24,6 +31,7 @@ registerPhotoScheme();
 let database: DatabaseSync;
 let catalogRepository: PlantCatalogRepository;
 const CATALOG_PAGE_SIZE = 25;
+const MONTHS = Array.from({ length: 12 }, (_value, index) => index + 1);
 
 function ensureSchema(db: DatabaseSync): void {
   const hasPlants = db
@@ -66,11 +74,85 @@ function toCatalogPlant(plant: Plant): CatalogPlant {
   };
 }
 
-async function listCatalogPage(requestedPage: number): Promise<CatalogPage> {
+function activeBloomMonths(start: number, end: number): number[] {
+  if (start <= end) {
+    return MONTHS.filter((month) => month >= start && month <= end);
+  }
+  return MONTHS.filter((month) => month >= start || month <= end);
+}
+
+function sanitizeCatalogFilters(
+  filters: CatalogFilters | undefined,
+): CatalogFilters {
+  return {
+    soils: [...new Set(filters?.soils.filter((value) => value.trim()) ?? [])],
+    exposures: [
+      ...new Set(
+        filters?.exposures.filter((value): value is ExposureCode =>
+          EXPOSURE_CODES.includes(value),
+        ) ?? [],
+      ),
+    ],
+    bloomMonths: [
+      ...new Set(
+        filters?.bloomMonths
+          .map((value) => Math.trunc(value))
+          .filter((value) => value >= 1 && value <= 12) ?? [],
+      ),
+    ],
+  };
+}
+
+function listCatalogFilterOptions(): CatalogFilterOptions {
+  const soils = database
+    .prepare(
+      `SELECT DISTINCT st.label, st.normalized_label FROM soil_types st
+       JOIN plant_soils ps ON ps.soil_type_id = st.id
+       ORDER BY st.normalized_label`,
+    )
+    .all()
+    .map((row) => String(row.label));
+  const exposures = database
+    .prepare(
+      `SELECT DISTINCT exposure_code FROM plant_exposures
+       ORDER BY CASE exposure_code
+         WHEN 'sun' THEN 1 WHEN 'partial_shade' THEN 2 ELSE 3 END`,
+    )
+    .all()
+    .map((row) => String(row.exposure_code))
+    .filter((value): value is ExposureCode =>
+      EXPOSURE_CODES.includes(value as ExposureCode),
+    );
+  const bloomMonths = [
+    ...new Set(
+      database
+        .prepare(
+          `SELECT bloom_start_month, bloom_end_month FROM plants
+           WHERE bloom_start_month IS NOT NULL
+             AND bloom_end_month IS NOT NULL`,
+        )
+        .all()
+        .flatMap((row) =>
+          activeBloomMonths(
+            Number(row.bloom_start_month),
+            Number(row.bloom_end_month),
+          ),
+        ),
+    ),
+  ].sort((left, right) => left - right);
+  return { soils, exposures, bloomMonths };
+}
+
+async function listCatalogPage(
+  requestedPage: number,
+  filters?: CatalogFilters,
+): Promise<CatalogPage> {
   const normalizedPage = Math.max(1, Math.trunc(requestedPage) || 1);
+  const activeFilters = sanitizeCatalogFilters(filters);
   let result = await catalogRepository.list({
     offset: (normalizedPage - 1) * CATALOG_PAGE_SIZE,
     limit: CATALOG_PAGE_SIZE,
+    filters: activeFilters,
   });
   const pageCount = Math.max(1, Math.ceil(result.total / CATALOG_PAGE_SIZE));
   const page = Math.min(normalizedPage, pageCount);
@@ -78,6 +160,7 @@ async function listCatalogPage(requestedPage: number): Promise<CatalogPage> {
     result = await catalogRepository.list({
       offset: (page - 1) * CATALOG_PAGE_SIZE,
       limit: CATALOG_PAGE_SIZE,
+      filters: activeFilters,
     });
   }
   return {
@@ -161,9 +244,10 @@ app.whenReady().then(async () => {
 
   handlePhotoRequests(photoDirectory);
 
-  ipcMain.handle('catalog:list', (_event, page: number) =>
-    listCatalogPage(page),
+  ipcMain.handle('catalog:list', (_event, page: number, filters) =>
+    listCatalogPage(page, filters),
   );
+  ipcMain.handle('catalog:filter-options', () => listCatalogFilterOptions());
   ipcMain.handle(
     'catalog:replace',
     (_event, filename: string, csv: string): CatalogImportResult => {

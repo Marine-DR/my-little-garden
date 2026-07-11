@@ -1,8 +1,16 @@
 import type { Plant, PlantWriteInput } from './plant';
+import type { ExposureCode } from './plant';
 
 export interface PlantPageRequest {
   readonly offset: number;
   readonly limit: number;
+  readonly filters?: PlantCatalogFilters;
+}
+
+export interface PlantCatalogFilters {
+  readonly soils?: readonly string[];
+  readonly exposures?: readonly ExposureCode[];
+  readonly bloomMonths?: readonly number[];
 }
 
 export interface PlantPage {
