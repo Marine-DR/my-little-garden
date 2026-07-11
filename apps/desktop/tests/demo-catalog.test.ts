@@ -114,6 +114,31 @@ describe('demo catalog', () => {
     ).toEqual(expect.arrayContaining(['rose', 'blanc']));
   });
 
+  it('imports empty and N/A heights including plants with only a maximum height', async () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    const header = demoCsv.split(/\r?\n/u)[0];
+    const csv = `${header}
+Hauteur max,,120,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,printemps
+Sans hauteur,N/A,N/A,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,printemps
+`;
+
+    expect(validateCatalogCsvStructure(csv)).toEqual([]);
+    expect(replaceCatalogFromCsv(database, csv)).toBe(2);
+
+    const catalog = await new SqlitePlantCatalogRepository(database).list({
+      offset: 0,
+      limit: 25,
+    });
+    expect(
+      catalog.items.find(({ name }) => name === 'Hauteur max')?.heightCm,
+    ).toEqual({ min: null, max: 120 });
+    expect(
+      catalog.items.find(({ name }) => name === 'Sans hauteur')?.heightCm,
+    ).toBeNull();
+  });
+
   it('reports an empty file without changing the current catalog', () => {
     database = new DatabaseSync(':memory:');
     database.exec(initialMigration);

@@ -60,8 +60,6 @@ Other button icons are in a dedicated folder named Button-Icons
 - Corner radius 4px for the 4 corners
 - The button can contain only text or only 1 icon.
 - Button can contain 2 icons, one at the right and on at the Left. In that case, the text is between the 2 icons.
-- The icons that can be place at the right of the button are in the file Button-Icons/Right-Icons
-- The icons that can be place at the left of the button are in the file Button-Icons/Left-Icons
 
 #### Hover
 
@@ -90,16 +88,17 @@ disabled title="Feature coming soon"
 - Corner radius 4px for the 4 corners
 - The button can contain only text or only 1 icon.
 - Button can contain 2 icons, one at the right and on at the Left. In that case, the text is between the 2 icons.
-- The icons that can be place at the right of the button are in the file Button-Icons/Right-Icons
-- The icons that can be place at the left of the button are in the file Button-Icons/Left-Icons
 
 #### Hover
 
-The sondary button state change on mouse hover. On hover, the background color change to #F4FFEEFF and the border color change to #2F7D32FF
+The secondary button state change on mouse hover.  
+Background color #F4FFEEFF
 
 #### Disabled
-
-When secondary button is disabled,apply the secondary button standard style and change the text color to #2F7D3280 and the border color to #2F7D3280
+The secondary button state change when disabled.
+Text color #2F7D3280 
+Border color #2F7D3280
+Icon color #2F7D3280
 
 ### Delete button
 
@@ -117,15 +116,18 @@ When secondary button is disabled,apply the secondary button standard style and 
 - Space between button element 5px
 - Corner radius 4px for the 4 corners
 - The button can contain only a left icon and a text or only 1 icon.
-- The bin icons that can be place at the left of the button are in the file Button-Icons/Left-Icons/bin.svg
 
 #### Hover
 
-The delete button state change on mouse hover. On hover, the background color change to #FFDDDDFF and the border color change to #FFDDDDFF
+The delete button state change on mouse hover.  
+Background color #FFDDDDFF
 
 #### Disabled
 
-When delete button is disabled,apply the delete button standard style and change the text color to #dc262680 and the border color to #dc262680
+The delete button state change when disabled.
+Text color #dc262680
+Border color #dc262680
+Icon color #dc262680
 
 ### Checkbox
 
@@ -162,12 +164,11 @@ When delete button is disabled,apply the delete button standard style and change
 - Corner radius 4px for the 4 corners
 - The button can contain only text or text with 1 icon.
 - Button can contain 1 icon, at the right or on at the right of the text.
-- The icons that can be place at the right of the button are in the file Button-Icons/Right-Icons
-- The icons that can be place at the left of the button are in the file Button-Icons/Left-Icons
 
 #### Hover
 
-The page navigation button state change on mouse hover. On hover, the background color change to #F4FFEEFF and the border color change to #F4FFEEFF
+The page navigation button state change on mouse hover.   
+Background color #F4FFEEFF 
 
 #### Current page
 
@@ -192,14 +193,12 @@ To indicate what is the current page, the current page button use the same style
 - Space between button element 6px
 - Corner radius 5px for the 4 corners
 - The button contains text and 1 icon at the right.
-- The icons that can be place at the right of the button are in the file Button-Icons/Right-Icons/close.svg
 
 ### Sort cells button
 
 - Background F8FAF700
 - Icon heigh 16px
 - no border
-- The icons that can be place at the right of the button are in the file Button-Icons/Right-Icons/sort.svg
 
 ## Text
 
@@ -342,3 +341,34 @@ Always at the top of the screen. Take all the width of the screen.
 - Icon is Button-Icons/App-icon.svg in 36px by 36px
 - Icon and App name at the Left with 15px between them
 - Buttons at the right with 15 px between them
+
+## Card
+### General
+Background #FFFFFFFF
+Card Name:  
+* Flower Name style 
+* Color #000000FF   
+
+Metadata:  
+* Primary text style 
+* Color #969191FF  
+
+Status:  
+* Primary text Style
+* Color #000000FF  
+
+Button style secondary button  
+Corner radius 2 px  
+Shadow:
+* Color #00000040
+* Position   
+  * on right at 2px
+  * on bottom at 2px
+* Gradient 4px
+
+
+### Not selected
+Border color #E5E7EBFF
+
+### Selected
+Border color #2F7D32FF

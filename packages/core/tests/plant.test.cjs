@@ -52,6 +52,14 @@ test('accepts plants without bloom and with only a minimum height', () => {
   assert.deepEqual(validatePlantWriteInput(plant), []);
 });
 
+test('accepts plants with only a maximum height or no height', () => {
+  assert.deepEqual(
+    validatePlantWriteInput(validPlant({ heightCm: { min: null, max: 120 } })),
+    [],
+  );
+  assert.deepEqual(validatePlantWriteInput(validPlant({ heightCm: null })), []);
+});
+
 test('requires name, soil, exposure, and validates provided bloom months', () => {
   const issues = validatePlantWriteInput(
     validPlant({

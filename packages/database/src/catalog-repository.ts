@@ -82,7 +82,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
       id: row.id,
       name: row.name,
       heightCm:
-        row.heightMinCm === null
+        row.heightMinCm === null && row.heightMaxCm === null
           ? null
           : { min: row.heightMinCm, max: row.heightMaxCm },
       type:

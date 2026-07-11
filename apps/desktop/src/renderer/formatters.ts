@@ -71,7 +71,7 @@ export function formatRange(
   maximum: number | null,
 ): string {
   if (minimum === null) {
-    return EMPTY_VALUE;
+    return maximum === null ? EMPTY_VALUE : String(maximum);
   }
   if (maximum === null) {
     return String(minimum);
