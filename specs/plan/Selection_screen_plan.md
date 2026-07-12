@@ -44,8 +44,8 @@ Use the same structure as the catalog screen.
 └──────────────────────────────────────────────────────────────┘
 ```
 
-
 ## 2. Search and filters toolbar
+
 Left side:
 
 ```text
@@ -63,7 +63,6 @@ Right side:
 
 Screen name: Main page title style  
 Buttons: secondary buttons style
-```
 
 ### Search
 
@@ -75,34 +74,34 @@ Search selection, flower, flowerbed
 
 Search should work across:
 
-* selection names;
-* flower names inside a selection;
-* flowerbed names using the selection.
+- selection names;
+- flower names inside a selection;
+- flowerbed names using the selection.
 
 ### Recommended filters
 
-* **Status**
+- **Status**
 
-  * à jour
-  * contient des plantes modifiées
-  * contient des plantes supprimées
+  - à jour
+  - contient des plantes modifiées
+  - contient des plantes supprimées
 
-* **Usage**
+- **Usage**
 
-  * Used in a flowerbed
-  * Not used
+  - Used in a flowerbed
+  - Not used
 
-* **Nombre de fleurs**
+- **Nombre de fleurs**
 
-* **Date de création**
+- **Date de création**
 
-* **Date de dernière modification**
+- **Date de dernière modification**
 
-* **Contient une plante spécifique**
+- **Contient une plante spécifique**
 
-* **Created by me / shared**
+- **Created by me / shared**
 
-  * Add later if collaboration exists.
+  - Add later if collaboration exists.
 
 ---
 
@@ -118,9 +117,9 @@ This row appears when one or more selections are checked.
 
 Recommended actions:
 
-* **+ Create selection**
-* **Duplicate**
-* **Delete**
+- **+ Create selection**
+- **Duplicate**
+- **Delete**
 
 Deletion should be handled carefully if a selection is used in a flowerbed.
 
@@ -134,12 +133,12 @@ Cards make the screen feel more like a **selection library** than a purely admin
 
 They are appropriate because users mainly need to:
 
-* browse selections visually;
-* recognize a selection quickly;
-* see a preview of the flowers;
-* understand whether the selection is healthy or problematic;
-* know whether it is used in flowerbeds;
-* take the correct action based on its status.
+- browse selections visually;
+- recognize a selection quickly;
+- see a preview of the flowers;
+- understand whether the selection is healthy or problematic;
+- know whether it is used in flowerbeds;
+- take the correct action based on its status.
 
 Cards are less efficient than tables for scanning exact values, but they are better for visual recognition and immediate understanding.
 
@@ -222,17 +221,17 @@ Use a responsive grid.
 
 ### Desktop
 
-* 3 or 4 cards per row
-* Recommended width: **340px**
-* Recommended height: **265 px**
+- 3 or 4 cards per row
+- Recommended width: **340px**
+- Recommended height: **265 px**
 
 ### Tablet
 
-* 2 cards per row
+- 2 cards per row
 
 ### Mobile
 
-* 1 card per row
+- 1 card per row
 
 ---
 
@@ -272,13 +271,13 @@ One or more flowers still exist in the catalog, but their data has changed.
 
 Examples of possible changes:
 
-* height changed;
-* blooming period changed;
-* soil requirements changed;
-* sun exposure changed;
-* persistence changed;
-* color changed;
-* planting period changed.
+- height changed;
+- blooming period changed;
+- soil requirements changed;
+- sun exposure changed;
+- persistence changed;
+- color changed;
+- planting period changed.
 
 Clicking the status should open a comparison panel.
 
@@ -344,6 +343,7 @@ Used in:
 # Card actions
 
 Rename the selection:
+
 ```text
 🖉
 ```
@@ -391,37 +391,37 @@ The table view should be available for users who need a more compact and precise
 
 It is useful for:
 
-* scanning many selections;
-* comparing exact values;
-* sorting by status, usage, number of flowers, or modification date;
-* performing bulk actions;
-* managing large catalogs.
+- scanning many selections;
+- comparing exact values;
+- sorting by status, usage, number of flowers, or modification date;
+- performing bulk actions;
+- managing large catalogs.
 
 ---
 
 ## Recommended table columns
 
-| Column        | Purpose                                        |
-| ------------- | ---------------------------------------------- |
-| Checkbox      | Bulk actions                                   |
-| Nom           | Selection name                                 |
-| Apperçu       | Small flower thumbnails or color chips         |
-| Plantes       | Number of flowers                              |
-| Statut        | Whether the selection is valid or needs review |
-| Utilisation   | Whether it is used in flowerbeds               |
-| Date Création | Help user to identify oldest selections        |
-| Dernière Modification| Helps users understand recency                 |
-| Actions       | Rename, Details                                |
+| Column                | Purpose                                        |
+| --------------------- | ---------------------------------------------- |
+| Checkbox              | Bulk actions                                   |
+| Nom                   | Selection name                                 |
+| Apperçu               | Small flower thumbnails or color chips         |
+| Plantes               | Number of flowers                              |
+| Statut                | Whether the selection is valid or needs review |
+| Utilisation           | Whether it is used in flowerbeds               |
+| Date Création         | Help user to identify oldest selections        |
+| Dernière Modification | Helps users understand recency                 |
+| Actions               | Rename, Details                                |
 
 ---
 
 ## Example table content
 
-| ☐ | Nom                  | Apperçu      | Plantes | Statut                | Utilisation           | Date création | Dernière Modification| Actions |
-| - | -------------------- | ------------ | ------: | --------------------- | --------------- | ------------- | -----------| ------- |
-| ☐ | **Spring Rose Bed**  | 🌸 🌺 🌼 +9  |      12 | ✅ à jour          | 🌿 2 parterres | June 12, 2026 | June 12, 2026 | 🖉 [Detail]|
-| ☐ | **Dry Sunny Border** | 🌼 🟡 🟠 +15 |      18 | ⚠️ 3 plantes modifiées | Not used        | June 9, 2026  |June 12, 2026 | 🖉 [Detail]    |
-| ☐ | **Wild Corner**      | 🌾 🌸 🔴 +6  |       9 | ❌ 1 plante supprimées  | 🌿 1 parterre  | June 2, 2026  | June 12, 2026 |🖉 [Detail]    |
+| ☐   | Nom                  | Apperçu      | Plantes | Statut                 | Utilisation    | Date création | Dernière Modification | Actions    |
+| --- | -------------------- | ------------ | ------: | ---------------------- | -------------- | ------------- | --------------------- | ---------- |
+| ☐   | **Spring Rose Bed**  | 🌸 🌺 🌼 +9  |      12 | ✅ à jour              | 🌿 2 parterres | June 12, 2026 | June 12, 2026         | 🖉 [Detail] |
+| ☐   | **Dry Sunny Border** | 🌼 🟡 🟠 +15 |      18 | ⚠️ 3 plantes modifiées | Not used       | June 9, 2026  | June 12, 2026         | 🖉 [Detail] |
+| ☐   | **Wild Corner**      | 🌾 🌸 🔴 +6  |       9 | ❌ 1 plante supprimées | 🌿 1 parterre  | June 2, 2026  | June 12, 2026         | 🖉 [Detail] |
 
 ---
 
@@ -464,9 +464,9 @@ Spring Rose Bed
 
 Actions:
 
-* Rename
-* Add plants
-* Delete plants
+- Rename
+- Add plants
+- Delete plants
 
 Metadata:
 
@@ -483,7 +483,7 @@ Only show this section when needed.
 ### Modified flowers
 
 ```text
-⚠️ 3 flowers have been modified in the catalog 
+⚠️ 3 flowers have been modified in the catalog
 ```
 
 Button:
@@ -509,8 +509,9 @@ Button:
 ## Flowers inside the selection
 
 Inside the detail view, display the flowers in a table.
-|  ☐  | Statut|  Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸 | Couleur 🍃 | ❅ (°C) | Persistant | ↔ (cm) | Plantation |
-| --- | -----| ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |  
+
+| ☐   | Statut | Photo | Nom | ↨ (cm) | Type | Sol | Exposition | Floraison | Couleur 🌸 | Couleur 🍃 | ❅ (°C) | Persistant | ↔ (cm) | Plantation |
+| --- | ------ | ----- | --- | ------ | ---- | --- | ---------- | --------- | ---------- | ---------- | ------ | ---------- | ------ | ---------- |
 
 For up to date plants, show in Statut column:
 
@@ -521,13 +522,13 @@ For up to date plants, show in Statut column:
 For changed plants, show in Statut column:
 
 ```text
-⚠️ 
+⚠️
 ```
 
 For deleted plants, show in Statut column:
 
 ```text
-❌ 
+❌
 ```
 
 ---
@@ -554,7 +555,7 @@ Changes for Echinacea
 
 ## Bottom actions
 
-* **Accept changes**
+- **Accept changes**
 
 Recommended default behavior:
 
@@ -587,7 +588,7 @@ Retour au catalogue
 
 # Final recommendation
 
-For **Mes Sélections**, use **cards by default** because a selection is a curated group of flowers. It benefits from a visual, object-based layout.  
+For **Mes Sélections**, use **cards by default** because a selection is a curated group of flowers. It benefits from a visual, object-based layout.
 
 The card should make the most important questions immediately visible:
 

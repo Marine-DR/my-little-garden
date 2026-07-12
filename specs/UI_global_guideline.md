@@ -95,8 +95,9 @@ The secondary button state change on mouse hover.
 Background color #F4FFEEFF
 
 #### Disabled
+
 The secondary button state change when disabled.
-Text color #2F7D3280 
+Text color #2F7D3280
 Border color #2F7D3280
 Icon color #2F7D3280
 
@@ -167,8 +168,8 @@ Icon color #dc262680
 
 #### Hover
 
-The page navigation button state change on mouse hover.   
-Background color #F4FFEEFF 
+The page navigation button state change on mouse hover.
+Background color #F4FFEEFF
 
 #### Current page
 
@@ -343,32 +344,39 @@ Always at the top of the screen. Take all the width of the screen.
 - Buttons at the right with 15 px between them
 
 ## Card
+
 ### General
+
 Background #FFFFFFFF
-Card Name:  
-* Flower Name style 
-* Color #000000FF   
+Card Name:
 
-Metadata:  
-* Primary text style 
-* Color #969191FF  
+- Flower Name style
+- Color #000000FF
 
-Status:  
-* Primary text Style
-* Color #000000FF  
+Metadata:
+
+- Primary text style
+- Color #969191FF
+
+Status:
+
+- Primary text Style
+- Color #000000FF
 
 Button style secondary button  
 Corner radius 2 px  
 Shadow:
-* Color #00000040
-* Position   
-  * on right at 2px
-  * on bottom at 2px
-* Gradient 4px
 
+- Color #00000040
+- Position
+  - on right at 2px
+  - on bottom at 2px
+- Gradient 4px
 
 ### Not selected
+
 Border color #E5E7EBFF
 
 ### Selected
+
 Border color #2F7D32FF
