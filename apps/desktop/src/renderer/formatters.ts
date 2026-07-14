@@ -1,21 +1,7 @@
 import type { CatalogPlant } from '../shared/catalog';
+import { EXPOSURE_LABELS, MONTH_LABELS } from './catalog-labels';
 
 export const EMPTY_VALUE = '-';
-
-const MONTHS = [
-  'Jan',
-  'Fév',
-  'Mar',
-  'Avr',
-  'Mai',
-  'Juin',
-  'Juil',
-  'Août',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Déc',
-];
 
 const KIND_LABELS: Record<NonNullable<CatalogPlant['kind']>, string> = {
   flower: 'Fleur',
@@ -24,11 +10,7 @@ const KIND_LABELS: Record<NonNullable<CatalogPlant['kind']>, string> = {
   other: 'Autre',
 };
 
-export const EXPOSURES = {
-  sun: { icon: '☀', label: 'Soleil' },
-  partial_shade: { icon: '◐', label: 'Mi-ombre' },
-  shade: { icon: '●', label: 'Ombre' },
-} as const;
+export const EXPOSURES = EXPOSURE_LABELS;
 
 export const PERSISTENCE = {
   evergreen: { icon: '✓', label: 'Persistant' },
@@ -83,8 +65,8 @@ export function formatBloom(start: number | null, end: number | null): string {
   if (start === null || end === null) {
     return EMPTY_VALUE;
   }
-  const startLabel = MONTHS[start - 1];
-  const endLabel = MONTHS[end - 1];
+  const startLabel = MONTH_LABELS[start - 1];
+  const endLabel = MONTH_LABELS[end - 1];
   if (!startLabel || !endLabel) {
     return EMPTY_VALUE;
   }

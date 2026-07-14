@@ -1,7 +1,14 @@
 import type {
+  ExposureCode,
   FoliagePersistence,
+  PlantCatalogFilterOptions,
   PlantCatalogFilters,
   PlantKind,
+} from '@my-little-garden/core';
+import {
+  EXPOSURE_CODES,
+  activeBloomMonths,
+  sanitizeCatalogFilters,
 } from '@my-little-garden/core';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import {
@@ -95,46 +102,31 @@ type RelationQueries = {
   plantingSeasons: TypedQuery<SQLInputValue[], CatalogCodeRow>;
 };
 
-function filterValues(values: readonly string[] | undefined): string[] {
-  return [...new Set(values?.filter((value) => value.trim()) ?? [])];
-}
-
-function filterMonths(values: readonly number[] | undefined): number[] {
-  return [
-    ...new Set(
-      values
-        ?.map((value) => Math.trunc(value))
-        .filter((value) => value >= 1 && value <= 12) ?? [],
-    ),
-  ];
-}
-
-function filteredCatalogWhere(filters: PlantCatalogFilters | undefined): {
+function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
+  joins: string;
   clause: string;
   parameters: SQLInputValue[];
 } {
+  const activeFilters = sanitizeCatalogFilters(filters);
+  const joins: string[] = [];
   const clauses: string[] = [];
   const parameters: SQLInputValue[] = [];
-  const soils = filterValues(filters?.soils);
-  const exposures = filterValues(filters?.exposures);
-  const bloomMonths = filterMonths(filters?.bloomMonths);
+  const { soils, exposures, bloomMonths } = activeFilters;
 
   if (soils.length > 0) {
-    clauses.push(`EXISTS (
-      SELECT 1 FROM plant_soils ps_filter
-      JOIN soil_types st_filter ON st_filter.id = ps_filter.soil_type_id
-      WHERE ps_filter.plant_id = p.id
-        AND st_filter.label IN (${soils.map(() => '?').join(', ')})
-    )`);
+    joins.push(`JOIN plant_soils ps_filter ON ps_filter.plant_id = p.id`);
+    joins.push(
+      `JOIN soil_types st_filter ON st_filter.id = ps_filter.soil_type_id`,
+    );
+    clauses.push(`st_filter.label IN (${soils.map(() => '?').join(', ')})`);
     parameters.push(...soils);
   }
 
   if (exposures.length > 0) {
-    clauses.push(`EXISTS (
-      SELECT 1 FROM plant_exposures pe_filter
-      WHERE pe_filter.plant_id = p.id
-        AND pe_filter.exposure_code IN (${exposures.map(() => '?').join(', ')})
-    )`);
+    joins.push(`JOIN plant_exposures pe_filter ON pe_filter.plant_id = p.id`);
+    clauses.push(
+      `pe_filter.exposure_code IN (${exposures.map(() => '?').join(', ')})`,
+    );
     parameters.push(...exposures);
   }
 
@@ -158,6 +150,7 @@ function filteredCatalogWhere(filters: PlantCatalogFilters | undefined): {
   }
 
   return {
+    joins: joins.join('\n'),
     clause: clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '',
     parameters,
   };
@@ -192,12 +185,16 @@ export class CatalogQueries {
   }
 
   total(filters?: PlantCatalogFilters): number {
-    const { clause, parameters } = filteredCatalogWhere(filters);
+    const { joins, clause, parameters } = filteredCatalogParts(filters);
     if (!clause) {
       return this.count.get()?.total ?? 0;
     }
     const row = this.database
-      .prepare(`SELECT count(*) AS total FROM plants p ${clause}`)
+      .prepare(
+        `SELECT count(DISTINCT p.id) AS total FROM plants p
+        ${joins}
+        ${clause}`,
+      )
       .get(...parameters) as SqliteRow | undefined;
     return row ? numberColumn(row, 'total') : 0;
   }
@@ -207,13 +204,13 @@ export class CatalogQueries {
     offset: number,
     filters?: PlantCatalogFilters,
   ): CatalogScalarRow[] {
-    const { clause, parameters } = filteredCatalogWhere(filters);
+    const { joins, clause, parameters } = filteredCatalogParts(filters);
     if (!clause) {
       return this.plants.all(limit, offset);
     }
     return this.database
       .prepare(
-        `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
+        `SELECT DISTINCT p.id, p.name, p.height_min_cm, p.height_max_cm,
                 p.type_id, pt.label AS type_label, p.plant_kind,
                 p.bloom_start_month, p.bloom_end_month,
                 p.minimum_temperature_celsius, p.foliage_persistence,
@@ -222,12 +219,54 @@ export class CatalogQueries {
          FROM plants p
          LEFT JOIN plant_types pt ON pt.id = p.type_id
          LEFT JOIN plant_photos ph ON ph.plant_id = p.id
+         ${joins}
          ${clause}
          ORDER BY p.normalized_name COLLATE NOCASE, p.name COLLATE NOCASE, p.id
          LIMIT ? OFFSET ?`,
       )
       .all(...parameters, limit, offset)
       .map((row) => decodeScalar(row as SqliteRow));
+  }
+
+  filterOptions(): PlantCatalogFilterOptions {
+    const soils = this.database
+      .prepare(
+        `SELECT DISTINCT st.label, st.normalized_label FROM soil_types st
+         JOIN plant_soils ps ON ps.soil_type_id = st.id
+         ORDER BY st.normalized_label`,
+      )
+      .all()
+      .map((row) => stringColumn(row as SqliteRow, 'label'));
+    const exposures = this.database
+      .prepare(
+        `SELECT DISTINCT exposure_code FROM plant_exposures
+         ORDER BY CASE exposure_code
+           WHEN 'sun' THEN 1 WHEN 'partial_shade' THEN 2 ELSE 3 END`,
+      )
+      .all()
+      .map((row) => stringColumn(row as SqliteRow, 'exposure_code'))
+      .filter((value): value is ExposureCode =>
+        EXPOSURE_CODES.includes(value as ExposureCode),
+      );
+    const bloomMonths = [
+      ...new Set(
+        this.database
+          .prepare(
+            `SELECT bloom_start_month, bloom_end_month FROM plants
+             WHERE bloom_start_month IS NOT NULL
+               AND bloom_end_month IS NOT NULL
+             ORDER BY bloom_start_month, bloom_end_month`,
+          )
+          .all()
+          .flatMap((row) =>
+            activeBloomMonths(
+              numberColumn(row as SqliteRow, 'bloom_start_month'),
+              numberColumn(row as SqliteRow, 'bloom_end_month'),
+            ),
+          ),
+      ),
+    ];
+    return { soils, exposures, bloomMonths };
   }
 
   relations(ids: readonly string[]): RelationQueries {

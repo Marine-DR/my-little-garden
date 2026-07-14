@@ -1,6 +1,7 @@
 import type {
   ExposureCode,
   Plant,
+  PlantCatalogFilterOptions,
   PlantCatalogRepository,
   PlantPage,
   PlantPageRequest,
@@ -121,5 +122,9 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     }));
 
     return { items, total };
+  }
+
+  async listFilterOptions(): Promise<PlantCatalogFilterOptions> {
+    return this.queries.filterOptions();
   }
 }

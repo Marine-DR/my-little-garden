@@ -1,23 +1,9 @@
 import { useState } from 'react';
 import type { CatalogFilterOptions, CatalogFilters } from '../shared/catalog';
 import filterIcon from './assets/filter.svg';
+import { MONTH_LABELS } from './catalog-labels';
 import resetFilterIcon from './assets/resetFilter.svg';
 import { EXPOSURES } from './formatters';
-
-const MONTH_LABELS = [
-  'Jan',
-  'Fév',
-  'Mars',
-  'Avr',
-  'Mai',
-  'Juin',
-  'Juil',
-  'Août',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Déc',
-];
 
 export const EMPTY_FILTERS: CatalogFilters = {
   soils: [],

@@ -133,3 +133,13 @@ test('uses OR inside one filter category and AND between categories', async (t) 
   assert.equal(result.total, 1);
   assert.equal(result.items[0].name, 'Achillée');
 });
+
+test('lists catalog filter options from stored values', async (t) => {
+  const repository = createCatalog(t);
+  const options = await repository.listFilterOptions();
+
+  assert.deepEqual(options.soils, ['Drainé', 'Humide']);
+  assert.deepEqual(options.exposures, ['sun', 'shade']);
+  const wrapStart = options.bloomMonths.indexOf(11);
+  assert.deepEqual(options.bloomMonths.slice(wrapStart), [11, 12, 1, 2]);
+});

@@ -47,6 +47,15 @@ function integer(value: string | undefined): number | null {
   return parsed;
 }
 
+function isNonNegativeInteger(value: string): boolean {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0;
+}
+
+function isIntegerText(value: string): boolean {
+  return Number.isInteger(Number(value));
+}
+
 function heightCm(
   min: number | null,
   max: number | null,
@@ -214,16 +223,19 @@ export function validateCatalogCsvStructure(
         continue;
       }
       const numericColumns = [
-        ['Taille min', 1],
-        ['Taille Max', 2],
-        ['T° min (°C)', 11],
-        ['Espace(cm)', 13],
+        ['Taille min', 1, false],
+        ['Taille Max', 2, false],
+        ['T° min (°C)', 11, true],
+        ['Espace(cm)', 13, false],
       ] as const;
-      for (const [parameter, index] of numericColumns) {
+      for (const [parameter, index, acceptsNegative] of numericColumns) {
         const value = row[index]?.trim() ?? '';
         const isHeightColumn = index === 1 || index === 2;
         const isMissingHeight = isHeightColumn && optional(value) === null;
-        if (value && !isMissingHeight && !/^-?\d+$/u.test(value)) {
+        const isValidNumber = acceptsNegative
+          ? isIntegerText(value)
+          : isNonNegativeInteger(value);
+        if (value && !isMissingHeight && !isValidNumber) {
           addUnique(errors, numericIssue(parameter));
         }
       }

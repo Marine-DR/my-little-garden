@@ -1,4 +1,9 @@
 import type {
+  ExposureCode,
+  PlantCatalogFilterOptions,
+  PlantCatalogFilters,
+} from '@my-little-garden/core';
+import type {
   PhotoImportFile,
   PhotoImportResult,
 } from '@my-little-garden/photo-handling';
@@ -14,7 +19,7 @@ export interface CatalogPlant {
   readonly type: string | null;
   readonly kind: 'flower' | 'foliage' | 'grass' | 'other' | null;
   readonly soils: readonly string[];
-  readonly exposures: readonly ('sun' | 'partial_shade' | 'shade')[];
+  readonly exposures: readonly ExposureCode[];
   readonly bloomStartMonth: number | null;
   readonly bloomEndMonth: number | null;
   readonly flowerColors: readonly string[];
@@ -35,17 +40,9 @@ export interface CatalogPage {
   readonly total: number;
 }
 
-export interface CatalogFilters {
-  readonly soils: readonly string[];
-  readonly exposures: readonly CatalogPlant['exposures'][number][];
-  readonly bloomMonths: readonly number[];
-}
+export type CatalogFilters = Required<PlantCatalogFilters>;
 
-export interface CatalogFilterOptions {
-  readonly soils: readonly string[];
-  readonly exposures: readonly CatalogPlant['exposures'][number][];
-  readonly bloomMonths: readonly number[];
-}
+export type CatalogFilterOptions = PlantCatalogFilterOptions;
 
 export interface CatalogApi {
   listPlants(page: number, filters?: CatalogFilters): Promise<CatalogPage>;
