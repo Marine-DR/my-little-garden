@@ -31,12 +31,13 @@ Click on button to replace > upload the .csv file with the new list > Confirm th
 
 ### Create a new selection
 
-Select plants in the list > click on button to create a new selection > name the selection > a new selection is created and contains the selected flowers
+Select plants in the catalog > click on button to create a new selection > name the selection > a new selection is created and contains the selected flowers.
+
 
 ### Modify a selection
 
 - Add plants:  
-  Select plants in the list > click on button to add in an existing selection > select the selection to update > confirm the action > selection updated
+  Select plants in the catalog > click on button to add in an existing selection > select one or more selections to update > confirm the action > selection updated. If a selected flower is already present in a target selection, the existing association is ignored and no error is generated.
 - Remove plants:  
   Select plants in the selection > click on the removing button > confirm the action > plants removed from the selection
 

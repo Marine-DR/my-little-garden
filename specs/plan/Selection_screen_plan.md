@@ -1,38 +1,250 @@
-# My Selections — Unified Screen Proposal
+# Mes Sélections — MVP Management Screen
 
 ## Screen objective
 
-The **My Selections** screen should allow users to manage their saved flower selections as a reusable object library.
+The **Mes Sélections** screen lets the user review and update saved plant selections created from the catalog.
 
-The screen should help users quickly answer the following questions:
+For the MVP, the screen must answer:
 
 1. What selections have I saved?
-2. How many flowers does each selection contain?
-3. Is this selection still reliable?
-4. Have any flowers in the selection been modified or deleted from the catalog?
-5. Is this selection used in one or more flowerbed designs?
-6. What should I do next: edit, review, replace, duplicate, or delete?
+2. How many plants does each selection contain?
+3. Which plants are inside a selection?
+4. Can I remove plants that no longer belong in this selection?
 
----
+Selection rename, selection deletion, reliability status, modified/deleted plant review, flowerbed usage, search, filters, and card/table switching are deferred.
 
-## General recommendation
+## MVP scope
 
-Use a **card view by default**, supported by an optional **table view**.  
-The **table view** will be used as MVP.
+Included:
 
-The card view is better for the main use case because a selection is a visual, reusable object. Users need to recognize a selection quickly, see flower previews, understand its status, and act on it.
+- create a selection from checked catalog plants;
+- add checked catalog plants to one or more existing selections;
+- list saved selections in a table;
+- open a selection detail screen;
+- remove plants from a selection after confirmation.
 
-The table view should remain available for advanced users, large catalogs, precise sorting, compact scanning, and bulk operations.
+Excluded from the MVP:
 
-Final recommendation:
+- creating an empty selection from this screen;
+- renaming a selection;
+- deleting a selection;
+- displaying modified/deleted plant reliability status;
+- accepting or dismissing catalog changes for a selection;
+- showing flowerbed usage or flowerbed impact warnings;
+- duplicating selections;
+- searching and filtering selections;
+- card view and presentation switching.
 
-**Default view: Card view**
-**Alternative view: Table view**
-**View switcher: `Card view | Table view`**
+## Catalog-side creation and add flow
 
----
+Selections are created from the catalog action bar, not as empty objects from “Mes Sélections”.
 
-# Overall screen structure
+When one or more catalog plants are checked, show selection actions below the catalog administration actions:
+
+```text
+3 fleurs sélectionnées
+
+[Ajouter à une sélection]
+[Créer une sélection]
+```
+
+### Create a selection
+
+The create action opens a modal:
+
+```text
+Créer une sélection
+
+Nom de la sélection
+[________________]
+
+3 fleurs seront ajoutées à cette sélection.
+
+[Annuler] [Créer]
+```
+
+Rules:
+
+- the name is mandatory;
+- the normalized name must be unique after trimming, case normalization, and accent normalization;
+- at least one catalog plant must be checked;
+- selected plants are automatically added to the new selection;
+- empty selection creation is rejected.
+
+Success message:
+
+```text
+Sélection créée
+Massif plein soleil
+3 fleurs ajoutées
+```
+
+### Add to existing selections
+
+The add action opens a modal:
+
+```text
+Ajouter à des sélections
+
+Rechercher une sélection...
+[________________]
+
+☐ Massif plein soleil
+☐ Prairie fleurie
+☐ Bordure terrasse
+
+3 fleurs seront ajoutées aux sélections sélectionnées.
+
+[Annuler] [Ajouter]
+```
+
+Rules:
+
+- the user can choose one or more target selections;
+- a plant can appear only once in a given selection;
+- existing plant-selection links are ignored without producing an error;
+- the result reports added associations and ignored duplicates.
+
+Example result:
+
+```text
+7 ajouts effectués
+2 associations déjà existantes ignorées
+```
+
+## Main selections table
+
+Use a table view for the MVP.
+
+Screen structure:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ MyLittleGarden                 [Mon Catalogue] [Mes Parterres]│
+└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Mes Sélections                                               │
+└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ Selection table                                              │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Recommended columns:
+
+| Column                | Purpose                            |
+| --------------------- | ---------------------------------- |
+| Nom                   | Selection name                     |
+| Aperçu                | Small plant photos or placeholders |
+| Plantes               | Number of current plants           |
+| Date création         | Creation date                      |
+| Dernière modification | Last selection update date         |
+| Actions               | Details                            |
+
+The table shows the current catalog plants linked to each selection. If catalog replacement removes all linked plants, the selection remains visible with `0` plants.
+
+## Table actions
+
+### Open detail
+
+Clicking the details action opens the selection detail screen.
+
+Rename and delete actions are not available in the MVP.
+
+## Selection detail screen
+
+The detail screen displays one selection and its current plants.
+
+Header:
+
+```text
+Massif plein soleil
+12 plantes
+```
+
+Plant table:
+
+| Checkbox | Photo | Nom | Hauteur | Type | Sol | Exposition | Floraison | Couleur fleur | Couleur feuille | Température min | Persistant | Espace | Plantation |
+| -------- | ----- | --- | ------- | ---- | --- | ---------- | --------- | ------------- | --------------- | --------------- | ---------- | ------ | ---------- |
+
+Actions:
+
+- remove selected plants from the selection;
+- return to the selections table.
+
+### Remove plants
+
+The remove action is available only when one or more plants are checked in the selection detail.
+
+Confirmation:
+
+```text
+Retirer 3 plantes de cette sélection ?
+
+Les plantes resteront dans le catalogue.
+
+[Annuler] [Retirer]
+```
+
+Rules:
+
+- removing plants deletes only the corresponding `selection_plants` links;
+- removing all plants is allowed, and the selection remains visible with `0` plants;
+- flowerbed impact warnings are deferred until flowerbed designs exist.
+
+## Empty state
+
+When no selection exists, show:
+
+```text
+Aucune sélection enregistrée
+```
+
+Supporting text:
+
+```text
+Créez une sélection depuis le catalogue en choisissant des plantes.
+```
+
+Action:
+
+```text
+Retour au catalogue
+```
+
+Do not show a “Créer une sélection” button on this screen in the MVP, because empty selections are out of scope.
+
+## Data behavior
+
+The existing schema is sufficient for the MVP:
+
+- `selections` stores the selection name and timestamps;
+- `selection_plants` stores the current plant links;
+- duplicate plant links are prevented by the composite primary key.
+
+Catalog replacement behavior:
+
+- preserve selection links for plants matched by UUID or normalized name;
+- remove links for plants absent from the replacement;
+- keep selections that become empty;
+- do not persist modified/deleted plant status in the MVP.
+
+## Validation and tests
+
+Test scenarios:
+
+- create selection from checked catalog plants;
+- reject creation with no checked plants;
+- reject empty or duplicate normalized selection names;
+- add checked catalog plants to one or more existing selections;
+- ignore duplicate plant-selection links and report them as ignored;
+- list selections with current plant counts;
+- open a selection detail and display current linked plants;
+- remove selected plants from a selection after confirmation;
+- verify catalog replacement preserves links for matched plants and removes links for absent plants.
+
+
+# Mes Sélections — Final screen structure
 
 ## 1. App header
 
