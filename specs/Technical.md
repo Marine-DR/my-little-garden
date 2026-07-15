@@ -11,6 +11,91 @@ Following this principle, there is:
   - mobile app
   - web app
 
+## Simple package links
+
+```mermaid
+flowchart LR
+  Core["core\nmodels, rules, interfaces"]
+  Communication["communication\nimport / export"]
+  Database["database\npersistence"]
+  PhotoHandling["photo-handling\nphotos"]
+  Desktop["desktop app"]
+
+  Communication --> Core
+  Database --> Core
+  PhotoHandling --> Core
+  Desktop --> Core
+  Desktop --> Communication
+  Desktop --> Database
+  Desktop --> PhotoHandling
+```
+
+In short: every package follows `core`. Apps use `core` directly, then choose the implementation packages they need.
+
+## Architecture overview
+
+```mermaid
+flowchart TB
+  subgraph Core["packages/core"]
+    Domain["Domain models\nPlant, catalog, selections, photos"]
+    Rules["Business rules\nvalidation, normalization, filters"]
+    Ports["Interfaces / ports\nrepositories, importers, exporters, desktop API"]
+    Domain --> Rules
+    Rules --> Ports
+  end
+
+  subgraph Communication["packages/communication"]
+    CsvImporter["CsvPlantCatalogImporter"]
+    CsvExporter["CsvPlantCatalogExporter"]
+  end
+
+  subgraph Database["packages/database"]
+    CatalogRepo["SqlitePlantCatalogRepository"]
+    CatalogReplacement["SqliteCatalogReplacement"]
+    PhotoRepo["SqlitePlantPhotoRepository"]
+    SelectionRepo["SqliteSelectionRepository"]
+    Sqlite[("SQLite")]
+    CatalogRepo --> Sqlite
+    CatalogReplacement --> Sqlite
+    PhotoRepo --> Sqlite
+    SelectionRepo --> Sqlite
+  end
+
+  subgraph PhotoHandling["packages/photo-handling"]
+    PhotoValidation["Photo validation"]
+    PhotoProtocol["Managed photo protocol"]
+  end
+
+  subgraph Desktop["apps/desktop"]
+    Renderer["Renderer\nReact UI"]
+    Preload["Preload\nCatalogApi bridge"]
+    Main["Electron main\ncomposition root"]
+    Renderer -->|"calls CatalogApi"| Preload
+    Preload -->|"IPC"| Main
+  end
+
+  Renderer -. "uses core API types only" .-> Ports
+  Preload -. "uses core API types only" .-> Ports
+
+  Main -->|"depends on core ports"| Ports
+  Main -->|"uses CSV adapters when importing/exporting"| Communication
+  Main -->|"uses SQLite adapters when persisting/querying"| Database
+  Main -->|"uses photo adapters for validation and URLs"| PhotoHandling
+
+  Communication -->|"implements importer/exporter ports"| Ports
+  Database -->|"implements repository ports"| Ports
+  PhotoHandling -->|"implements photo API types from core"| Ports
+```
+
+Dependency direction:
+
+- `core` is the owner of domain models, rules, and interfaces. It must not depend on app, database, communication, or photo-handling packages.
+- `database` implements repository interfaces from `core`.
+- `communication` implements import/export interfaces from `core`.
+- `photo-handling` implements photo-related data handling using types from `core`.
+- `apps/desktop/src/renderer` and `apps/desktop/src/preload` use only the API contracts exposed by `core`.
+- `apps/desktop/src/main` is the composition root. It is allowed to instantiate concrete adapters from `database`, `communication`, and `photo-handling` when needed.
+
 ## Core package
 
 This is the more important package as it contains all domains and rules to make the apps work the same whatever the deployment.
