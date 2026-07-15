@@ -243,7 +243,6 @@ Test scenarios:
 - remove selected plants from a selection after confirmation;
 - verify catalog replacement preserves links for matched plants and removes links for absent plants.
 
-
 # Mes Sélections — Final screen structure
 
 ## 1. App header

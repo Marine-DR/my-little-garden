@@ -33,7 +33,6 @@ Click on button to replace > upload the .csv file with the new list > Confirm th
 
 Select plants in the catalog > click on button to create a new selection > name the selection > a new selection is created and contains the selected flowers.
 
-
 ### Modify a selection
 
 - Add plants:  
