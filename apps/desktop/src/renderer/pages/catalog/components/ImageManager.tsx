@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import collapseIcon from './assets/collapse.svg';
-import expandIcon from './assets/expand.svg';
-import importPictureIcon from './assets/importPicture.svg';
-import importZipIcon from './assets/importZip.svg';
-import { useCloseOnOutsidePointer } from './useCloseOnOutsidePointer';
+import collapseIcon from '@renderer/assets/collapse.svg';
+import expandIcon from '@renderer/assets/expand.svg';
+import importPictureIcon from '@renderer/assets/importPicture.svg';
+import importZipIcon from '@renderer/assets/importZip.svg';
+import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
 
 export function ImageManager({
   onImported,

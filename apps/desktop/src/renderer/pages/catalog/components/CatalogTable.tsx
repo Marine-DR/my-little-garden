@@ -1,6 +1,6 @@
 import type { CatalogPage, CatalogPlant } from '@my-little-garden/core';
-import { PlantPhoto } from './PlantPhoto';
-import { Pagination } from './Pagination';
+import { Pagination } from '@renderer/components/Pagination';
+import { PlantPhoto } from '@renderer/components/PlantPhoto';
 import {
   EMPTY_VALUE,
   EXPOSURES,
@@ -11,7 +11,7 @@ import {
   formatNumber,
   formatRange,
   seasonLabels,
-} from './formatters';
+} from '../formatters';
 
 function VerticalList({ values }: { readonly values: readonly string[] }) {
   if (values.length === 0) {

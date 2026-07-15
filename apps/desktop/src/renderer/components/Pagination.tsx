@@ -1,5 +1,5 @@
-import nextIcon from './assets/next.svg';
-import previousIcon from './assets/previous.svg';
+import nextIcon from '../assets/next.svg';
+import previousIcon from '../assets/previous.svg';
 
 function pagesAround(current: number, total: number): number[] {
   const start = Math.max(1, Math.min(current - 2, total - 4));
