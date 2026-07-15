@@ -79,6 +79,10 @@ function createCatalog(t) {
   return new SqlitePlantCatalogRepository(database);
 }
 
+function plantNames(result) {
+  return result.items.map(({ name }) => name);
+}
+
 test('lists one alphabetically sorted domain plant per name', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.list({ offset: 0, limit: 25 });
@@ -100,6 +104,63 @@ test('uses offset and limit for subsequent pages', async (t) => {
 
   assert.equal(result.total, 30);
   assert.equal(result.items.length, 5);
+});
+
+test('filters by soil without requiring exposure or bloom filters', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      soils: ['Humide'],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.deepEqual(plantNames(result), ['Achillée']);
+});
+
+test('filters by exposure without requiring soil or bloom filters', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      exposures: ['shade'],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.deepEqual(plantNames(result), ['Achillée']);
+});
+
+test('filters by non-cyclic bloom month without relation filters', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 30,
+    filters: {
+      bloomMonths: [6],
+    },
+  });
+
+  assert.equal(result.total, 29);
+  assert.equal(result.items.length, 29);
+  assert.ok(!plantNames(result).includes('Achillée'));
+});
+
+test('filters by cyclic bloom month without relation filters', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      bloomMonths: [1],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.deepEqual(plantNames(result), ['Achillée']);
 });
 
 test('filters by soil, exposure, and cyclic bloom months', async (t) => {
