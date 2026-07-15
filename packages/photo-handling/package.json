@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "dependencies": {
+    "@my-little-garden/core": "*",
     "fflate": "^0.8.2"
   }
 }
