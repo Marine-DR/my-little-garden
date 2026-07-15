@@ -4,6 +4,7 @@ const test = require('node:test');
 const {
   normalizeDatabaseKey,
   validatePlantWriteInput,
+  PlantWriteInputValidator,
 } = require('../dist/index.js');
 
 function validPlant(overrides = {}) {
@@ -40,6 +41,41 @@ test('preserves meaningful special characters in normalized names', () => {
 
 test('accepts a complete valid plant', () => {
   assert.deepEqual(validatePlantWriteInput(validPlant()), []);
+});
+
+test('uses a reusable validator service for core domain rules', () => {
+  const validator = new PlantWriteInputValidator();
+  const issues = validator.validate(
+    validPlant({ name: '   ', soilLabels: [] }),
+  );
+
+  assert.deepEqual(
+    issues.map(({ field }) => field),
+    ['name', 'soilLabels'],
+  );
+});
+
+test('supports composing validator rules through a reusable interface', () => {
+  const validator = new PlantWriteInputValidator([
+    {
+      validate(plant, issues) {
+        if (plant.name === 'Rosé ancienne') {
+          issues.push({
+            field: 'custom',
+            code: 'custom_rule',
+            message: 'custom rule applied',
+          });
+        }
+      },
+    },
+  ]);
+
+  const issues = validator.validate(validPlant());
+
+  assert.deepEqual(
+    issues.map(({ field }) => field),
+    ['custom'],
+  );
 });
 
 test('accepts a blooming period crossing the calendar year', () => {

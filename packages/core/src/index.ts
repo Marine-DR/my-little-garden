@@ -1,5 +1,7 @@
 export * from './catalog';
+export * from './communication';
 export * from './constants';
+export * from './desktop-api';
 export * from './normalization';
 export * from './plant';
 export * from './repository';
