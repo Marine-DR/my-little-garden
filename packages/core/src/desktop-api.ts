@@ -39,6 +39,9 @@ export interface SelectionSummary {
   readonly name: string;
   readonly previewPhotoUrls: readonly (string | null)[];
   readonly plantCount: number;
+  readonly modifiedPlantsCount: number;
+  readonly deletedPlantsCount: number;
+  readonly flowerbedCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
