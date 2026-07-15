@@ -1,5 +1,6 @@
 import {
   normalizeDatabaseKey,
+  type PlantCatalogReplacementRepository,
   type PlantWriteInput,
 } from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
@@ -25,7 +26,7 @@ function vocabularyId(
   return Number(result?.id);
 }
 
-export class SqliteCatalogReplacement {
+export class SqliteCatalogReplacement implements PlantCatalogReplacementRepository {
   constructor(private readonly database: DatabaseSync) {}
 
   replace(plants: Iterable<PlantWriteInput>): number {

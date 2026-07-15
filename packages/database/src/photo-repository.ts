@@ -1,20 +1,11 @@
+import type {
+  PlantPhotoRecord,
+  PlantPhotoRepository,
+  PlantPhotoTarget,
+} from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
 
-export interface PlantPhotoTarget {
-  readonly plantId: string;
-  readonly plantName: string;
-  readonly managedFilename: string | null;
-}
-
-export interface PlantPhotoRecord {
-  readonly plantId: string;
-  readonly managedFilename: string;
-  readonly mediaType: string;
-  readonly checksumSha256: string;
-  readonly createdAt: string;
-}
-
-export class SqlitePlantPhotoRepository {
+export class SqlitePlantPhotoRepository implements PlantPhotoRepository {
   constructor(private readonly database: DatabaseSync) {}
 
   listTargets(): PlantPhotoTarget[] {
