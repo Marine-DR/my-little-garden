@@ -142,7 +142,6 @@ test('month, height, and spacing constraints reject invalid values', (t) => {
     { bloomEnd: 13 },
     { heightMin: -1, heightMax: 10 },
     { heightMin: 20, heightMax: 10 },
-    { heightMin: null, heightMax: 20 },
     { spacing: -1 },
   ];
 
@@ -165,6 +164,16 @@ test('plants may omit bloom and provide only a minimum height', (t) => {
       bloomEnd: null,
       heightMin: 42,
       heightMax: null,
+    }),
+  );
+});
+
+test('plants may provide only a maximum height', (t) => {
+  const database = createDatabase(t);
+  assert.doesNotThrow(() =>
+    insertPlant(database, {
+      heightMin: null,
+      heightMax: 120,
     }),
   );
 });

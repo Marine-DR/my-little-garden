@@ -1,8 +1,10 @@
 import type { Plant, PlantWriteInput } from './plant';
+import type { PlantCatalogFilterOptions, PlantCatalogFilters } from './catalog';
 
 export interface PlantPageRequest {
   readonly offset: number;
   readonly limit: number;
+  readonly filters?: PlantCatalogFilters;
 }
 
 export interface PlantPage {
@@ -16,6 +18,7 @@ export interface PlantPage {
  */
 export interface PlantCatalogRepository {
   list(page: PlantPageRequest): Promise<PlantPage>;
+  listFilterOptions(): Promise<PlantCatalogFilterOptions>;
 }
 
 export interface PlantRepository extends PlantCatalogRepository {

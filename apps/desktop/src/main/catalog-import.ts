@@ -47,6 +47,22 @@ function integer(value: string | undefined): number | null {
   return parsed;
 }
 
+function isNonNegativeInteger(value: string): boolean {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0;
+}
+
+function isIntegerText(value: string): boolean {
+  return Number.isInteger(Number(value));
+}
+
+function heightCm(
+  min: number | null,
+  max: number | null,
+): PlantWriteInput['heightCm'] {
+  return min === null && max === null ? null : { min, max };
+}
+
 function list(value: string | undefined): string[] {
   const text = optional(value);
   return text === null
@@ -207,14 +223,19 @@ export function validateCatalogCsvStructure(
         continue;
       }
       const numericColumns = [
-        ['Taille min', 1],
-        ['Taille Max', 2],
-        ['T° min (°C)', 11],
-        ['Espace(cm)', 13],
+        ['Taille min', 1, false],
+        ['Taille Max', 2, false],
+        ['T° min (°C)', 11, true],
+        ['Espace(cm)', 13, false],
       ] as const;
-      for (const [parameter, index] of numericColumns) {
+      for (const [parameter, index, acceptsNegative] of numericColumns) {
         const value = row[index]?.trim() ?? '';
-        if (value && !/^-?\d+$/u.test(value)) {
+        const isHeightColumn = index === 1 || index === 2;
+        const isMissingHeight = isHeightColumn && optional(value) === null;
+        const isValidNumber = acceptsNegative
+          ? isIntegerText(value)
+          : isNonNegativeInteger(value);
+        if (value && !isMissingHeight && !isValidNumber) {
           addUnique(errors, numericIssue(parameter));
         }
       }
@@ -378,11 +399,6 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
     const id = randomUUID();
     const heightMin = integer(row[1]);
     const heightMax = integer(row[2]);
-    if (heightMin === null && heightMax !== null) {
-      throw new Error(
-        `Plant ${name} has a maximum height without a minimum height.`,
-      );
-    }
     const soilLabels = list(row[5]);
     const exposureCodes = exposures(row[6]);
     const flowerColorLabels = list(row[9]);
@@ -391,7 +407,7 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
     const input: PlantWriteInput = {
       id,
       name,
-      heightCm: heightMin === null ? null : { min: heightMin, max: heightMax },
+      heightCm: heightCm(heightMin, heightMax),
       typeLabel: type,
       kind,
       soilLabels,

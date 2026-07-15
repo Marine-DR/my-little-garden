@@ -28,7 +28,7 @@ export interface Plant {
   readonly id: string;
   readonly name: string;
   readonly heightCm: {
-    readonly min: number;
+    readonly min: number | null;
     readonly max: number | null;
   } | null;
   readonly type: VocabularyValue | null;
@@ -58,7 +58,7 @@ export interface PlantWriteInput {
   readonly id: string;
   readonly name: string;
   readonly heightCm: {
-    readonly min: number;
+    readonly min: number | null;
     readonly max: number | null;
   } | null;
   readonly typeLabel: string | null;

@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react';
-import type { CatalogPage } from '../shared/catalog';
 import collapseIcon from './assets/collapse.svg';
 import expandIcon from './assets/expand.svg';
 import { useCloseOnOutsidePointer } from './useCloseOnOutsidePointer';
@@ -9,7 +8,7 @@ export function CatalogManager({
   onSuccess,
   children,
 }: {
-  readonly onReplaced: (catalog: CatalogPage) => void;
+  readonly onReplaced: () => void;
   readonly onSuccess: (message: string) => void;
   readonly children?: React.ReactNode;
 }) {
@@ -41,7 +40,7 @@ export function CatalogManager({
         setErrors(result.errors.map(({ message }) => message));
         return;
       }
-      onReplaced(await window.catalogApi.listPlants(1));
+      onReplaced();
       onSuccess(
         `Le catalogue a été remplacé avec succès (${result.imported} fleurs importées).`,
       );

@@ -1,6 +1,7 @@
 import type {
   ExposureCode,
   Plant,
+  PlantCatalogFilterOptions,
   PlantCatalogRepository,
   PlantPage,
   PlantPageRequest,
@@ -59,8 +60,8 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
   async list(request: PlantPageRequest): Promise<PlantPage> {
     const offset = Math.max(0, Math.trunc(request.offset));
     const limit = Math.max(1, Math.trunc(request.limit));
-    const total = this.queries.total();
-    const rows = this.queries.page(limit, offset);
+    const total = this.queries.total(request.filters);
+    const rows = this.queries.page(limit, offset, request.filters);
 
     if (rows.length === 0) {
       return { items: [], total };
@@ -82,7 +83,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
       id: row.id,
       name: row.name,
       heightCm:
-        row.heightMinCm === null
+        row.heightMinCm === null && row.heightMaxCm === null
           ? null
           : { min: row.heightMinCm, max: row.heightMaxCm },
       type:
@@ -121,5 +122,9 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     }));
 
     return { items, total };
+  }
+
+  async listFilterOptions(): Promise<PlantCatalogFilterOptions> {
+    return this.queries.filterOptions();
   }
 }

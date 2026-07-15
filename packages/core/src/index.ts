@@ -1,3 +1,4 @@
+export * from './catalog';
 export * from './constants';
 export * from './normalization';
 export * from './plant';

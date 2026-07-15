@@ -54,8 +54,9 @@ CREATE TABLE plants (
 
     CONSTRAINT uq_plants_normalized_name UNIQUE (normalized_name),
     CONSTRAINT ck_plants_height_range CHECK (
-        height_max_cm IS NULL
-        OR (height_min_cm IS NOT NULL AND height_max_cm >= height_min_cm)
+        height_min_cm IS NULL
+        OR height_max_cm IS NULL
+        OR height_max_cm >= height_min_cm
     ),
     CONSTRAINT ck_plants_bloom_completeness CHECK (
         (bloom_start_month IS NULL AND bloom_end_month IS NULL)

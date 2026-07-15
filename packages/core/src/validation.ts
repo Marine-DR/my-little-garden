@@ -49,9 +49,18 @@ export function validatePlantWriteInput(
 
   if (plant.heightCm !== null) {
     const { min, max } = plant.heightCm;
-    if (!Number.isInteger(min) || (max !== null && !Number.isInteger(max))) {
+    if (min === null && max === null) {
+      add('heightCm', 'required', 'Height must include minimum or maximum.');
+    } else if (
+      (min !== null && !Number.isInteger(min)) ||
+      (max !== null && !Number.isInteger(max))
+    ) {
       add('heightCm', 'not_integer', 'Height values must be integers.');
-    } else if (min < 0 || (max !== null && max < min)) {
+    } else if (
+      (min !== null && min < 0) ||
+      (max !== null && max < 0) ||
+      (min !== null && max !== null && max < min)
+    ) {
       add(
         'heightCm',
         'invalid_range',

@@ -19,6 +19,7 @@ describe('catalog display formatters', () => {
   it('formats compact values in French', () => {
     expect(formatRange(50, 80)).toBe('50–80');
     expect(formatRange(42, null)).toBe('42');
+    expect(formatRange(null, 120)).toBe('120');
     expect(formatBloom(6, 9)).toBe('Juin→Sep');
     expect(formatSeasons(['spring', 'autumn'])).toBe('Printemps, Automne');
     expect(colorEmoji('Rosé')).toBe('🩷');

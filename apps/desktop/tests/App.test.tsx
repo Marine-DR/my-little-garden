@@ -8,6 +8,8 @@ import {
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
+  CatalogFilterOptions,
+  CatalogFilters,
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
@@ -46,7 +48,9 @@ function page(number: number): CatalogPage {
 }
 
 describe('App catalog', () => {
-  const listPlants = vi.fn<(page: number) => Promise<CatalogPage>>();
+  const listPlants =
+    vi.fn<(page: number, filters?: CatalogFilters) => Promise<CatalogPage>>();
+  const listFilterOptions = vi.fn<() => Promise<CatalogFilterOptions>>();
   const replaceCatalog =
     vi.fn<(filename: string, csv: string) => Promise<CatalogImportResult>>();
   const importPhotos =
@@ -60,11 +64,17 @@ describe('App catalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     listPlants.mockImplementation(async (number) => page(number));
+    listFilterOptions.mockResolvedValue({
+      soils: ['Drainé', 'Humide'],
+      exposures: ['sun', 'shade'],
+      bloomMonths: [6, 9],
+    });
     replaceCatalog.mockResolvedValue({ ok: true, imported: 1 });
     importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
     deletePhoto.mockResolvedValue({ ok: true });
     window.catalogApi = {
       listPlants,
+      listFilterOptions,
       replaceCatalog,
       importPhotos,
       deletePhoto,
@@ -79,7 +89,23 @@ describe('App catalog', () => {
   it('shows every requested column and uses placeholders on a single plant row', async () => {
     render(<App />);
     const row = await screen.findByRole('row', { name: /Rose page 1/ });
-    expect(screen.queryByText('Catalogue des plantes')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Mon Catalogue' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('searchbox', {
+        name: 'Rechercher une fleur, couleur, sol, exposition',
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filtres (0)' })).toHaveClass(
+      'filter-button',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Colonnes (0)' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Ajouter une fleur/u }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Gérer le catalogue/u }),
     ).toHaveClass('secondary-button');
@@ -109,14 +135,78 @@ describe('App catalog', () => {
     expect(
       within(row).getByRole('img', { name: 'Couleur Rose' }),
     ).toHaveTextContent('🩷');
+    expect(screen.getByText('1-25 sur 26 fleurs')).toBeInTheDocument();
+    const pageSizeButton = screen.getByRole('button', {
+      name: 'Nombre de fleurs par page: 25',
+    });
+    expect(pageSizeButton).toBeDisabled();
+    expect(pageSizeButton).toHaveTextContent('25▼');
   });
 
   it('loads the next group of 25 plants from the database boundary', async () => {
     render(<App />);
     await screen.findByText('Rose page 1');
     fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
-    await waitFor(() => expect(listPlants).toHaveBeenLastCalledWith(2));
+    await waitFor(() =>
+      expect(listPlants).toHaveBeenLastCalledWith(2, {
+        soils: [],
+        exposures: [],
+        bloomMonths: [],
+      }),
+    );
     expect(await screen.findByText('Rose page 2')).toBeInTheDocument();
+  });
+
+  it('opens, closes, applies, and clears multi-attribute filters', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (0)' }));
+    const filterPanel = screen.getByRole('complementary', {
+      name: 'Filtres du catalogue',
+    });
+    expect(filterPanel).toBeInTheDocument();
+    expect(
+      within(filterPanel).queryByText('Couleurs Fleur'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(filterPanel).queryByText('Couleurs Feuilles'),
+    ).not.toBeInTheDocument();
+    expect(within(filterPanel).queryByText('Type')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Drainé'));
+    fireEvent.click(screen.getByLabelText('Ombre'));
+    fireEvent.click(screen.getByLabelText('Juin'));
+    expect(listPlants).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
+    await waitFor(() =>
+      expect(listPlants).toHaveBeenLastCalledWith(1, {
+        soils: ['Drainé'],
+        exposures: ['shade'],
+        bloomMonths: [6],
+      }),
+    );
+    expect(
+      screen.queryByRole('complementary', { name: 'Filtres du catalogue' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (3)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer les filtres' }));
+    expect(
+      screen.queryByRole('complementary', { name: 'Filtres du catalogue' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (3)' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Désactiver les filtres' }),
+    );
+    await waitFor(() =>
+      expect(listPlants).toHaveBeenLastCalledWith(1, {
+        soils: [],
+        exposures: [],
+        bloomMonths: [],
+      }),
+    );
   });
 
   it('closes each expanded action menu when clicking outside', async () => {
@@ -173,7 +263,13 @@ describe('App catalog', () => {
         'contenu csv',
       ),
     );
-    await waitFor(() => expect(listPlants).toHaveBeenLastCalledWith(1));
+    await waitFor(() =>
+      expect(listPlants).toHaveBeenLastCalledWith(1, {
+        soils: [],
+        exposures: [],
+        bloomMonths: [],
+      }),
+    );
     expect(
       await screen.findByText(/catalogue a été remplacé avec succès/u),
     ).toBeInTheDocument();

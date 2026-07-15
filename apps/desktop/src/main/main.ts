@@ -1,12 +1,16 @@
 import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Plant, PlantCatalogRepository } from '@my-little-garden/core';
+import {
+  type Plant,
+  type PlantCatalogRepository,
+} from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { createPhotoUrl } from '@my-little-garden/photo-handling';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import type {
   CatalogImportError,
+  CatalogFilters,
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
@@ -66,11 +70,15 @@ function toCatalogPlant(plant: Plant): CatalogPlant {
   };
 }
 
-async function listCatalogPage(requestedPage: number): Promise<CatalogPage> {
+async function listCatalogPage(
+  requestedPage: number,
+  filters?: CatalogFilters,
+): Promise<CatalogPage> {
   const normalizedPage = Math.max(1, Math.trunc(requestedPage) || 1);
   let result = await catalogRepository.list({
     offset: (normalizedPage - 1) * CATALOG_PAGE_SIZE,
     limit: CATALOG_PAGE_SIZE,
+    filters,
   });
   const pageCount = Math.max(1, Math.ceil(result.total / CATALOG_PAGE_SIZE));
   const page = Math.min(normalizedPage, pageCount);
@@ -78,6 +86,7 @@ async function listCatalogPage(requestedPage: number): Promise<CatalogPage> {
     result = await catalogRepository.list({
       offset: (page - 1) * CATALOG_PAGE_SIZE,
       limit: CATALOG_PAGE_SIZE,
+      filters,
     });
   }
   return {
@@ -161,8 +170,11 @@ app.whenReady().then(async () => {
 
   handlePhotoRequests(photoDirectory);
 
-  ipcMain.handle('catalog:list', (_event, page: number) =>
-    listCatalogPage(page),
+  ipcMain.handle('catalog:list', (_event, page: number, filters) =>
+    listCatalogPage(page, filters),
+  );
+  ipcMain.handle('catalog:filter-options', () =>
+    catalogRepository.listFilterOptions(),
   );
   ipcMain.handle(
     'catalog:replace',
