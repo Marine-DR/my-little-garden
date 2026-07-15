@@ -3,23 +3,22 @@ import { join } from 'node:path';
 import {
   type Plant,
   type PlantCatalogRepository,
+  type SelectionRepository,
+  type SelectionSummaryRecord,
+  type CatalogImportError,
+  type CatalogFilters,
+  type CatalogImportResult,
+  type CatalogPage,
+  type CatalogPlant,
+  type SelectionSummary,
 } from '@my-little-garden/core';
 import {
   SqlitePlantCatalogRepository,
   SqliteSelectionRepository,
-  type SelectionSummaryRecord,
 } from '@my-little-garden/database';
 import { createPhotoUrl } from '@my-little-garden/photo-handling';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain } from 'electron';
-import type {
-  CatalogImportError,
-  CatalogFilters,
-  CatalogImportResult,
-  CatalogPage,
-  CatalogPlant,
-  SelectionSummary,
-} from '../shared/catalog.js';
 import {
   replaceCatalogFromCsv,
   seedDemoCatalog,
@@ -32,7 +31,7 @@ registerPhotoScheme();
 
 let database: DatabaseSync;
 let catalogRepository: PlantCatalogRepository;
-let selectionRepository: SqliteSelectionRepository;
+let selectionRepository: SelectionRepository;
 const CATALOG_PAGE_SIZE = 25;
 
 function ensureSchema(db: DatabaseSync): void {

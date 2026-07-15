@@ -16,7 +16,7 @@ import type {
   PhotoDeleteResult,
   PhotoImportResult,
   SelectionSummary,
-} from '../src/shared/catalog';
+} from '@my-little-garden/core';
 import { App } from '../src/renderer/App';
 
 const rose: CatalogPlant = {

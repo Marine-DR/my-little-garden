@@ -4,16 +4,19 @@ import { basename, extname, join } from 'node:path';
 import {
   runInTransaction,
   SqlitePlantPhotoRepository,
-  type PlantPhotoTarget,
 } from '@my-little-garden/database';
+import type {
+  PlantPhotoRepository,
+  PlantPhotoTarget,
+  PhotoDeleteResult,
+  PhotoImportFile,
+  PhotoImportResult,
+} from '@my-little-garden/core';
 import {
   validatePhotoFiles,
-  type PhotoImportFile,
-  type PhotoImportResult,
   type ValidImage,
 } from '@my-little-garden/photo-handling';
 import type { DatabaseSync } from 'node:sqlite';
-import type { PhotoDeleteResult } from '../shared/catalog.js';
 
 function caseInsensitiveName(value: string): string {
   return value.normalize('NFC').toLocaleLowerCase('fr');
@@ -124,7 +127,7 @@ function stagePhotos(
 
 function persistPhotos(
   database: DatabaseSync,
-  repository: SqlitePlantPhotoRepository,
+  repository: PlantPhotoRepository,
   photoDirectory: string,
   staged: readonly StagedPhoto[],
 ): void {

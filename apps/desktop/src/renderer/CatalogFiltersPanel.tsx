@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import type { CatalogFilterOptions, CatalogFilters } from '../shared/catalog';
+import type {
+  CatalogFilterOptions,
+  CatalogFilters,
+} from '@my-little-garden/core';
 import filterIcon from './assets/filter.svg';
 import { MONTH_LABELS } from './catalog-labels';
 import resetFilterIcon from './assets/resetFilter.svg';

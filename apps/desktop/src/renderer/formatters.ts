@@ -1,4 +1,4 @@
-import type { CatalogPlant } from '../shared/catalog';
+import type { CatalogPlant } from '@my-little-garden/core';
 import { EXPOSURE_LABELS, MONTH_LABELS } from './catalog-labels';
 
 export const EMPTY_VALUE = '-';

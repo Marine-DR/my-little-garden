@@ -1,4 +1,4 @@
-import type { CatalogPage, CatalogPlant } from '../shared/catalog';
+import type { CatalogPage, CatalogPlant } from '@my-little-garden/core';
 import { PlantPhoto } from './PlantPhoto';
 import { Pagination } from './Pagination';
 import {

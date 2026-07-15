@@ -4,7 +4,7 @@ import type {
   CatalogFilters,
   CatalogPage,
   SelectionSummary,
-} from '../shared/catalog';
+} from '@my-little-garden/core';
 import appIcon from './assets/app-icon.png';
 import catalogIcon from './assets/catalog.svg';
 import flowerbedIcon from './assets/flowerbed.png';

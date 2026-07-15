@@ -1,4 +1,4 @@
-import type { SelectionSummary } from '../shared/catalog';
+import type { SelectionSummary } from '@my-little-garden/core';
 import { PlantPhoto } from './PlantPhoto';
 
 function formatDate(value: string): string {
