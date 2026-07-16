@@ -4,6 +4,7 @@ import type {
   CatalogImportError,
   CatalogImportResult,
   PlantCatalogRepository,
+  SelectionCreationInput,
   SelectionRepository,
 } from '@my-little-garden/core';
 import type { IpcMain } from 'electron';
@@ -33,11 +34,17 @@ export function registerIpcHandlers({
   ipcMain.handle('catalog:list', (_event, page: number, filters) =>
     listCatalogPage(catalogRepository, page, filters),
   );
+  ipcMain.handle('catalog:list-ids', (_event, filters) =>
+    catalogRepository.listIds(filters),
+  );
   ipcMain.handle('catalog:filter-options', () =>
     catalogRepository.listFilterOptions(),
   );
   ipcMain.handle('selections:list', () =>
     listSelectionSummaries(selectionRepository),
+  );
+  ipcMain.handle('selections:create', (_event, input: SelectionCreationInput) =>
+    selectionRepository.create(input),
   );
   ipcMain.handle(
     'catalog:replace',

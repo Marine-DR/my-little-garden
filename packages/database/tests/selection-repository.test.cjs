@@ -98,3 +98,70 @@ test('lists selection summaries with plant counts and four preview images', asyn
   assert.equal(result[1].plantCount, 0);
   assert.deepEqual(result[1].previewManagedFilenames, []);
 });
+
+test('creates a trimmed named selection with unique plant links', async (t) => {
+  const database = createDatabase(t);
+  const repository = new SqliteSelectionRepository(database);
+  insertPlant(database, 'plant-1', 'Rose', 'rose');
+  insertPlant(database, 'plant-2', 'Sauge', 'sauge');
+
+  const result = await repository.create({
+    name: '  Coin parfumé  ',
+    plantIds: ['plant-1', 'plant-2', 'plant-1'],
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.name, 'Coin parfumé');
+  assert.equal(result.plantCount, 2);
+  const selection = database
+    .prepare('SELECT name, normalized_name FROM selections WHERE id = ?')
+    .get(result.selectionId);
+  assert.equal(selection.name, 'Coin parfumé');
+  assert.equal(selection.normalized_name, 'coin parfume');
+  const links = database
+    .prepare(
+      `SELECT plant_id FROM selection_plants
+       WHERE selection_id = ? ORDER BY plant_id`,
+    )
+    .all(result.selectionId);
+  assert.deepEqual(
+    links.map(({ plant_id }) => plant_id),
+    ['plant-1', 'plant-2'],
+  );
+});
+
+test('rejects empty creation data and duplicate normalized names', async (t) => {
+  const database = createDatabase(t);
+  const repository = new SqliteSelectionRepository(database);
+  insertPlant(database, 'plant-1', 'Rose', 'rose');
+
+  assert.deepEqual(
+    await repository.create({ name: ' ', plantIds: ['plant-1'] }),
+    {
+      ok: false,
+      code: 'empty_name',
+    },
+  );
+  assert.deepEqual(await repository.create({ name: 'Valide', plantIds: [] }), {
+    ok: false,
+    code: 'no_plants',
+  });
+  assert.deepEqual(
+    await repository.create({ name: 'Valide', plantIds: ['missing'] }),
+    { ok: false, code: 'unknown_plants' },
+  );
+
+  const first = await repository.create({
+    name: 'Coin parfumé',
+    plantIds: ['plant-1'],
+  });
+  assert.equal(first.ok, true);
+  assert.deepEqual(
+    await repository.create({ name: '  COIN PARFUME ', plantIds: ['plant-1'] }),
+    { ok: false, code: 'duplicate_name' },
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) AS count FROM selections').get().count,
+    1,
+  );
+});

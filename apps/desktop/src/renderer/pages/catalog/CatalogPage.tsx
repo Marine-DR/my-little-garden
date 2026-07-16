@@ -11,6 +11,7 @@ import {
 import { CatalogManager } from './components/CatalogManager';
 import { CatalogTable } from './components/CatalogTable';
 import { ImageManager } from './components/ImageManager';
+import { SelectionCreator } from './components/SelectionCreator';
 
 export function CatalogPage({
   onSuccess,
@@ -24,6 +25,10 @@ export function CatalogPage({
     useState<CatalogFilterOptions | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPlantIds, setSelectedPlantIds] = useState<readonly string[]>(
+    [],
+  );
+  const [selectingAll, setSelectingAll] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -83,6 +88,7 @@ export function CatalogPage({
     setPage(1);
     setData(catalog);
     setFilterOptions(options);
+    setSelectedPlantIds([]);
     setError(null);
   };
 
@@ -92,6 +98,39 @@ export function CatalogPage({
     setData(null);
     setError(null);
     setFilterPanelOpen(false);
+  };
+
+  const togglePlant = (plantId: string): void => {
+    setSelectedPlantIds((current) =>
+      current.includes(plantId)
+        ? current.filter((id) => id !== plantId)
+        : [...current, plantId],
+    );
+  };
+
+  const toggleAllPlants = async (): Promise<void> => {
+    if (selectedPlantIds.length > 0) {
+      setSelectedPlantIds([]);
+      return;
+    }
+
+    setSelectingAll(true);
+    try {
+      const plantIds = await window.catalogApi.listPlantIds(filters);
+      setSelectedPlantIds((current) =>
+        current.length === 0 ? plantIds : current,
+      );
+      setError(null);
+    } catch {
+      setError('Les plantes n’ont pas pu être sélectionnées.');
+    } finally {
+      setSelectingAll(false);
+    }
+  };
+
+  const selectionCreated = (name: string): void => {
+    setSelectedPlantIds([]);
+    onSuccess(`La sélection « ${name} » a été créée avec succès.`);
   };
 
   return (
@@ -122,6 +161,22 @@ export function CatalogPage({
           onSuccess={onSuccess}
         />
       </CatalogManager>
+      <section className="selection-actions" aria-label="Actions de sélection">
+        <span className="selection-count">
+          <span className="selection-count-number">
+            {selectedPlantIds.length}
+          </span>{' '}
+          {selectedPlantIds.length === 1
+            ? 'plante sélectionnée'
+            : 'plantes sélectionnées'}
+        </span>
+        <div className="selection-action-buttons">
+          <SelectionCreator
+            selectedPlantIds={selectedPlantIds}
+            onCreated={selectionCreated}
+          />
+        </div>
+      </section>
       {error ? (
         <div className="error-banner" role="alert">
           {error}
@@ -141,6 +196,10 @@ export function CatalogPage({
             filters.bloomMonths.length > 0
           }
           onPageChange={changePage}
+          selectedPlantIds={selectedPlantIds}
+          onPlantToggle={togglePlant}
+          selectingAll={selectingAll}
+          onToggleAll={() => void toggleAllPlants()}
         />
       ) : null}
     </>

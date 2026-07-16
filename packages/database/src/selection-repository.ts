@@ -1,7 +1,11 @@
 import type {
+  SelectionCreationInput,
+  SelectionCreationResult,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
+import { normalizeDatabaseKey } from '@my-little-garden/core';
+import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
   nullableStringColumn,
@@ -9,6 +13,7 @@ import {
   stringColumn,
   type SqliteRow,
 } from './typed-query';
+import { runInTransaction } from './transaction';
 
 interface SelectionRow {
   readonly id: string;
@@ -94,5 +99,63 @@ export class SqliteSelectionRepository implements SelectionRepository {
       createdAt: selection.createdAt,
       updatedAt: selection.updatedAt,
     }));
+  }
+
+  async create(
+    input: SelectionCreationInput,
+  ): Promise<SelectionCreationResult> {
+    const name = input.name.trim();
+    const normalizedName = normalizeDatabaseKey(name);
+    const plantIds = [...new Set(input.plantIds)];
+
+    if (!normalizedName) {
+      return { ok: false, code: 'empty_name' };
+    }
+    if (plantIds.length === 0) {
+      return { ok: false, code: 'no_plants' };
+    }
+
+    return runInTransaction(this.database, () => {
+      const duplicate = this.database
+        .prepare('SELECT 1 FROM selections WHERE normalized_name = ?')
+        .get(normalizedName);
+      if (duplicate) {
+        return { ok: false, code: 'duplicate_name' };
+      }
+
+      const placeholders = plantIds.map(() => '?').join(', ');
+      const existingPlants = this.database
+        .prepare(
+          `SELECT count(*) AS count FROM plants WHERE id IN (${placeholders})`,
+        )
+        .get(...plantIds) as { count: number };
+      if (existingPlants.count !== plantIds.length) {
+        return { ok: false, code: 'unknown_plants' };
+      }
+
+      const selectionId = randomUUID();
+      const now = new Date().toISOString();
+      this.database
+        .prepare(
+          `INSERT INTO selections (
+             id, name, normalized_name, created_at, updated_at
+           ) VALUES (?, ?, ?, ?, ?)`,
+        )
+        .run(selectionId, name, normalizedName, now, now);
+      const insertPlant = this.database.prepare(
+        `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+         VALUES (?, ?, ?)`,
+      );
+      for (const plantId of plantIds) {
+        insertPlant.run(selectionId, plantId, now);
+      }
+
+      return {
+        ok: true,
+        selectionId,
+        name,
+        plantCount: plantIds.length,
+      };
+    });
   }
 }

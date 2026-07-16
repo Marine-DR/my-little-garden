@@ -1,5 +1,9 @@
 import type { Plant, PlantWriteInput } from './plant';
 import type { PlantCatalogFilterOptions, PlantCatalogFilters } from './catalog';
+import type {
+  SelectionCreationInput,
+  SelectionCreationResult,
+} from './desktop-api';
 
 export interface PlantPageRequest {
   readonly offset: number;
@@ -41,6 +45,7 @@ export interface SelectionSummaryRecord {
  */
 export interface PlantCatalogRepository {
   list(page: PlantPageRequest): Promise<PlantPage>;
+  listIds(filters?: PlantCatalogFilters): Promise<string[]>;
   listFilterOptions(): Promise<PlantCatalogFilterOptions>;
 }
 
@@ -62,4 +67,5 @@ export interface PlantPhotoRepository {
 
 export interface SelectionRepository {
   listSummaries(): Promise<SelectionSummaryRecord[]>;
+  create(input: SelectionCreationInput): Promise<SelectionCreationResult>;
 }

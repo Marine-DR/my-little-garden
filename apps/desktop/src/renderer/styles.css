@@ -160,6 +160,46 @@ main {
   border-bottom: 0;
   border-left: 0;
 }
+.selections-administration-space {
+  min-height: 53px;
+}
+.selection-actions {
+  min-height: 76px;
+  margin: 0 18px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+}
+.selection-count {
+  color: #2f7d32ff;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+}
+.selection-count-number {
+  font-weight: 600;
+}
+.selection-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.catalog-select-all {
+  width: 18px;
+  height: 18px;
+  accent-color: #2f7d32;
+  cursor: pointer;
+}
+.catalog-select-all:disabled {
+  cursor: wait;
+}
 .catalog-menu {
   position: relative;
 }
@@ -270,6 +310,67 @@ main {
   place-items: center;
   padding: 24px;
   background: rgb(0 0 0 / 35%);
+}
+.selection-modal {
+  width: min(480px, 100%);
+  padding: 22px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 18px 45px rgb(0 0 0 / 20%);
+}
+.selection-modal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.selection-modal-heading h2 {
+  margin: 0;
+  color: #2f7d32;
+  font-size: 20px;
+}
+.selection-modal-heading > button {
+  width: 33px;
+  height: 33px;
+  color: #2f7d32;
+  background: #fff;
+  border: 1px solid #2f7d32;
+  border-radius: 4px;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+.selection-modal form {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.selection-modal label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.selection-modal input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #969191;
+  border-radius: 4px;
+  font: inherit;
+}
+.selection-modal input:focus {
+  border-color: #2f7d32;
+  outline: 2px solid rgb(47 125 50 / 20%);
+}
+.selection-form-error {
+  margin: 4px 0 0;
+  color: #991b1b;
+  font-size: 14px;
+}
+.selection-modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 .error-modal {
   width: min(620px, 100%);
@@ -682,6 +783,16 @@ tbody th {
 tbody tr:hover td,
 tbody tr:hover th {
   background: #fafbf9;
+}
+.plant-selection-cell {
+  width: 44px;
+  padding: 8px;
+}
+.plant-selection-cell input {
+  width: 18px;
+  height: 18px;
+  accent-color: #2f7d32;
+  cursor: pointer;
 }
 th:last-child,
 td:last-child {

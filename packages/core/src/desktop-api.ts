@@ -43,6 +43,26 @@ export interface SelectionSummary {
   readonly updatedAt: string;
 }
 
+export interface SelectionCreationInput {
+  readonly name: string;
+  readonly plantIds: readonly string[];
+}
+
+export type SelectionCreationErrorCode =
+  'empty_name' | 'no_plants' | 'duplicate_name' | 'unknown_plants';
+
+export type SelectionCreationResult =
+  | {
+      readonly ok: true;
+      readonly selectionId: string;
+      readonly name: string;
+      readonly plantCount: number;
+    }
+  | {
+      readonly ok: false;
+      readonly code: SelectionCreationErrorCode;
+    };
+
 export type CatalogFilters = Required<PlantCatalogFilters>;
 
 export type CatalogFilterOptions = PlantCatalogFilterOptions;
@@ -77,8 +97,12 @@ export type CatalogImportResult =
 
 export interface CatalogApi {
   listPlants(page: number, filters?: CatalogFilters): Promise<CatalogPage>;
+  listPlantIds(filters?: CatalogFilters): Promise<readonly string[]>;
   listFilterOptions(): Promise<CatalogFilterOptions>;
   listSelections(): Promise<readonly SelectionSummary[]>;
+  createSelection(
+    input: SelectionCreationInput,
+  ): Promise<SelectionCreationResult>;
   replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
   importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
   deletePhoto(plantId: string): Promise<PhotoDeleteResult>;

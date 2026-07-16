@@ -4,8 +4,10 @@ import type { CatalogApi } from '@my-little-garden/core';
 const catalogApi: CatalogApi = {
   listPlants: (page, filters) =>
     ipcRenderer.invoke('catalog:list', page, filters),
+  listPlantIds: (filters) => ipcRenderer.invoke('catalog:list-ids', filters),
   listFilterOptions: () => ipcRenderer.invoke('catalog:filter-options'),
   listSelections: () => ipcRenderer.invoke('selections:list'),
+  createSelection: (input) => ipcRenderer.invoke('selections:create', input),
   replaceCatalog: (filename, csv) =>
     ipcRenderer.invoke('catalog:replace', filename, csv),
   importPhotos: (files) => ipcRenderer.invoke('photos:import', files),

@@ -41,6 +41,10 @@ export function SelectionsPage({
           </div>
         </div>
       </section>
+      <div
+        className="catalog-actions selections-administration-space"
+        aria-hidden="true"
+      />
       {error ? (
         <div className="error-banner" role="alert">
           {error}
