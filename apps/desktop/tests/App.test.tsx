@@ -127,6 +127,16 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('heading', { name: 'Mon Catalogue' }),
     ).toBeInTheDocument();
+    const flowerbedsButton = screen.getByRole('button', {
+      name: 'Mes Parterres',
+    });
+    expect(flowerbedsButton).toBeVisible();
+    expect(flowerbedsButton).toBeDisabled();
+    expect(flowerbedsButton).toHaveClass('primary-button');
+    const flowerbedIcon =
+      flowerbedsButton.querySelector<HTMLElement>('.flowerbed-icon');
+    expect(flowerbedIcon).toBeInTheDocument();
+    expect(flowerbedIcon?.style.maskImage).toContain('url("');
     expect(
       screen.queryByRole('searchbox', {
         name: 'Rechercher une fleur, couleur, sol, exposition',

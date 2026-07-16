@@ -57,27 +57,21 @@ button:disabled span[aria-hidden='true'] {
   display: flex;
   gap: 15px;
 }
-.app-header button {
-  height: 33px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  background: #2f7d32;
-  border: 1px solid #2f7d32;
-  border-radius: 4px;
-  cursor: pointer;
-}
 .app-header button img {
   width: 16px;
   height: 16px;
 }
-.app-header button:hover {
-  background: #245e26;
-  border-color: #245e26;
+.app-header .flowerbed-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background-color: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
 }
 main {
   min-height: calc(100vh - 53px);
@@ -164,9 +158,9 @@ main {
   min-height: 53px;
 }
 .selection-actions {
-  min-height: 76px;
+  min-height: 53px;
   margin: 0 18px;
-  padding: 10px 18px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -247,6 +241,9 @@ main {
 .primary-button:disabled img,
 .primary-button:disabled span[aria-hidden='true'] {
   opacity: 0.25;
+}
+.primary-button:disabled span.flowerbed-icon[aria-hidden='true'] {
+  opacity: 1;
 }
 .secondary-button:disabled {
   color: rgb(47 125 50 / 50%);
