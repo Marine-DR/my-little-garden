@@ -7,8 +7,8 @@ Build an offline Windows/Linux desktop application for one gardener using Electr
 - Viewing the complete plant catalog with photos and pagination.
 - Filtering by soil, exposure, and flowering month.
 - Atomically replacing the catalog from CSV plus an image folder.
-- Creating uniquely named plant selections.
-- Reviewing saved selections in a read-only screen.
+- Creating uniquely named plant selections from checked catalog plants.
+- Managing saved selections in a table-based “Mes Sélections” screen.
 
 The domain and import logic will remain independent of Electron so it can later be reused by a Node-based server.
 
@@ -29,8 +29,10 @@ Core interfaces:
 - `commitCatalogReplacement(previewId): ImportResult`
 - `listPlants(filters, page): PaginatedPlants`
 - `createSelection(name, plantIds): Selection`
+- `addPlantsToSelections(selectionIds, plantIds): SelectionAddResult`
 - `listSelections(): SelectionSummary[]`
 - `getSelection(selectionId): SelectionDetails`
+- `removePlantsFromSelection(selectionId, plantIds): SelectionDetails`
 
 ## Data and Import Behavior
 
@@ -66,7 +68,10 @@ Core interfaces:
   - Flowering matches when a plant blooms during any selected month, including intervals crossing December.
   - Active filters are visible and individually or collectively removable.
 - Selection creation requires at least one checked plant and a non-empty name unique after trimming and case normalization.
-- “Mes Sélections” displays saved selections and their current plants. Renaming, deletion, adding to existing selections, and removing individual plants are deferred.
+- Empty selections cannot be created from “Mes Sélections” in the MVP.
+- The catalog selection action bar supports creating a new selection and adding checked plants to one or more existing selections. Existing plant-selection links are ignored without producing an error.
+- “Mes Sélections” displays saved selections and their current plants in a table-based management screen. Users can open a selection detail and remove plants from a selection after confirmation.
+- Selection rename, selection deletion, selection reliability status, modified/deleted plant review, flowerbed usage indicators, selection search, selection filters, and card/table view switching are deferred.
 - Confirm catalog replacement after preview, especially when saved selections will lose plants.
 - Keep layouts usable across ordinary desktop sizes; mobile navigation and touch-specific behavior are deferred.
 
@@ -75,6 +80,9 @@ Core interfaces:
 - Unit-test CSV parsing, enum and range validation, cyclic flowering periods, name normalization, UUID precedence, duplicate detection, and filter combination rules.
 - Test replacement transactions for new, matching, renamed, removed, incomplete, and invalid plants.
 - Verify preserved and removed selection links, including selections becoming empty.
+- Verify empty selection creation is rejected and duplicate normalized selection names are rejected.
+- Verify adding catalog plants to existing selections ignores duplicate links and reports added versus ignored associations.
+- Verify removing plants from a selection requires confirmation and updates the selection detail.
 - Test image matching, missing images, duplicate filenames, unsupported formats, path traversal, copying, and cleanup after commit or rollback.
 - Component-test empty, loading, populated, filtered, paginated, validation, preview, and selection states.
 - Electron integration-test:
@@ -82,12 +90,14 @@ Core interfaces:
   - Successful catalog replacement.
   - Failed replacement leaving existing data untouched.
   - Creating and reopening a saved selection.
+  - Adding checked catalog plants to an existing selection.
+  - Removing plants from a saved selection.
   - Replacing a catalog while preserving and removing appropriate links.
 - Produce Windows x64 installer and Linux x64 AppImage smoke builds.
 
 ## Deferred Features and Assumptions
 
-- Exclude individual plant CRUD, additive/update/delete CSV modes, ZIP image import, search, sorting, configurable columns, selection editing, flowerbed design, generated documents, accounts, synchronization, and hosted services.
+- Exclude individual plant CRUD, additive/update/delete CSV modes, ZIP image import, search, sorting, configurable columns, selection rename, selection deletion, selection reliability status, selection card view, flowerbed design, generated documents, accounts, synchronization, and hosted services.
 - The application works entirely offline and has one local data owner.
 - Imported horticultural values use the controlled vocabulary defined by the existing catalog specification; internal enum keys remain language-neutral.
 - No starter plant dataset or licensed imagery is bundled.

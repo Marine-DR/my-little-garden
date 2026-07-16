@@ -15,6 +15,7 @@ import type {
   CatalogPlant,
   PhotoDeleteResult,
   PhotoImportResult,
+  SelectionSummary,
 } from '../src/shared/catalog';
 import { App } from '../src/renderer/App';
 
@@ -36,6 +37,20 @@ const rose: CatalogPlant = {
   foliagePersistence: 'deciduous',
   spacingCm: 40,
   plantingSeasons: ['spring', 'autumn'],
+};
+
+const sunnyBorder: SelectionSummary = {
+  id: 'sunny-border',
+  name: 'Bordure plein soleil',
+  previewPhotoUrls: [
+    'photo://rose-1',
+    'photo://rose-2',
+    'photo://rose-3',
+    'photo://rose-4',
+  ],
+  plantCount: 6,
+  createdAt: '2026-07-10T08:00:00.000Z',
+  updatedAt: '2026-07-14T12:30:00.000Z',
 };
 
 function page(number: number): CatalogPage {
@@ -60,6 +75,7 @@ describe('App catalog', () => {
       ) => Promise<PhotoImportResult>
     >();
   const deletePhoto = vi.fn<(plantId: string) => Promise<PhotoDeleteResult>>();
+  const listSelections = vi.fn<() => Promise<readonly SelectionSummary[]>>();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,9 +88,11 @@ describe('App catalog', () => {
     replaceCatalog.mockResolvedValue({ ok: true, imported: 1 });
     importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
     deletePhoto.mockResolvedValue({ ok: true });
+    listSelections.mockResolvedValue([sunnyBorder]);
     window.catalogApi = {
       listPlants,
       listFilterOptions,
+      listSelections,
       replaceCatalog,
       importPhotos,
       deletePhoto,
@@ -370,5 +388,72 @@ describe('App catalog', () => {
       screen.queryByText(/1 photo\(s\) importée\(s\)/u),
     ).not.toBeInTheDocument();
     expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('opens the selections screen and returns to the catalog screen', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Mes Sélections' }),
+    ).toBeInTheDocument();
+    expect(listSelections).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole('button', { name: 'Mon Catalogue' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Filtres (0)' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Gérer le catalogue/u }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('columnheader').map((heading) => heading.textContent),
+    ).toEqual([
+      'Nom',
+      'Aperçu',
+      'Plantes',
+      'Date de création',
+      'Dernière modification',
+    ]);
+
+    const row = screen.getByRole('row', { name: /Bordure plein soleil/u });
+    expect(row).toHaveTextContent('6');
+    expect(row).toHaveTextContent('10/07/2026');
+    expect(row).toHaveTextContent('14/07/2026');
+    expect(
+      within(row).getByLabelText('2 plantes non affichées'),
+    ).toHaveTextContent('+2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mon Catalogue' }));
+    expect(
+      await screen.findByRole('heading', { name: 'Mon Catalogue' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Mes Sélections' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Rose page 1')).toBeInTheDocument();
+  });
+
+  it('shows the selections empty state with a catalog return action', async () => {
+    listSelections.mockResolvedValueOnce([]);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Aucune sélection enregistrée',
+      }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Retour au catalogue' }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Mon Catalogue' }),
+    ).toBeInTheDocument();
   });
 });

@@ -693,6 +693,12 @@ td:last-child {
   font-size: 16px;
   font-weight: 600;
 }
+.selection-name {
+  min-width: 220px;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+}
 .plant-photo,
 .photo-fallback {
   width: 72px;
@@ -716,6 +722,37 @@ td:last-child {
   margin: auto;
   font-size: 30px;
   background: #e8f2e6;
+}
+.selection-preview-list {
+  min-width: 252px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.selection-preview-list .plant-photo,
+.selection-preview-list .photo-fallback {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+}
+.selection-preview-list .photo-fallback {
+  font-size: 22px;
+}
+.selection-preview-more {
+  min-width: 42px;
+  height: 33px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2f7d32;
+  background: #e8f2e6;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.selection-preview-empty {
+  color: #969191;
 }
 abbr {
   text-decoration: none;
@@ -845,11 +882,16 @@ abbr {
 }
 .pagination button:hover:not(:disabled) {
   background: #f4ffee;
+  border-color: #2f7d32ff;
 }
 .pagination button.current-page {
   color: #fff;
   background: #2f7d32;
   border-color: #2f7d32;
+}
+.pagination button.current-page:hover {
+  background: #245e26;
+  border-color: #245e26;
 }
 .pagination button:disabled {
   color: rgb(47 125 50 / 50%);

@@ -5,6 +5,7 @@ const catalogApi: CatalogApi = {
   listPlants: (page, filters) =>
     ipcRenderer.invoke('catalog:list', page, filters),
   listFilterOptions: () => ipcRenderer.invoke('catalog:filter-options'),
+  listSelections: () => ipcRenderer.invoke('selections:list'),
   replaceCatalog: (filename, csv) =>
     ipcRenderer.invoke('catalog:replace', filename, csv),
   importPhotos: (files) => ipcRenderer.invoke('photos:import', files),

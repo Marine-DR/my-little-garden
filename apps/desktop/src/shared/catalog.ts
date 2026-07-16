@@ -40,6 +40,15 @@ export interface CatalogPage {
   readonly total: number;
 }
 
+export interface SelectionSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly previewPhotoUrls: readonly (string | null)[];
+  readonly plantCount: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 export type CatalogFilters = Required<PlantCatalogFilters>;
 
 export type CatalogFilterOptions = PlantCatalogFilterOptions;
@@ -47,6 +56,7 @@ export type CatalogFilterOptions = PlantCatalogFilterOptions;
 export interface CatalogApi {
   listPlants(page: number, filters?: CatalogFilters): Promise<CatalogPage>;
   listFilterOptions(): Promise<CatalogFilterOptions>;
+  listSelections(): Promise<readonly SelectionSummary[]>;
   replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
   importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
   deletePhoto(plantId: string): Promise<PhotoDeleteResult>;

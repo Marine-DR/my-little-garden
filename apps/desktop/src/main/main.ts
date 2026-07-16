@@ -4,7 +4,11 @@ import {
   type Plant,
   type PlantCatalogRepository,
 } from '@my-little-garden/core';
-import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
+import {
+  SqlitePlantCatalogRepository,
+  SqliteSelectionRepository,
+  type SelectionSummaryRecord,
+} from '@my-little-garden/database';
 import { createPhotoUrl } from '@my-little-garden/photo-handling';
 import { DatabaseSync } from 'node:sqlite';
 import { app, BrowserWindow, ipcMain } from 'electron';
@@ -14,6 +18,7 @@ import type {
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
+  SelectionSummary,
 } from '../shared/catalog.js';
 import {
   replaceCatalogFromCsv,
@@ -27,6 +32,7 @@ registerPhotoScheme();
 
 let database: DatabaseSync;
 let catalogRepository: PlantCatalogRepository;
+let selectionRepository: SqliteSelectionRepository;
 const CATALOG_PAGE_SIZE = 25;
 
 function ensureSchema(db: DatabaseSync): void {
@@ -67,6 +73,21 @@ function toCatalogPlant(plant: Plant): CatalogPlant {
     foliagePersistence: plant.foliagePersistence,
     spacingCm: plant.spacingCm,
     plantingSeasons: plant.plantingSeasons,
+  };
+}
+
+function toSelectionSummary(
+  selection: SelectionSummaryRecord,
+): SelectionSummary {
+  return {
+    id: selection.id,
+    name: selection.name,
+    previewPhotoUrls: selection.previewManagedFilenames.map((filename) =>
+      createPhotoUrl(filename),
+    ),
+    plantCount: selection.plantCount,
+    createdAt: selection.createdAt,
+    updatedAt: selection.updatedAt,
   };
 }
 
@@ -157,6 +178,7 @@ app.whenReady().then(async () => {
   database.exec('PRAGMA foreign_keys = ON');
   ensureSchema(database);
   catalogRepository = new SqlitePlantCatalogRepository(database);
+  selectionRepository = new SqliteSelectionRepository(database);
   if (demoMode) {
     const csvPath = join(
       app.getAppPath(),
@@ -175,6 +197,9 @@ app.whenReady().then(async () => {
   );
   ipcMain.handle('catalog:filter-options', () =>
     catalogRepository.listFilterOptions(),
+  );
+  ipcMain.handle('selections:list', async () =>
+    (await selectionRepository.listSummaries()).map(toSelectionSummary),
   );
   ipcMain.handle(
     'catalog:replace',

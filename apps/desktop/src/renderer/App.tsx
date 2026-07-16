@@ -3,23 +3,33 @@ import type {
   CatalogFilterOptions,
   CatalogFilters,
   CatalogPage,
+  SelectionSummary,
 } from '../shared/catalog';
 import appIcon from './assets/app-icon.png';
+import catalogIcon from './assets/catalog.svg';
 import flowerbedIcon from './assets/flowerbed.png';
 import listIcon from './assets/list.svg';
 import { CatalogTable } from './CatalogTable';
 import { CatalogManager } from './CatalogManager';
 import { CatalogFiltersPanel, EMPTY_FILTERS } from './CatalogFiltersPanel';
 import { ImageManager } from './ImageManager';
+import { SelectionsTable } from './SelectionsTable';
+
+type AppScreen = 'catalog' | 'selections';
 
 export function App() {
+  const [screen, setScreen] = useState<AppScreen>('catalog');
   const [page, setPage] = useState(1);
   const [data, setData] = useState<CatalogPage | null>(null);
+  const [selections, setSelections] = useState<
+    readonly SelectionSummary[] | null
+  >(null);
   const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
   const [filterOptions, setFilterOptions] =
     useState<CatalogFilterOptions | null>(null);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,6 +51,29 @@ export function App() {
       active = false;
     };
   }, [filters, page]);
+
+  useEffect(() => {
+    if (screen !== 'selections') {
+      return undefined;
+    }
+    let active = true;
+    window.catalogApi
+      .listSelections()
+      .then((result) => {
+        if (active) {
+          setSelections(result);
+          setSelectionError(null);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSelectionError('Les sélections n’ont pas pu être chargées.');
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [screen]);
 
   useEffect(() => {
     let active = true;
@@ -99,6 +132,20 @@ export function App() {
     setFilterPanelOpen(false);
   };
 
+  const showCatalog = (): void => {
+    setScreen('catalog');
+    setSelectionError(null);
+  };
+
+  const showSelections = (): void => {
+    setScreen('selections');
+    setSelections(null);
+    setFilterPanelOpen(false);
+    setSelectionError(null);
+  };
+
+  const isCatalogScreen = screen === 'catalog';
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -111,9 +158,12 @@ export function App() {
           MyLittleGarden
         </a>
         <nav aria-label="Navigation principale">
-          <button>
-            <img src={listIcon} alt="" />
-            Mes Sélections
+          <button
+            type="button"
+            onClick={isCatalogScreen ? showSelections : showCatalog}
+          >
+            <img src={isCatalogScreen ? listIcon : catalogIcon} alt="" />
+            {isCatalogScreen ? 'Mes Sélections' : 'Mon Catalogue'}
           </button>
           <button>
             <img src={flowerbedIcon} alt="" />
@@ -125,29 +175,35 @@ export function App() {
         <section className="catalog-toolbar" aria-labelledby="catalog-title">
           <div className="catalog-toolbar-main">
             <div className="catalog-search-group">
-              <h1 id="catalog-title">Mon Catalogue</h1>
-              <div className="catalog-search-row">
-                <CatalogFiltersPanel
-                  open={filterPanelOpen}
-                  filters={filters}
-                  options={filterOptions}
-                  onOpen={() => setFilterPanelOpen(true)}
-                  onClose={() => setFilterPanelOpen(false)}
-                  onApply={applyFilters}
-                />
-              </div>
+              <h1 id="catalog-title">
+                {isCatalogScreen ? 'Mon Catalogue' : 'Mes Sélections'}
+              </h1>
+              {isCatalogScreen ? (
+                <div className="catalog-search-row">
+                  <CatalogFiltersPanel
+                    open={filterPanelOpen}
+                    filters={filters}
+                    options={filterOptions}
+                    onOpen={() => setFilterPanelOpen(true)}
+                    onClose={() => setFilterPanelOpen(false)}
+                    onApply={applyFilters}
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
-        <CatalogManager
-          onSuccess={setSuccess}
-          onReplaced={() => void refreshAfterCatalogReplacement()}
-        >
-          <ImageManager
-            onImported={() => void refreshPage()}
+        {isCatalogScreen ? (
+          <CatalogManager
             onSuccess={setSuccess}
-          />
-        </CatalogManager>
+            onReplaced={() => void refreshAfterCatalogReplacement()}
+          >
+            <ImageManager
+              onImported={() => void refreshPage()}
+              onSuccess={setSuccess}
+            />
+          </CatalogManager>
+        ) : null}
         {success ? (
           <div className="success-banner" role="status">
             <span>{success}</span>
@@ -160,17 +216,27 @@ export function App() {
             </button>
           </div>
         ) : null}
-        {error ? (
+        {isCatalogScreen && error ? (
           <div className="error-banner" role="alert">
             {error}
           </div>
         ) : null}
-        {!data && !error ? (
+        {!isCatalogScreen && selectionError ? (
+          <div className="error-banner" role="alert">
+            {selectionError}
+          </div>
+        ) : null}
+        {isCatalogScreen && !data && !error ? (
           <div className="loading" role="status">
             Chargement du catalogue…
           </div>
         ) : null}
-        {data ? (
+        {!isCatalogScreen && !selections && !selectionError ? (
+          <div className="loading" role="status">
+            Chargement des sélections…
+          </div>
+        ) : null}
+        {isCatalogScreen && data ? (
           <CatalogTable
             data={data}
             isFiltered={
@@ -179,6 +245,12 @@ export function App() {
               filters.bloomMonths.length > 0
             }
             onPageChange={changePage}
+          />
+        ) : null}
+        {!isCatalogScreen && selections ? (
+          <SelectionsTable
+            selections={selections}
+            onBackToCatalog={showCatalog}
           />
         ) : null}
       </main>
