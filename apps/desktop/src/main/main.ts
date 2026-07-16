@@ -86,9 +86,6 @@ function toSelectionSummary(
       createPhotoUrl(filename),
     ),
     plantCount: selection.plantCount,
-    modifiedPlantsCount: 0,
-    deletedPlantsCount: 0,
-    flowerbedCount: 0,
     createdAt: selection.createdAt,
     updatedAt: selection.updatedAt,
   };

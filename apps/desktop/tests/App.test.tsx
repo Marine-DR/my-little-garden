@@ -49,9 +49,6 @@ const sunnyBorder: SelectionSummary = {
     'photo://rose-4',
   ],
   plantCount: 6,
-  modifiedPlantsCount: 0,
-  deletedPlantsCount: 0,
-  flowerbedCount: 0,
   createdAt: '2026-07-10T08:00:00.000Z',
   updatedAt: '2026-07-14T12:30:00.000Z',
 };
@@ -418,16 +415,12 @@ describe('App catalog', () => {
       'Nom',
       'Aperçu',
       'Plantes',
-      'Statut',
-      'Utilisation',
       'Date de création',
       'Dernière modification',
     ]);
 
     const row = screen.getByRole('row', { name: /Bordure plein soleil/u });
     expect(row).toHaveTextContent('6');
-    expect(row).toHaveTextContent('à jour');
-    expect(row).toHaveTextContent('Non utilisé');
     expect(row).toHaveTextContent('10/07/2026');
     expect(row).toHaveTextContent('14/07/2026');
     expect(

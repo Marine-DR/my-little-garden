@@ -173,12 +173,17 @@ Background color #F4FFEEFF
 
 #### Current page
 
-To indicate what is the current page, the current page button use the same style as teh standard navigation page style except:
+To indicate what is the current page, the current page button use the same style as tha standard navigation page style except:
 
 - Background #2F7D32FF
 - Text #FFFFFFFF Inter Medium 12
 - no icon
 - Border #2F7D32FF 1px
+
+On hover, the button style is:
+
+- Background #245E26FF
+- Border #245E26FF 1px
 
 ### Enabled filter button
 

@@ -13,23 +13,6 @@ function formatDate(value: string): string {
   }).format(date);
 }
 
-function formatStatus(selection: SelectionSummary): string {
-  if (selection.deletedPlantsCount > 0) {
-    return `${selection.deletedPlantsCount} plantes supprimées`;
-  }
-  if (selection.modifiedPlantsCount > 0) {
-    return `${selection.modifiedPlantsCount} plantes modifiées`;
-  }
-  return 'à jour';
-}
-
-function formatUsage(selection: SelectionSummary): string {
-  if (selection.flowerbedCount === 0) {
-    return 'Non utilisé';
-  }
-  return `${selection.flowerbedCount} parterres`;
-}
-
 function SelectionPreview({
   selection,
 }: {
@@ -73,8 +56,6 @@ function SelectionRow({ selection }: { readonly selection: SelectionSummary }) {
         <SelectionPreview selection={selection} />
       </td>
       <td>{selection.plantCount}</td>
-      <td>{formatStatus(selection)}</td>
-      <td>{formatUsage(selection)}</td>
       <td>{formatDate(selection.createdAt)}</td>
       <td>{formatDate(selection.updatedAt)}</td>
     </tr>
@@ -117,8 +98,6 @@ export function SelectionsTable({
                 <th scope="col">Nom</th>
                 <th scope="col">Aperçu</th>
                 <th scope="col">Plantes</th>
-                <th scope="col">Statut</th>
-                <th scope="col">Utilisation</th>
                 <th scope="col">Date de création</th>
                 <th scope="col">Dernière modification</th>
               </tr>
