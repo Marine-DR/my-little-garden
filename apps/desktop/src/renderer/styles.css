@@ -889,6 +889,10 @@ abbr {
   background: #2f7d32;
   border-color: #2f7d32;
 }
+.pagination button.current-page:hover {
+  background: #245e26;
+  border-color: #245e26;
+}
 .pagination button:disabled {
   color: rgb(47 125 50 / 50%);
   cursor: not-allowed;
