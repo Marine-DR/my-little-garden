@@ -39,6 +39,12 @@ export interface SelectionSummaryRecord {
   readonly updatedAt: string;
 }
 
+export interface SelectionDetailsRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly plants: readonly Plant[];
+}
+
 /**
  * Persistence port. Implementations must save the plant, vocabulary values,
  * and relationship rows in one transaction.
@@ -67,5 +73,6 @@ export interface PlantPhotoRepository {
 
 export interface SelectionRepository {
   listSummaries(): Promise<SelectionSummaryRecord[]>;
+  get(selectionId: string): Promise<SelectionDetailsRecord | null>;
   create(input: SelectionCreationInput): Promise<SelectionCreationResult>;
 }

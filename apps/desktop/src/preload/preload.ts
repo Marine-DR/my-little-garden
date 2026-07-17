@@ -7,6 +7,8 @@ const catalogApi: CatalogApi = {
   listPlantIds: (filters) => ipcRenderer.invoke('catalog:list-ids', filters),
   listFilterOptions: () => ipcRenderer.invoke('catalog:filter-options'),
   listSelections: () => ipcRenderer.invoke('selections:list'),
+  getSelection: (selectionId) =>
+    ipcRenderer.invoke('selections:get', selectionId),
   createSelection: (input) => ipcRenderer.invoke('selections:create', input),
   replaceCatalog: (filename, csv) =>
     ipcRenderer.invoke('catalog:replace', filename, csv),

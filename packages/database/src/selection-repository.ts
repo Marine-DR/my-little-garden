@@ -1,6 +1,7 @@
 import type {
   SelectionCreationInput,
   SelectionCreationResult,
+  SelectionDetailsRecord,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -13,6 +14,7 @@ import {
   type SqliteRow,
 } from './typed-query';
 import { runInTransaction } from './transaction';
+import { SqlitePlantCatalogRepository } from './catalog-repository';
 
 interface SelectionRow {
   readonly id: string;
@@ -98,6 +100,28 @@ export class SqliteSelectionRepository implements SelectionRepository {
       createdAt: selection.createdAt,
       updatedAt: selection.updatedAt,
     }));
+  }
+
+  async get(selectionId: string): Promise<SelectionDetailsRecord | null> {
+    const selection = this.database
+      .prepare('SELECT id, name FROM selections WHERE id = ?')
+      .get(selectionId) as SqliteRow | undefined;
+    if (!selection) {
+      return null;
+    }
+    const plantIds = this.database
+      .prepare(
+        `SELECT plant_id FROM selection_plants
+         WHERE selection_id = ? ORDER BY added_at, plant_id`,
+      )
+      .all(selectionId)
+      .map((row) => stringColumn(row as SqliteRow, 'plant_id'));
+    const catalogRepository = new SqlitePlantCatalogRepository(this.database);
+    return {
+      id: stringColumn(selection, 'id'),
+      name: stringColumn(selection, 'name'),
+      plants: catalogRepository.listByIds(plantIds),
+    };
   }
 
   async create(

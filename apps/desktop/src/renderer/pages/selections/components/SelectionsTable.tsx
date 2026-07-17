@@ -1,5 +1,6 @@
 import type { SelectionSummary } from '@my-little-garden/core';
 import { PlantPhoto } from '@renderer/components/PlantPhoto';
+import detailsIcon from '@renderer/assets/details.svg';
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -46,7 +47,13 @@ function SelectionPreview({
   );
 }
 
-function SelectionRow({ selection }: { readonly selection: SelectionSummary }) {
+function SelectionRow({
+  selection,
+  onViewDetails,
+}: {
+  readonly selection: SelectionSummary;
+  readonly onViewDetails: (selectionId: string) => void;
+}) {
   return (
     <tr>
       <th scope="row" className="selection-name">
@@ -58,6 +65,17 @@ function SelectionRow({ selection }: { readonly selection: SelectionSummary }) {
       <td>{selection.plantCount}</td>
       <td>{formatDate(selection.createdAt)}</td>
       <td>{formatDate(selection.updatedAt)}</td>
+      <td>
+        <button
+          type="button"
+          className="secondary-button selection-details-button"
+          aria-label={`Voir les détails de ${selection.name}`}
+          title="Voir les détails"
+          onClick={() => onViewDetails(selection.id)}
+        >
+          <img src={detailsIcon} alt="" />
+        </button>
+      </td>
     </tr>
   );
 }
@@ -65,9 +83,11 @@ function SelectionRow({ selection }: { readonly selection: SelectionSummary }) {
 export function SelectionsTable({
   selections,
   onBackToCatalog,
+  onViewDetails,
 }: {
   readonly selections: readonly SelectionSummary[];
   readonly onBackToCatalog: () => void;
+  readonly onViewDetails: (selectionId: string) => void;
 }) {
   return (
     <section
@@ -100,11 +120,16 @@ export function SelectionsTable({
                 <th scope="col">Plantes</th>
                 <th scope="col">Date de création</th>
                 <th scope="col">Dernière modification</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
               {selections.map((selection) => (
-                <SelectionRow key={selection.id} selection={selection} />
+                <SelectionRow
+                  key={selection.id}
+                  selection={selection}
+                  onViewDetails={onViewDetails}
+                />
               ))}
             </tbody>
           </table>

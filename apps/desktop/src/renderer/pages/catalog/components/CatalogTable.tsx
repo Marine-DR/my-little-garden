@@ -56,27 +56,30 @@ function ColorList({ colors }: { readonly colors: readonly string[] }) {
 
 function PlantRow({
   plant,
-  selected,
-  onToggle,
+  selection,
 }: {
   readonly plant: CatalogPlant;
-  readonly selected: boolean;
-  readonly onToggle: () => void;
+  readonly selection?: {
+    readonly selected: boolean;
+    readonly onToggle: () => void;
+  };
 }) {
   const persistence = plant.foliagePersistence
     ? PERSISTENCE[plant.foliagePersistence]
     : null;
   return (
     <tr>
-      <td className="plant-selection-cell">
-        <input
-          type="checkbox"
-          aria-label={`Sélectionner ${plant.name}`}
-          checked={selected}
-          onChange={onToggle}
-        />
-      </td>
-      <td>
+      {selection ? (
+        <td className="plant-selection-cell">
+          <input
+            type="checkbox"
+            aria-label={`Sélectionner ${plant.name}`}
+            checked={selection.selected}
+            onChange={selection.onToggle}
+          />
+        </td>
+      ) : null}
+      <td className="plant-photo-cell">
         <PlantPhoto name={plant.name} url={plant.photoUrl} />
       </td>
       <th scope="row" className="plant-name">
@@ -129,6 +132,86 @@ function PlantRow({
   );
 }
 
+interface PlantSelectionControls {
+  readonly selectedPlantIds: readonly string[];
+  readonly onPlantToggle: (plantId: string) => void;
+  readonly selectingAll: boolean;
+  readonly onToggleAll: () => void;
+}
+
+export function PlantsTable({
+  plants,
+  selection,
+}: {
+  readonly plants: readonly CatalogPlant[];
+  readonly selection?: PlantSelectionControls;
+}) {
+  const hasSelectedPlants = (selection?.selectedPlantIds.length ?? 0) > 0;
+  return (
+    <div className="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            {selection ? (
+              <th scope="col">
+                <span className="visually-hidden">Sélection</span>
+                <input
+                  className="catalog-select-all"
+                  type="checkbox"
+                  aria-label={
+                    hasSelectedPlants
+                      ? 'Désélectionner toutes les plantes'
+                      : 'Sélectionner toutes les plantes filtrées'
+                  }
+                  checked={hasSelectedPlants}
+                  disabled={selection.selectingAll}
+                  onChange={selection.onToggleAll}
+                />
+              </th>
+            ) : null}
+            <th scope="col">Photo</th>
+            <th scope="col">Nom</th>
+            <th scope="col">
+              <span className="header-symbol">↨</span> (cm)
+            </th>
+            <th scope="col">Type</th>
+            <th scope="col">Fleur/autre</th>
+            <th scope="col">Sol</th>
+            <th scope="col">Exposition</th>
+            <th scope="col">Floraison</th>
+            <th scope="col">Couleurs 🌸</th>
+            <th scope="col">Couleurs 🍃</th>
+            <th scope="col">
+              <span className="header-symbol">❅</span> (°C)
+            </th>
+            <th scope="col">Persistant</th>
+            <th scope="col">
+              <span className="header-symbol">↔</span> (cm)
+            </th>
+            <th scope="col">Plantation</th>
+          </tr>
+        </thead>
+        <tbody>
+          {plants.map((plant) => (
+            <PlantRow
+              key={plant.id}
+              plant={plant}
+              selection={
+                selection
+                  ? {
+                      selected: selection.selectedPlantIds.includes(plant.id),
+                      onToggle: () => selection.onPlantToggle(plant.id),
+                    }
+                  : undefined
+              }
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function CatalogTable({
   data,
   isFiltered,
@@ -146,7 +229,6 @@ export function CatalogTable({
   readonly selectingAll: boolean;
   readonly onToggleAll: () => void;
 }) {
-  const hasSelectedPlants = selectedPlantIds.length > 0;
   return (
     <section
       id="catalog-table"
@@ -165,59 +247,15 @@ export function CatalogTable({
         </div>
       ) : (
         <>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">
-                    <span className="visually-hidden">Sélection</span>
-                    <input
-                      className="catalog-select-all"
-                      type="checkbox"
-                      aria-label={
-                        hasSelectedPlants
-                          ? 'Désélectionner toutes les plantes'
-                          : 'Sélectionner toutes les plantes filtrées'
-                      }
-                      checked={hasSelectedPlants}
-                      disabled={selectingAll}
-                      onChange={onToggleAll}
-                    />
-                  </th>
-                  <th scope="col">Photo</th>
-                  <th scope="col">Nom</th>
-                  <th scope="col">
-                    <span className="header-symbol">↨</span> (cm)
-                  </th>
-                  <th scope="col">Type</th>
-                  <th scope="col">Fleur/autre</th>
-                  <th scope="col">Sol</th>
-                  <th scope="col">Exposition</th>
-                  <th scope="col">Floraison</th>
-                  <th scope="col">Couleurs 🌸</th>
-                  <th scope="col">Couleurs 🍃</th>
-                  <th scope="col">
-                    <span className="header-symbol">❅</span> (°C)
-                  </th>
-                  <th scope="col">Persistant</th>
-                  <th scope="col">
-                    <span className="header-symbol">↔</span> (cm)
-                  </th>
-                  <th scope="col">Plantation</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.items.map((plant) => (
-                  <PlantRow
-                    key={plant.id}
-                    plant={plant}
-                    selected={selectedPlantIds.includes(plant.id)}
-                    onToggle={() => onPlantToggle(plant.id)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PlantsTable
+            plants={data.items}
+            selection={{
+              selectedPlantIds,
+              onPlantToggle,
+              selectingAll,
+              onToggleAll,
+            }}
+          />
           <Pagination
             page={data.page}
             total={data.total}

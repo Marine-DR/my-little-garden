@@ -15,6 +15,13 @@ import { registerIpcHandlers } from './ipc-handlers.js';
 import { handlePhotoRequests, registerPhotoScheme } from './photo-protocol.js';
 import { createMainWindow } from './window.js';
 
+if (
+  process.platform === 'linux' &&
+  process.env.XDG_SESSION_TYPE === 'wayland'
+) {
+  app.disableHardwareAcceleration();
+}
+
 registerPhotoScheme();
 
 let database: DatabaseSync | undefined;

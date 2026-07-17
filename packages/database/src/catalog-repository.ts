@@ -63,8 +63,16 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     const total = this.queries.total(request.filters);
     const rows = this.queries.page(limit, offset, request.filters);
 
+    return { items: this.hydrate(rows), total };
+  }
+
+  listByIds(ids: readonly string[]): Plant[] {
+    return this.hydrate(this.queries.byIds([...new Set(ids)]));
+  }
+
+  private hydrate(rows: ReturnType<CatalogQueries['page']>): Plant[] {
     if (rows.length === 0) {
-      return { items: [], total };
+      return [];
     }
 
     const ids = rows.map(({ id }) => id);
@@ -121,7 +129,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
       updatedAt: new Date(row.updatedAt),
     }));
 
-    return { items, total };
+    return items;
   }
 
   async listFilterOptions(): Promise<PlantCatalogFilterOptions> {

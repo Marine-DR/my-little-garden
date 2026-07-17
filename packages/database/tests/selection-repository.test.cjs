@@ -131,6 +131,52 @@ test('creates a trimmed named selection with unique plant links', async (t) => {
   );
 });
 
+test('gets a selection with its current catalog plant attributes', async (t) => {
+  const database = createDatabase(t);
+  const repository = new SqliteSelectionRepository(database);
+  insertPlant(database, 'plant-1', 'Rose ancienne', 'rose ancienne');
+  const soil = database
+    .prepare(
+      `INSERT INTO soil_types (label, normalized_label, created_at)
+       VALUES ('Drainé', 'draine', '2026-07-01T08:00:00.000Z') RETURNING id`,
+    )
+    .get();
+  database
+    .prepare('INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)')
+    .run('plant-1', Number(soil.id));
+  database
+    .prepare(
+      `INSERT INTO plant_exposures (plant_id, exposure_code)
+       VALUES ('plant-1', 'sun')`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selections (
+        id, name, created_at, updated_at
+      ) VALUES (
+        'selection-1', 'Bordure plein soleil',
+        '2026-07-10T08:00:00.000Z', '2026-07-14T12:30:00.000Z'
+      )`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', 'plant-1', '2026-07-14T12:30:00.000Z')`,
+    )
+    .run();
+
+  const result = await repository.get('selection-1');
+
+  assert.equal(result.name, 'Bordure plein soleil');
+  assert.equal(result.plants.length, 1);
+  assert.equal(result.plants[0].name, 'Rose ancienne');
+  assert.deepEqual(result.plants[0].soils, [{ id: 1, label: 'Drainé' }]);
+  assert.deepEqual(result.plants[0].exposures, ['sun']);
+  assert.equal(await repository.get('missing-selection'), null);
+});
+
 test('rejects empty creation data and exact duplicate selection names', async (t) => {
   const database = createDatabase(t);
   const repository = new SqliteSelectionRepository(database);

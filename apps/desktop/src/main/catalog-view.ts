@@ -5,6 +5,7 @@ import type {
   Plant,
   PlantCatalogRepository,
   SelectionRepository,
+  SelectionDetails,
   SelectionSummary,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -44,6 +45,21 @@ export async function listSelectionSummaries(
   selectionRepository: SelectionRepository,
 ): Promise<readonly SelectionSummary[]> {
   return (await selectionRepository.listSummaries()).map(toSelectionSummary);
+}
+
+export async function getSelectionDetails(
+  selectionRepository: SelectionRepository,
+  selectionId: string,
+): Promise<SelectionDetails | null> {
+  const selection = await selectionRepository.get(selectionId);
+  if (!selection) {
+    return null;
+  }
+  return {
+    id: selection.id,
+    name: selection.name,
+    plants: selection.plants.map(toCatalogPlant),
+  };
 }
 
 function toCatalogPlant(plant: Plant): CatalogPlant {
