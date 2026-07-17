@@ -6,7 +6,7 @@ import {
   formatNumber,
   formatRange,
   formatSeasons,
-} from '../src/renderer/formatters';
+} from '../src/renderer/pages/catalog/formatters';
 
 describe('catalog display formatters', () => {
   it('displays a dash for empty values', () => {

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { CatalogApi } from '../shared/catalog.js';
+import type { CatalogApi } from '@my-little-garden/core';
 
 const catalogApi: CatalogApi = {
   listPlants: (page, filters) =>

@@ -1,4 +1,4 @@
-import type { CatalogApi } from '../shared/catalog';
+import type { CatalogApi } from '@my-little-garden/core';
 
 declare global {
   interface Window {

@@ -1,3 +1,7 @@
+import type {
+  SelectionRepository,
+  SelectionSummaryRecord,
+} from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
 import {
   nullableStringColumn,
@@ -5,15 +9,6 @@ import {
   stringColumn,
   type SqliteRow,
 } from './typed-query';
-
-export interface SelectionSummaryRecord {
-  readonly id: string;
-  readonly name: string;
-  readonly previewManagedFilenames: readonly (string | null)[];
-  readonly plantCount: number;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
 
 interface SelectionRow {
   readonly id: string;
@@ -45,7 +40,7 @@ function decodePreviewRow(row: SqliteRow): PreviewRow {
   };
 }
 
-export class SqliteSelectionRepository {
+export class SqliteSelectionRepository implements SelectionRepository {
   constructor(private readonly database: DatabaseSync) {}
 
   async listSummaries(): Promise<SelectionSummaryRecord[]> {

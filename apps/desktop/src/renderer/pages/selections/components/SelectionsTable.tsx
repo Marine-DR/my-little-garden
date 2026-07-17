@@ -1,5 +1,5 @@
-import type { SelectionSummary } from '../shared/catalog';
-import { PlantPhoto } from './PlantPhoto';
+import type { SelectionSummary } from '@my-little-garden/core';
+import { PlantPhoto } from '@renderer/components/PlantPhoto';
 
 function formatDate(value: string): string {
   const date = new Date(value);

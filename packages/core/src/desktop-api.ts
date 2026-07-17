@@ -1,14 +1,11 @@
+import type { PlantCatalogFilterOptions, PlantCatalogFilters } from './catalog';
+import type { DataImportError } from './communication';
 import type {
   ExposureCode,
-  PlantCatalogFilterOptions,
-  PlantCatalogFilters,
-} from '@my-little-garden/core';
-import type {
-  PhotoImportFile,
-  PhotoImportResult,
-} from '@my-little-garden/photo-handling';
-
-export type { PhotoImportFile, PhotoImportResult };
+  FoliagePersistence,
+  PlantKind,
+  PlantingSeasonCode,
+} from './plant';
 
 export interface CatalogPlant {
   readonly id: string;
@@ -17,7 +14,7 @@ export interface CatalogPlant {
   readonly heightMinCm: number | null;
   readonly heightMaxCm: number | null;
   readonly type: string | null;
-  readonly kind: 'flower' | 'foliage' | 'grass' | 'other' | null;
+  readonly kind: PlantKind | null;
   readonly soils: readonly string[];
   readonly exposures: readonly ExposureCode[];
   readonly bloomStartMonth: number | null;
@@ -25,12 +22,9 @@ export interface CatalogPlant {
   readonly flowerColors: readonly string[];
   readonly leafColors: readonly string[];
   readonly minimumTemperatureCelsius: number | null;
-  readonly foliagePersistence:
-    'evergreen' | 'semi_evergreen' | 'deciduous' | null;
+  readonly foliagePersistence: FoliagePersistence | null;
   readonly spacingCm: number | null;
-  readonly plantingSeasons: readonly (
-    'spring' | 'summer' | 'autumn' | 'winter'
-  )[];
+  readonly plantingSeasons: readonly PlantingSeasonCode[];
 }
 
 export interface CatalogPage {
@@ -53,6 +47,34 @@ export type CatalogFilters = Required<PlantCatalogFilters>;
 
 export type CatalogFilterOptions = PlantCatalogFilterOptions;
 
+export interface PhotoImportFile {
+  readonly name: string;
+  readonly bytes: Uint8Array;
+}
+
+export interface PhotoImportError {
+  readonly code: string;
+  readonly message: string;
+  readonly field?: string;
+}
+
+export type PhotoImportResult =
+  | {
+      readonly ok: true;
+      readonly imported: number;
+      readonly unmatched: readonly string[];
+    }
+  | { readonly ok: false; readonly errors: readonly PhotoImportError[] };
+
+export type PhotoDeleteResult =
+  { readonly ok: true } | { readonly ok: false; readonly error: string };
+
+export type CatalogImportError = DataImportError;
+
+export type CatalogImportResult =
+  | { readonly ok: true; readonly imported: number }
+  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+
 export interface CatalogApi {
   listPlants(page: number, filters?: CatalogFilters): Promise<CatalogPage>;
   listFilterOptions(): Promise<CatalogFilterOptions>;
@@ -61,16 +83,3 @@ export interface CatalogApi {
   importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
   deletePhoto(plantId: string): Promise<PhotoDeleteResult>;
 }
-
-export type PhotoDeleteResult =
-  { readonly ok: true } | { readonly ok: false; readonly error: string };
-
-export interface CatalogImportError {
-  readonly code: string;
-  readonly message: string;
-  readonly field?: string;
-}
-
-export type CatalogImportResult =
-  | { readonly ok: true; readonly imported: number }
-  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };

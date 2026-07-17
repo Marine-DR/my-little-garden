@@ -1,5 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
+import type {
+  PhotoImportError,
+  PhotoImportFile,
+  PhotoImportResult,
+} from '@my-little-garden/core';
 import { unzipSync } from 'fflate';
 
 const MAX_ARCHIVE_ENTRIES = 2_000;
@@ -14,24 +19,7 @@ export const PHOTO_PROTOCOL_PRIVILEGES = {
   supportFetchAPI: true,
 };
 
-export interface PhotoImportFile {
-  readonly name: string;
-  readonly bytes: Uint8Array;
-}
-
-export interface PhotoImportError {
-  readonly code: string;
-  readonly message: string;
-  readonly field?: string;
-}
-
-export type PhotoImportResult =
-  | {
-      readonly ok: true;
-      readonly imported: number;
-      readonly unmatched: readonly string[];
-    }
-  | { readonly ok: false; readonly errors: readonly PhotoImportError[] };
+export type { PhotoImportError, PhotoImportFile, PhotoImportResult };
 
 export type ValidImage = PhotoImportFile & {
   mediaType: 'image/jpeg' | 'image/png' | 'image/webp';

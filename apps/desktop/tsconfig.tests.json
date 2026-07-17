@@ -7,6 +7,9 @@
     "strict": true,
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true,
+    "paths": {
+      "@renderer/*": ["./src/renderer/*"]
+    },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["tests/**/*.ts", "tests/**/*.tsx", "src/**/*.ts", "src/**/*.tsx"]
