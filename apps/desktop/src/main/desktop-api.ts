@@ -44,6 +44,7 @@ export function createDesktopApi({
     removePlantsFromSelection: (selectionId, plantIds) =>
       removePlantsFromSelection(selectionRepository, selectionId, plantIds),
     createSelection: (input) => selectionRepository.create(input),
+    addPlantsToSelection: (input) => selectionRepository.addPlants(input),
     replaceCatalog: async (filename, csv) =>
       replaceCatalog(database, photoDirectory, filename, csv),
     importPhotos: async (files) =>

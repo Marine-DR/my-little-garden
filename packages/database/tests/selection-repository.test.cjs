@@ -186,7 +186,7 @@ test('gets a selection using the injected catalog lookup', async (t) => {
 
 test('removes only selection links and keeps catalog plants', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
   insertPlant(database, 'plant-1', 'Rose', 'rose');
   insertPlant(database, 'plant-2', 'Sauge', 'sauge');
   database
@@ -240,6 +240,105 @@ test('removes only selection links and keeps catalog plants', async (t) => {
   assert.equal(
     await repository.removePlants('missing-selection', ['plant-2']),
     null,
+  );
+});
+
+test('adds plants to an existing selection and ignores existing links', async (t) => {
+  const database = createDatabase(t);
+  const repository = createRepository(database);
+  insertPlant(database, 'plant-1', 'Rose', 'rose');
+  insertPlant(database, 'plant-2', 'Sauge', 'sauge');
+  database
+    .prepare(
+      `INSERT INTO selections (
+        id, name, created_at, updated_at
+      ) VALUES (
+        'selection-1', 'Coin parfumé',
+        '2026-07-10T08:00:00.000Z', '2026-07-10T08:00:00.000Z'
+      )`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', 'plant-1', '2026-07-10T08:00:00.000Z')`,
+    )
+    .run();
+
+  const result = await repository.addPlants({
+    selectionId: 'selection-1',
+    plantIds: ['plant-1', 'plant-2', 'plant-2'],
+  });
+
+  assert.deepEqual(result, {
+    ok: true,
+    selectionId: 'selection-1',
+    selectionName: 'Coin parfumé',
+    addedCount: 1,
+    ignoredCount: 1,
+  });
+  assert.deepEqual(
+    database
+      .prepare(
+        `SELECT plant_id FROM selection_plants
+         WHERE selection_id = 'selection-1' ORDER BY plant_id`,
+      )
+      .all()
+      .map(({ plant_id }) => plant_id),
+    ['plant-1', 'plant-2'],
+  );
+  assert.notEqual(
+    database
+      .prepare("SELECT updated_at FROM selections WHERE id = 'selection-1'")
+      .get().updated_at,
+    '2026-07-10T08:00:00.000Z',
+  );
+});
+
+test('rejects invalid existing-selection additions without changing links', async (t) => {
+  const database = createDatabase(t);
+  const repository = createRepository(database);
+  insertPlant(database, 'plant-1', 'Rose', 'rose');
+  database
+    .prepare(
+      `INSERT INTO selections (
+        id, name, created_at, updated_at
+      ) VALUES (
+        'selection-1', 'Coin parfumé',
+        '2026-07-10T08:00:00.000Z', '2026-07-10T08:00:00.000Z'
+      )`,
+    )
+    .run();
+
+  assert.deepEqual(
+    await repository.addPlants({ selectionId: '', plantIds: ['plant-1'] }),
+    { ok: false, code: 'no_selection' },
+  );
+  assert.deepEqual(
+    await repository.addPlants({
+      selectionId: 'selection-1',
+      plantIds: [],
+    }),
+    { ok: false, code: 'no_plants' },
+  );
+  assert.deepEqual(
+    await repository.addPlants({
+      selectionId: 'missing-selection',
+      plantIds: ['plant-1'],
+    }),
+    { ok: false, code: 'selection_not_found' },
+  );
+  assert.deepEqual(
+    await repository.addPlants({
+      selectionId: 'selection-1',
+      plantIds: ['plant-1', 'missing-plant'],
+    }),
+    { ok: false, code: 'unknown_plants' },
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) AS count FROM selection_plants').get()
+      .count,
+    0,
   );
 });
 

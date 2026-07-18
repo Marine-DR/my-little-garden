@@ -1,8 +1,10 @@
 import type {
+  PlantCatalogRepository,
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetailsRecord,
-  PlantCatalogRepository,
+  SelectionPlantAdditionInput,
+  SelectionPlantAdditionResult,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -211,6 +213,65 @@ export class SqliteSelectionRepository implements SelectionRepository {
         selectionId,
         name,
         plantCount: plantIds.length,
+      };
+    });
+  }
+
+  async addPlants(
+    input: SelectionPlantAdditionInput,
+  ): Promise<SelectionPlantAdditionResult> {
+    const selectionId = input.selectionId.trim();
+    const plantIds = [...new Set(input.plantIds)];
+
+    if (!selectionId) {
+      return { ok: false, code: 'no_selection' };
+    }
+    if (plantIds.length === 0) {
+      return { ok: false, code: 'no_plants' };
+    }
+
+    return runInTransaction(this.database, () => {
+      const selection = this.database
+        .prepare('SELECT name FROM selections WHERE id = ?')
+        .get(selectionId) as SqliteRow | undefined;
+      if (!selection) {
+        return { ok: false, code: 'selection_not_found' };
+      }
+
+      const placeholders = plantIds.map(() => '?').join(', ');
+      const existingPlants = this.database
+        .prepare(
+          `SELECT count(*) AS count FROM plants WHERE id IN (${placeholders})`,
+        )
+        .get(...plantIds) as { count: number };
+      if (existingPlants.count !== plantIds.length) {
+        return { ok: false, code: 'unknown_plants' };
+      }
+
+      const now = new Date().toISOString();
+      const insertPlant = this.database.prepare(
+        `INSERT OR IGNORE INTO selection_plants (
+           selection_id, plant_id, added_at
+         ) VALUES (?, ?, ?)`,
+      );
+      let addedCount = 0;
+      for (const plantId of plantIds) {
+        addedCount += Number(
+          insertPlant.run(selectionId, plantId, now).changes,
+        );
+      }
+      if (addedCount > 0) {
+        this.database
+          .prepare('UPDATE selections SET updated_at = ? WHERE id = ?')
+          .run(now, selectionId);
+      }
+
+      return {
+        ok: true,
+        selectionId,
+        selectionName: stringColumn(selection, 'name'),
+        addedCount,
+        ignoredCount: plantIds.length - addedCount,
       };
     });
   }

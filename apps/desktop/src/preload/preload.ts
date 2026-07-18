@@ -12,6 +12,8 @@ const catalogApi: CatalogApi = {
   removePlantsFromSelection: (selectionId, plantIds) =>
     ipcRenderer.invoke('selections:remove-plants', selectionId, plantIds),
   createSelection: (input) => ipcRenderer.invoke('selections:create', input),
+  addPlantsToSelection: (input) =>
+    ipcRenderer.invoke('selections:add-plants', input),
   replaceCatalog: (filename, csv) =>
     ipcRenderer.invoke('catalog:replace', filename, csv),
   importPhotos: (files) => ipcRenderer.invoke('photos:import', files),

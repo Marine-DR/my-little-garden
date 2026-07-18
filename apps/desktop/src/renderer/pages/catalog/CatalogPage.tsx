@@ -12,6 +12,7 @@ import { CatalogManager } from './components/CatalogManager';
 import { CatalogTable } from './components/CatalogTable';
 import { ImageManager } from './components/ImageManager';
 import { SelectionCreator } from './components/SelectionCreator';
+import { SelectionAdder } from './components/SelectionAdder';
 
 export function CatalogPage({
   onSuccess,
@@ -133,6 +134,26 @@ export function CatalogPage({
     onSuccess(`La sélection « ${name} » a été créée avec succès.`);
   };
 
+  const plantsAdded = ({
+    selectionName,
+    addedCount,
+    ignoredCount,
+  }: {
+    readonly selectionName: string;
+    readonly addedCount: number;
+    readonly ignoredCount: number;
+  }): void => {
+    setSelectedPlantIds([]);
+    const addedLabel = `${addedCount} ${addedCount === 1 ? 'plante ajoutée' : 'plantes ajoutées'}`;
+    const ignoredLabel =
+      ignoredCount > 0
+        ? ` ${ignoredCount} ${ignoredCount === 1 ? 'association existante ignorée' : 'associations existantes ignorées'}.`
+        : '';
+    onSuccess(
+      `${addedLabel} à la sélection « ${selectionName} ».${ignoredLabel}`,
+    );
+  };
+
   return (
     <>
       <section className="catalog-toolbar" aria-labelledby="catalog-title">
@@ -174,6 +195,10 @@ export function CatalogPage({
           <SelectionCreator
             selectedPlantIds={selectedPlantIds}
             onCreated={selectionCreated}
+          />
+          <SelectionAdder
+            selectedPlantIds={selectedPlantIds}
+            onAdded={plantsAdded}
           />
         </div>
       </section>

@@ -185,6 +185,21 @@ main {
   align-items: center;
   gap: 15px;
 }
+.selection-add-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  background-color: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+.secondary-button:disabled .selection-add-icon {
+  opacity: 1;
+}
 .catalog-select-all {
   width: 18px;
   height: 18px;
@@ -414,6 +429,55 @@ main {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+.selection-list-status,
+.selection-add-summary {
+  margin: 8px 0 0;
+  color: #969191;
+  font-size: 14px;
+}
+.selection-target-list {
+  max-height: 240px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+}
+.selection-target-list legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.selection-target-list label {
+  min-height: 42px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  cursor: pointer;
+}
+.selection-target-list label + label {
+  border-top: 1px solid #e5e7eb;
+}
+.selection-target-list label:hover {
+  background: #f4ffee;
+}
+.selection-target-list input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex: 0 0 18px;
+  accent-color: #2f7d32;
+}
+.selection-target-count {
+  margin-left: auto;
+  color: #969191;
+  font-size: 12px;
+  font-weight: 400;
 }
 .error-modal {
   width: min(620px, 100%);

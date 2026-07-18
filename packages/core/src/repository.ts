@@ -3,6 +3,8 @@ import type { PlantCatalogFilterOptions, PlantCatalogFilters } from './catalog';
 import type {
   SelectionCreationInput,
   SelectionCreationResult,
+  SelectionPlantAdditionInput,
+  SelectionPlantAdditionResult,
 } from './desktop-api';
 
 export interface PlantPageRequest {
@@ -80,4 +82,7 @@ export interface SelectionRepository {
     plantIds: readonly string[],
   ): Promise<SelectionDetailsRecord | null>;
   create(input: SelectionCreationInput): Promise<SelectionCreationResult>;
+  addPlants(
+    input: SelectionPlantAdditionInput,
+  ): Promise<SelectionPlantAdditionResult>;
 }

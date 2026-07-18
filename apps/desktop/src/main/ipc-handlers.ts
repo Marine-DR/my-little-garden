@@ -23,6 +23,9 @@ export function registerIpcHandlers({
   ipcMain.handle('selections:create', (_event, input) =>
     desktopApi.createSelection(input),
   );
+  ipcMain.handle('selections:add-plants', (_event, input) =>
+    desktopApi.addPlantsToSelection(input),
+  );
   ipcMain.handle('selections:get', (_event, selectionId: string) =>
     desktopApi.getSelection(selectionId),
   );

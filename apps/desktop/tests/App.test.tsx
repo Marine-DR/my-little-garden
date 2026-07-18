@@ -18,6 +18,8 @@ import type {
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetails,
+  SelectionPlantAdditionInput,
+  SelectionPlantAdditionResult,
   SelectionSummary,
 } from '@my-little-garden/core';
 import { App } from '../src/renderer/App';
@@ -94,6 +96,12 @@ describe('App catalog', () => {
     vi.fn<
       (input: SelectionCreationInput) => Promise<SelectionCreationResult>
     >();
+  const addPlantsToSelection =
+    vi.fn<
+      (
+        input: SelectionPlantAdditionInput,
+      ) => Promise<SelectionPlantAdditionResult>
+    >();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -124,6 +132,13 @@ describe('App catalog', () => {
       name: 'Coin parfumé',
       plantCount: 1,
     });
+    addPlantsToSelection.mockResolvedValue({
+      ok: true,
+      selectionId: sunnyBorder.id,
+      selectionName: sunnyBorder.name,
+      addedCount: 1,
+      ignoredCount: 0,
+    });
     window.catalogApi = {
       listPlants,
       listPlantIds,
@@ -132,6 +147,7 @@ describe('App catalog', () => {
       getSelection,
       removePlantsFromSelection,
       createSelection,
+      addPlantsToSelection,
       replaceCatalog,
       importPhotos,
       deletePhoto,
@@ -289,6 +305,69 @@ describe('App catalog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
     expect(await screen.findByText('Coin parfumé')).toBeInTheDocument();
+  });
+
+  it('adds checked catalog plants to a chosen existing selection', async () => {
+    addPlantsToSelection.mockResolvedValueOnce({
+      ok: true,
+      selectionId: sunnyBorder.id,
+      selectionName: sunnyBorder.name,
+      addedCount: 1,
+      ignoredCount: 1,
+    });
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    const createButton = screen.getByRole('button', {
+      name: 'Créer une sélection',
+    });
+    const addButton = screen.getByRole('button', {
+      name: 'Ajouter à une sélection',
+    });
+    expect(addButton).toBeDisabled();
+    expect(addButton).toHaveClass('secondary-button');
+    const addIcon = addButton.querySelector<HTMLElement>('.selection-add-icon');
+    expect(addIcon).toBeInTheDocument();
+    expect(addIcon?.style.maskImage).toContain(
+      screen
+        .getByRole('button', { name: 'Mes Sélections' })
+        .querySelector('img')
+        ?.getAttribute('src'),
+    );
+    expect(createButton.compareDocumentPosition(addButton)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Sélectionner Rose page 1' }),
+    );
+    expect(addButton).toBeEnabled();
+    fireEvent.click(addButton);
+
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Ajouter à une sélection',
+    });
+    await waitFor(() => expect(listSelections).toHaveBeenCalledTimes(1));
+    const submit = within(dialog).getByRole('button', { name: 'Ajouter' });
+    expect(submit).toBeDisabled();
+    fireEvent.click(
+      within(dialog).getByRole('radio', { name: /Bordure plein soleil/u }),
+    );
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+
+    await waitFor(() =>
+      expect(addPlantsToSelection).toHaveBeenCalledWith({
+        selectionId: sunnyBorder.id,
+        plantIds: ['rose-1'],
+      }),
+    );
+    expect(
+      await screen.findByText(
+        '1 plante ajoutée à la sélection « Bordure plein soleil ». 1 association existante ignorée.',
+      ),
+    ).toBeInTheDocument();
+    expect(addButton).toBeDisabled();
   });
 
   it('selects all filtered plants from the header and clears them on the next toggle', async () => {
