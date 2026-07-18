@@ -202,6 +202,7 @@ test('lists every plant id matching the active filters', async (t) => {
   const shadeIds = await repository.listIds({ exposures: ['shade'] });
 
   assert.equal(allIds.length, 30);
+  assert.deepEqual(allIds.slice(0, 2), ['plant-01', 'plant-00']);
   assert.deepEqual(shadeIds, ['plant-01']);
 });
 

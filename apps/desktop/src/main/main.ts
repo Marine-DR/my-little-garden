@@ -10,6 +10,7 @@ import {
   openApplicationDatabase,
   seedDemoCatalogIfNeeded,
 } from './database.js';
+import { createDesktopApi } from './desktop-api.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { handlePhotoRequests, registerPhotoScheme } from './photo-protocol.js';
 import { createMainWindow } from './window.js';
@@ -29,10 +30,12 @@ app.whenReady().then(async () => {
   handlePhotoRequests(photoDirectory);
   registerIpcHandlers({
     ipcMain,
-    database: openedDatabase,
-    photoDirectory,
-    catalogRepository,
-    selectionRepository,
+    desktopApi: createDesktopApi({
+      database: openedDatabase,
+      photoDirectory,
+      catalogRepository,
+      selectionRepository,
+    }),
   });
   await createMainWindow(app);
 
