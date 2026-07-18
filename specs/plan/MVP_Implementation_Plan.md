@@ -7,7 +7,7 @@ Build an offline Windows/Linux desktop application for one gardener using Electr
 - Viewing the complete plant catalog with photos and pagination.
 - Filtering by soil, exposure, and flowering month.
 - Atomically replacing the catalog from CSV plus an image folder.
-- Creating uniquely named plant selections from checked catalog plants.
+- Creating named plant selections from checked catalog plants.
 - Managing saved selections in a table-based “Mes Sélections” screen.
 
 The domain and import logic will remain independent of Electron so it can later be reused by a Node-based server.
@@ -67,7 +67,7 @@ Core interfaces:
   - AND between soil, exposure, and flowering categories.
   - Flowering matches when a plant blooms during any selected month, including intervals crossing December.
   - Active filters are visible and individually or collectively removable.
-- Selection creation requires at least one checked plant and a non-empty name unique after trimming and case normalization.
+- Selection creation requires at least one checked plant and a non-empty name. The trimmed display name must be unique by exact text; accents and casing remain significant, so `sélection` and `selection` are distinct names.
 - Empty selections cannot be created from “Mes Sélections” in the MVP.
 - The catalog selection action bar supports creating a new selection and adding checked plants to one or more existing selections. Existing plant-selection links are ignored without producing an error.
 - “Mes Sélections” displays saved selections and their current plants in a table-based management screen. Users can open a selection detail and remove plants from a selection after confirmation.
@@ -80,7 +80,7 @@ Core interfaces:
 - Unit-test CSV parsing, enum and range validation, cyclic flowering periods, name normalization, UUID precedence, duplicate detection, and filter combination rules.
 - Test replacement transactions for new, matching, renamed, removed, incomplete, and invalid plants.
 - Verify preserved and removed selection links, including selections becoming empty.
-- Verify empty selection creation is rejected and duplicate normalized selection names are rejected.
+- Verify empty and exact duplicate selection names are rejected, while names that differ by accents or casing are allowed.
 - Verify adding catalog plants to existing selections ignores duplicate links and reports added versus ignored associations.
 - Verify removing plants from a selection requires confirmation and updates the selection detail.
 - Test image matching, missing images, duplicate filenames, unsupported formats, path traversal, copying, and cleanup after commit or rollback.

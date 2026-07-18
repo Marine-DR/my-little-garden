@@ -199,6 +199,20 @@ export class CatalogQueries {
     return row ? numberColumn(row, 'total') : 0;
   }
 
+  ids(filters?: PlantCatalogFilters): string[] {
+    const { joins, clause, parameters } = filteredCatalogParts(filters);
+    return this.database
+      .prepare(
+        `SELECT DISTINCT p.id, p.normalized_name
+         FROM plants p
+         ${joins}
+         ${clause}
+         ORDER BY p.normalized_name COLLATE NOCASE`,
+      )
+      .all(...parameters)
+      .map((row) => stringColumn(row as SqliteRow, 'id'));
+  }
+
   page(
     limit: number,
     offset: number,

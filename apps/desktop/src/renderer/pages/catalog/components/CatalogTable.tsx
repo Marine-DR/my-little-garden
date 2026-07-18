@@ -54,12 +54,28 @@ function ColorList({ colors }: { readonly colors: readonly string[] }) {
   );
 }
 
-function PlantRow({ plant }: { readonly plant: CatalogPlant }) {
+function PlantRow({
+  plant,
+  selected,
+  onToggle,
+}: {
+  readonly plant: CatalogPlant;
+  readonly selected: boolean;
+  readonly onToggle: () => void;
+}) {
   const persistence = plant.foliagePersistence
     ? PERSISTENCE[plant.foliagePersistence]
     : null;
   return (
     <tr>
+      <td className="plant-selection-cell">
+        <input
+          type="checkbox"
+          aria-label={`Sélectionner ${plant.name}`}
+          checked={selected}
+          onChange={onToggle}
+        />
+      </td>
       <td>
         <PlantPhoto name={plant.name} url={plant.photoUrl} />
       </td>
@@ -117,11 +133,20 @@ export function CatalogTable({
   data,
   isFiltered,
   onPageChange,
+  selectedPlantIds,
+  onPlantToggle,
+  selectingAll,
+  onToggleAll,
 }: {
   readonly data: CatalogPage;
   readonly isFiltered: boolean;
   readonly onPageChange: (page: number) => void;
+  readonly selectedPlantIds: readonly string[];
+  readonly onPlantToggle: (plantId: string) => void;
+  readonly selectingAll: boolean;
+  readonly onToggleAll: () => void;
 }) {
+  const hasSelectedPlants = selectedPlantIds.length > 0;
   return (
     <section
       id="catalog-table"
@@ -144,6 +169,21 @@ export function CatalogTable({
             <table>
               <thead>
                 <tr>
+                  <th scope="col">
+                    <span className="visually-hidden">Sélection</span>
+                    <input
+                      className="catalog-select-all"
+                      type="checkbox"
+                      aria-label={
+                        hasSelectedPlants
+                          ? 'Désélectionner toutes les plantes'
+                          : 'Sélectionner toutes les plantes filtrées'
+                      }
+                      checked={hasSelectedPlants}
+                      disabled={selectingAll}
+                      onChange={onToggleAll}
+                    />
+                  </th>
                   <th scope="col">Photo</th>
                   <th scope="col">Nom</th>
                   <th scope="col">
@@ -168,7 +208,12 @@ export function CatalogTable({
               </thead>
               <tbody>
                 {data.items.map((plant) => (
-                  <PlantRow key={plant.id} plant={plant} />
+                  <PlantRow
+                    key={plant.id}
+                    plant={plant}
+                    selected={selectedPlantIds.includes(plant.id)}
+                    onToggle={() => onPlantToggle(plant.id)}
+                  />
                 ))}
               </tbody>
             </table>

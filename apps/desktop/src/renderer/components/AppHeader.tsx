@@ -1,5 +1,5 @@
 import catalogIcon from '../assets/catalog.svg';
-import flowerbedIcon from '../assets/flowerbed.png';
+import flowerbedIcon from '../assets/flowerbed.svg';
 import listIcon from '../assets/list.svg';
 import appIcon from '../assets/app-icon.png';
 
@@ -46,14 +46,22 @@ export function AppHeader({
       </a>
       <nav aria-label="Navigation principale">
         <button
+          className="primary-button"
           type="button"
           onClick={() => onScreenChange(navigationAction.target)}
         >
           <img src={navigationAction.icon} alt="" />
           {navigationAction.label}
         </button>
-        <button>
-          <img src={flowerbedIcon} alt="" />
+        <button className="primary-button" type="button" disabled>
+          <span
+            className="flowerbed-icon"
+            aria-hidden="true"
+            style={{
+              maskImage: `url("${flowerbedIcon}")`,
+              WebkitMaskImage: `url("${flowerbedIcon}")`,
+            }}
+          />
           Mes Parterres
         </button>
       </nav>

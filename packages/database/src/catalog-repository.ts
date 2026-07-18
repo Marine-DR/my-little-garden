@@ -127,4 +127,8 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
   async listFilterOptions(): Promise<PlantCatalogFilterOptions> {
     return this.queries.filterOptions();
   }
+
+  async listIds(filters?: PlantPageRequest['filters']): Promise<string[]> {
+    return this.queries.ids(filters);
+  }
 }

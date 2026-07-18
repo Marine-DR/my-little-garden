@@ -5,10 +5,14 @@ const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 const { SqlitePlantCatalogRepository } = require('../dist');
 
-const migration = readFileSync(
-  join(__dirname, '..', 'migrations', '001_initial_schema.sql'),
-  'utf8',
-);
+const migration = [
+  '001_initial_schema.sql',
+  '002_remove_selection_normalized_name.sql',
+]
+  .map((filename) =>
+    readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
+  )
+  .join('\n');
 
 function createCatalog(t) {
   const database = new DatabaseSync(':memory:');
@@ -193,6 +197,17 @@ test('uses OR inside one filter category and AND between categories', async (t) 
 
   assert.equal(result.total, 1);
   assert.equal(result.items[0].name, 'Achillée');
+});
+
+test('lists every plant id matching the active filters', async (t) => {
+  const repository = createCatalog(t);
+
+  const allIds = await repository.listIds();
+  const shadeIds = await repository.listIds({ exposures: ['shade'] });
+
+  assert.equal(allIds.length, 30);
+  assert.deepEqual(allIds.slice(0, 2), ['plant-01', 'plant-00']);
+  assert.deepEqual(shadeIds, ['plant-01']);
 });
 
 test('lists catalog filter options from stored values', async (t) => {

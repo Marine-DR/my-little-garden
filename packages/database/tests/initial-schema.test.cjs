@@ -4,10 +4,20 @@ const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 
-const migration = readFileSync(
+const initialMigration = readFileSync(
   join(__dirname, '..', 'migrations', '001_initial_schema.sql'),
   'utf8',
 );
+const selectionNameMigration = readFileSync(
+  join(
+    __dirname,
+    '..',
+    'migrations',
+    '002_remove_selection_normalized_name.sql',
+  ),
+  'utf8',
+);
+const migration = `${initialMigration}\n${selectionNameMigration}`;
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -110,6 +120,63 @@ test('plants table contains the complete scalar field set', (t) => {
       'updated_at',
     ]),
   );
+});
+
+test('selections omit normalized names and enforce exact display-name uniqueness', (t) => {
+  const database = createDatabase(t);
+  const columns = new Set(
+    database
+      .prepare('PRAGMA table_info(selections)')
+      .all()
+      .map(({ name }) => name),
+  );
+
+  assert.deepEqual(
+    columns,
+    new Set(['id', 'name', 'created_at', 'updated_at']),
+  );
+
+  const insertSelection = database.prepare(
+    `INSERT INTO selections (id, name, created_at, updated_at)
+     VALUES (?, ?, ?, ?)`,
+  );
+  insertSelection.run('selection-1', 'Sélection', now, now);
+  assert.throws(() =>
+    insertSelection.run('selection-2', 'Sélection', now, now),
+  );
+  insertSelection.run('selection-3', 'Selection', now, now);
+});
+
+test('selection name migration preserves selections and plant links', (t) => {
+  const database = new DatabaseSync(':memory:');
+  database.exec(initialMigration);
+  t.after(() => database.close());
+  insertPlant(database);
+  database
+    .prepare(
+      `INSERT INTO selections (
+        id, name, normalized_name, created_at, updated_at
+      ) VALUES ('selection-1', 'Bordure', 'bordure', ?, ?)`,
+    )
+    .run(now, now);
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', '00000000-0000-4000-8000-000000000001', ?)`,
+    )
+    .run(now);
+
+  database.exec(selectionNameMigration);
+
+  const selection = database.prepare('SELECT id, name FROM selections').get();
+  assert.equal(selection.id, 'selection-1');
+  assert.equal(selection.name, 'Bordure');
+  assert.equal(
+    database.prepare('SELECT count(*) AS count FROM selection_plants').get()
+      .count,
+    1,
+  );
+  assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
 });
 
 test('normalized plant names are unique', (t) => {

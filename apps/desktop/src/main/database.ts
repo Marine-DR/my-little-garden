@@ -37,6 +37,10 @@ export function seedDemoCatalogIfNeeded(
 }
 
 function ensureSchema(app: App, database: DatabaseSync): void {
+  const migrationFilenames = [
+    '001_initial_schema.sql',
+    '002_remove_selection_normalized_name.sql',
+  ];
   const hasPlants = database
     .prepare(
       "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
@@ -48,9 +52,28 @@ function ensureSchema(app: App, database: DatabaseSync): void {
     'database',
     'migrations',
   );
-  if (!hasPlants) {
-    database.exec(
-      readFileSync(join(migrationDirectory, '001_initial_schema.sql'), 'utf8'),
-    );
+  const storedVersion = database.prepare('PRAGMA user_version').get() as {
+    user_version: number;
+  };
+  let version = hasPlants ? storedVersion.user_version : 0;
+  if (hasPlants && version === 0) {
+    const selectionColumns = database
+      .prepare('PRAGMA table_info(selections)')
+      .all()
+      .map(({ name }) => String(name));
+    version = selectionColumns.includes('normalized_name') ? 1 : 2;
+  }
+
+  for (let index = version; index < migrationFilenames.length; index += 1) {
+    const filename = migrationFilenames[index];
+    if (!filename) {
+      throw new Error(`Missing database migration at index ${index}.`);
+    }
+    try {
+      database.exec(readFileSync(join(migrationDirectory, filename), 'utf8'));
+      database.exec(`PRAGMA user_version = ${index + 1}`);
+    } finally {
+      database.exec('PRAGMA foreign_keys = ON');
+    }
   }
 }
