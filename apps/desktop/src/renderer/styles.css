@@ -199,6 +199,7 @@ main {
 }
 .secondary-button,
 .primary-button,
+.delete-button,
 .catalog-menu-options button {
   height: 33px;
   padding: 0 10px;
@@ -220,9 +221,27 @@ main {
   background: #2f7d32;
   border: 1px solid #2f7d32;
 }
-.secondary-button img {
+.secondary-button img,
+.delete-button img {
   width: 16px;
   height: 16px;
+}
+.delete-button {
+  color: #dc2626;
+  background: #fff;
+  border: 1px solid #dc2626;
+}
+.delete-button:hover:not(:disabled) {
+  background: #ffdddd;
+  border-color: #dc2626;
+}
+.delete-button:disabled {
+  color: rgb(220 38 38 / 50%);
+  border-color: rgb(220 38 38 / 50%);
+  cursor: not-allowed;
+}
+.delete-button:disabled img {
+  opacity: 0.5;
 }
 .selection-details-button {
   width: 36px;
@@ -247,6 +266,9 @@ main {
 .selection-detail-toolbar .catalog-search-group {
   justify-content: center;
   gap: 5px;
+}
+.selection-detail-actions {
+  min-height: 53px;
 }
 .primary-button:hover:not(:disabled) {
   background: #245e26;

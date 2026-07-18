@@ -184,6 +184,65 @@ test('gets a selection using the injected catalog lookup', async (t) => {
   assert.deepEqual(requestedPlantIds, [['plant-1']]);
 });
 
+test('removes only selection links and keeps catalog plants', async (t) => {
+  const database = createDatabase(t);
+  const repository = new SqliteSelectionRepository(database);
+  insertPlant(database, 'plant-1', 'Rose', 'rose');
+  insertPlant(database, 'plant-2', 'Sauge', 'sauge');
+  database
+    .prepare(
+      `INSERT INTO selections (
+        id, name, created_at, updated_at
+      ) VALUES (
+        'selection-1', 'Coin parfumé',
+        '2026-07-10T08:00:00.000Z', '2026-07-10T08:00:00.000Z'
+      )`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', ?, '2026-07-10T08:00:00.000Z')`,
+    )
+    .run('plant-1');
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', ?, '2026-07-10T08:00:00.000Z')`,
+    )
+    .run('plant-2');
+
+  const result = await repository.removePlants('selection-1', [
+    'plant-1',
+    'plant-1',
+    'plant-2',
+  ]);
+
+  assert.deepEqual(result.plants, []);
+  assert.equal(
+    database.prepare('SELECT count(*) AS count FROM plants').get().count,
+    2,
+  );
+  assert.deepEqual(
+    database
+      .prepare(
+        `SELECT plant_id FROM selection_plants
+         WHERE selection_id = 'selection-1' ORDER BY plant_id`,
+      )
+      .all()
+      .map(({ plant_id }) => plant_id),
+    [],
+  );
+  assert.equal(
+    database.prepare('SELECT count(*) AS count FROM selections').get().count,
+    1,
+  );
+  assert.equal(
+    await repository.removePlants('missing-selection', ['plant-2']),
+    null,
+  );
+});
+
 test('rejects empty creation data and exact duplicate selection names', async (t) => {
   const database = createDatabase(t);
   const repository = createRepository(database);

@@ -83,6 +83,13 @@ describe('App catalog', () => {
   const listSelections = vi.fn<() => Promise<readonly SelectionSummary[]>>();
   const getSelection =
     vi.fn<(selectionId: string) => Promise<SelectionDetails | null>>();
+  const removePlantsFromSelection =
+    vi.fn<
+      (
+        selectionId: string,
+        plantIds: readonly string[],
+      ) => Promise<SelectionDetails | null>
+    >();
   const createSelection =
     vi.fn<
       (input: SelectionCreationInput) => Promise<SelectionCreationResult>
@@ -106,6 +113,11 @@ describe('App catalog', () => {
       name: sunnyBorder.name,
       plants: [rose],
     });
+    removePlantsFromSelection.mockResolvedValue({
+      id: sunnyBorder.id,
+      name: sunnyBorder.name,
+      plants: [rose],
+    });
     createSelection.mockResolvedValue({
       ok: true,
       selectionId: 'selection-created',
@@ -118,6 +130,7 @@ describe('App catalog', () => {
       listFilterOptions,
       listSelections,
       getSelection,
+      removePlantsFromSelection,
       createSelection,
       replaceCatalog,
       importPhotos,
@@ -682,6 +695,7 @@ describe('App catalog', () => {
     expect(
       screen.getAllByRole('columnheader').map((heading) => heading.textContent),
     ).toEqual([
+      'Sélection',
       'Photo',
       'Nom',
       '↨ (cm)',
@@ -709,6 +723,71 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('row', { name: /Bordure plein soleil/u }),
     ).toBeInTheDocument();
+  });
+
+  it('removes checked plants from a selection only after confirmation', async () => {
+    removePlantsFromSelection.mockResolvedValueOnce({
+      id: sunnyBorder.id,
+      name: sunnyBorder.name,
+      plants: [],
+    });
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+    fireEvent.click(
+      within(
+        await screen.findByRole('row', { name: /Bordure plein soleil/u }),
+      ).getByRole('button', {
+        name: 'Voir les détails de Bordure plein soleil',
+      }),
+    );
+
+    const removeButton = await screen.findByRole('button', {
+      name: 'Retirer de la sélection',
+    });
+    const managementArea = screen.getByRole('region', {
+      name: 'Gestion de la sélection de fleurs',
+    });
+    expect(within(managementArea).getByText('0')).toBeInTheDocument();
+    expect(managementArea).toHaveTextContent('0 plantes sélectionnées');
+    expect(removeButton).toHaveClass('delete-button');
+    expect(removeButton).toBeDisabled();
+    expect(removeButton.querySelector('img')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Sélectionner Rose ancienne' }),
+    );
+    expect(managementArea).toHaveTextContent('1 plante sélectionnée');
+    expect(removeButton).toBeEnabled();
+    fireEvent.click(removeButton);
+
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Retirer 1 plante de cette sélection ?',
+    });
+    expect(dialog).toHaveTextContent('La plante restera dans le catalogue.');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Annuler' }));
+    expect(removePlantsFromSelection).not.toHaveBeenCalled();
+    expect(screen.getByText('Rose ancienne')).toBeInTheDocument();
+
+    fireEvent.click(removeButton);
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Retirer',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(removePlantsFromSelection).toHaveBeenCalledWith('sunny-border', [
+        'rose',
+      ]),
+    );
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Aucune plante dans cette sélection',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('0 plantes')).toBeInTheDocument();
+    expect(removeButton).toBeDisabled();
   });
 
   it('paginates plants in a selection in groups of 25', async () => {

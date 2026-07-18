@@ -136,6 +136,8 @@ interface PlantSelectionControls {
   readonly onPlantToggle: (plantId: string) => void;
   readonly selectingAll: boolean;
   readonly onToggleAll: () => void;
+  readonly selectAllLabel?: string;
+  readonly deselectAllLabel?: string;
 }
 
 export function PlantsTable({
@@ -159,8 +161,10 @@ export function PlantsTable({
                   type="checkbox"
                   aria-label={
                     hasSelectedPlants
-                      ? 'Désélectionner toutes les plantes'
-                      : 'Sélectionner toutes les plantes filtrées'
+                      ? (selection.deselectAllLabel ??
+                        'Désélectionner toutes les plantes')
+                      : (selection.selectAllLabel ??
+                        'Sélectionner toutes les plantes filtrées')
                   }
                   checked={hasSelectedPlants}
                   disabled={selection.selectingAll}

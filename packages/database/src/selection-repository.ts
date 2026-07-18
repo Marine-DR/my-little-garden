@@ -126,6 +126,38 @@ export class SqliteSelectionRepository implements SelectionRepository {
     };
   }
 
+  async removePlants(
+    selectionId: string,
+    plantIds: readonly string[],
+  ): Promise<SelectionDetailsRecord | null> {
+    const selectionExists = this.database
+      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .get(selectionId);
+    if (!selectionExists) {
+      return null;
+    }
+
+    const uniquePlantIds = [...new Set(plantIds)];
+    if (uniquePlantIds.length > 0) {
+      runInTransaction(this.database, () => {
+        const placeholders = uniquePlantIds.map(() => '?').join(', ');
+        const result = this.database
+          .prepare(
+            `DELETE FROM selection_plants
+             WHERE selection_id = ? AND plant_id IN (${placeholders})`,
+          )
+          .run(selectionId, ...uniquePlantIds);
+        if (result.changes > 0) {
+          this.database
+            .prepare('UPDATE selections SET updated_at = ? WHERE id = ?')
+            .run(new Date().toISOString(), selectionId);
+        }
+      });
+    }
+
+    return this.get(selectionId);
+  }
+
   async create(
     input: SelectionCreationInput,
   ): Promise<SelectionCreationResult> {

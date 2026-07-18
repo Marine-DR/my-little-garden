@@ -108,7 +108,7 @@ Icon color #2F7D3280
 - Background #FFFFFFFF
 - Text #DC2626FF Inter Medium 14
 - Icons #DC2626FF
-- Border #FFFFFFFF 1px
+- Border #DC2626FF 1px
 - Button heigh 33px
 - Button width ajusted to the content
 - Icon heigh 16px
@@ -155,7 +155,7 @@ Icon color #dc262680
 - Background #FFFFFFFF
 - Text #2F7D32FF Inter Medium 12
 - Icons #2F7D32FF
-- Border #FFFFFFFF 1px
+- Border #2F7D32FF 1px
 - Button heigh 31 px
 - Button width ajusted to the content
 - Icon heigh 16px
@@ -190,7 +190,7 @@ On hover, the button style is:
 - Background #E8F2E6FF
 - Text #2F7D32FF Inter Regular 12
 - Icons #2F7D32FF
-- Border #E8F2E6FF 1px
+- Border #2F7D32FF 1px
 - Button heigh 26px
 - Button width ajusted to the content
 - Icon heigh 16px

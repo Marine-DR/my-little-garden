@@ -16,6 +16,7 @@ import {
   getSelectionDetails,
   listCatalogPage,
   listSelectionSummaries,
+  removePlantsFromSelection,
 } from './catalog-view.js';
 import { deletePlantPhoto, importPlantPhotos } from './photo-import.js';
 
@@ -40,6 +41,8 @@ export function createDesktopApi({
     listSelections: () => listSelectionSummaries(selectionRepository),
     getSelection: (selectionId) =>
       getSelectionDetails(selectionRepository, selectionId),
+    removePlantsFromSelection: (selectionId, plantIds) =>
+      removePlantsFromSelection(selectionRepository, selectionId, plantIds),
     createSelection: (input) => selectionRepository.create(input),
     replaceCatalog: async (filename, csv) =>
       replaceCatalog(database, photoDirectory, filename, csv),

@@ -107,6 +107,10 @@ export interface CatalogApi {
   listFilterOptions(): Promise<CatalogFilterOptions>;
   listSelections(): Promise<readonly SelectionSummary[]>;
   getSelection(selectionId: string): Promise<SelectionDetails | null>;
+  removePlantsFromSelection(
+    selectionId: string,
+    plantIds: readonly string[],
+  ): Promise<SelectionDetails | null>;
   createSelection(
     input: SelectionCreationInput,
   ): Promise<SelectionCreationResult>;

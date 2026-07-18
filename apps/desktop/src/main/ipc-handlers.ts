@@ -26,6 +26,11 @@ export function registerIpcHandlers({
   ipcMain.handle('selections:get', (_event, selectionId: string) =>
     desktopApi.getSelection(selectionId),
   );
+  ipcMain.handle(
+    'selections:remove-plants',
+    (_event, selectionId: string, plantIds: readonly string[]) =>
+      desktopApi.removePlantsFromSelection(selectionId, plantIds),
+  );
   ipcMain.handle('catalog:replace', (_event, filename: string, csv: string) =>
     desktopApi.replaceCatalog(filename, csv),
   );
