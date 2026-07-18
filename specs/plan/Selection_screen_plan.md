@@ -66,7 +66,8 @@ Nom de la sélection
 Rules:
 
 - the name is mandatory;
-- the normalized name must be unique after trimming, case normalization, and accent normalization;
+- the trimmed display name must be unique by exact text;
+- accents and casing remain significant, so `sélection` and `selection` are distinct names;
 - at least one catalog plant must be checked;
 - selected plants are automatically added to the new selection;
 - empty selection creation is rejected.
@@ -216,9 +217,9 @@ Do not show a “Créer une sélection” button on this screen in the MVP, beca
 
 ## Data behavior
 
-The existing schema is sufficient for the MVP:
+After migration `002_remove_selection_normalized_name.sql`, the schema supports the MVP selection identity rules:
 
-- `selections` stores the selection name and timestamps;
+- `selections` stores the UUID, display name, and timestamps; selection names are not normalized, but the exact display name is unique;
 - `selection_plants` stores the current plant links;
 - duplicate plant links are prevented by the composite primary key.
 
@@ -235,7 +236,8 @@ Test scenarios:
 
 - create selection from checked catalog plants;
 - reject creation with no checked plants;
-- reject empty or duplicate normalized selection names;
+- reject empty and exact duplicate selection names;
+- allow names that differ by accents or casing;
 - add checked catalog plants to one or more existing selections;
 - ignore duplicate plant-selection links and report them as ignored;
 - list selections with current plant counts;

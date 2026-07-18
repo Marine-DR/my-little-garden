@@ -7,6 +7,7 @@ This document defines the logical plant model and its SQLite representation for 
 Implementation artifacts:
 
 - [Initial SQLite migration](../../packages/database/migrations/001_initial_schema.sql)
+- [Selection identity migration](../../packages/database/migrations/002_remove_selection_normalized_name.sql)
 - [Framework-independent plant types](../../packages/core/src/plant.ts)
 - [Shared constants](../../packages/core/src/constants.ts)
 - [Shared normalization](../../packages/core/src/normalization.ts)
@@ -41,7 +42,7 @@ PRAGMA foreign_keys = ON;
 
 ## 3. Name and vocabulary normalization
 
-The application generates `normalized_name` and `normalized_label` using one shared, framework-independent function:
+For plant names and vocabulary labels, the application generates `normalized_name` and `normalized_label` using one shared, framework-independent function:
 
 1. Trim surrounding whitespace.
 2. Collapse consecutive internal whitespace to one space.
@@ -51,7 +52,7 @@ The application generates `normalized_name` and `normalized_label` using one sha
 
 Equivalent values therefore share the same key. For example, `Rose`, `rose`, `ROSE`, and `Rosé` normalize to `rose`.
 
-The repository and CSV preview validator must call the same normalization function. SQLite then provides the final protection through unique indexes on the normalized columns. All database writes go through the repository so a display value and its normalized key cannot diverge.
+The plant repository and CSV preview validator must call the same normalization function. SQLite then provides the final protection through unique indexes on the normalized plant and vocabulary columns. All plant and vocabulary writes go through their repositories so a display value and its normalized key cannot diverge. Selection names are not normalized; their trimmed display names are unique by exact text, with accents and casing remaining significant.
 
 ## 4. Plant fields
 
@@ -265,14 +266,13 @@ CREATE TABLE plant_photos (
 
 ```sql
 CREATE TABLE selections (
-    id              TEXT PRIMARY KEY,
-    name            TEXT NOT NULL CHECK (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL CHECK (
         length(trim(name)) > 0 AND name = trim(name)
     ),
-    normalized_name TEXT NOT NULL CHECK (length(normalized_name) > 0),
-    created_at      TEXT NOT NULL,
-    updated_at      TEXT NOT NULL,
-    CONSTRAINT uq_selections_normalized_name UNIQUE (normalized_name)
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    CONSTRAINT uq_selections_name UNIQUE (name)
 );
 
 CREATE TABLE selection_plants (

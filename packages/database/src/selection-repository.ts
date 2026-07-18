@@ -4,7 +4,6 @@ import type {
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
-import { normalizeDatabaseKey } from '@my-little-garden/core';
 import { randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
@@ -56,7 +55,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
          FROM selections s
          LEFT JOIN selection_plants sp ON sp.selection_id = s.id
          GROUP BY s.id, s.name, s.created_at, s.updated_at
-         ORDER BY s.updated_at DESC, s.normalized_name COLLATE NOCASE, s.id`,
+         ORDER BY s.updated_at DESC, s.name COLLATE NOCASE, s.id`,
       )
       .all()
       .map((row) => decodeSelectionRow(row as SqliteRow));
@@ -105,10 +104,9 @@ export class SqliteSelectionRepository implements SelectionRepository {
     input: SelectionCreationInput,
   ): Promise<SelectionCreationResult> {
     const name = input.name.trim();
-    const normalizedName = normalizeDatabaseKey(name);
     const plantIds = [...new Set(input.plantIds)];
 
-    if (!normalizedName) {
+    if (!name) {
       return { ok: false, code: 'empty_name' };
     }
     if (plantIds.length === 0) {
@@ -117,8 +115,8 @@ export class SqliteSelectionRepository implements SelectionRepository {
 
     return runInTransaction(this.database, () => {
       const duplicate = this.database
-        .prepare('SELECT 1 FROM selections WHERE normalized_name = ?')
-        .get(normalizedName);
+        .prepare('SELECT 1 FROM selections WHERE name = ?')
+        .get(name);
       if (duplicate) {
         return { ok: false, code: 'duplicate_name' };
       }
@@ -138,10 +136,10 @@ export class SqliteSelectionRepository implements SelectionRepository {
       this.database
         .prepare(
           `INSERT INTO selections (
-             id, name, normalized_name, created_at, updated_at
-           ) VALUES (?, ?, ?, ?, ?)`,
+             id, name, created_at, updated_at
+           ) VALUES (?, ?, ?, ?)`,
         )
-        .run(selectionId, name, normalizedName, now, now);
+        .run(selectionId, name, now, now);
       const insertPlant = this.database.prepare(
         `INSERT INTO selection_plants (selection_id, plant_id, added_at)
          VALUES (?, ?, ?)`,

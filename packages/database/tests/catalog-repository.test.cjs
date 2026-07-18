@@ -5,10 +5,14 @@ const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 const { SqlitePlantCatalogRepository } = require('../dist');
 
-const migration = readFileSync(
-  join(__dirname, '..', 'migrations', '001_initial_schema.sql'),
-  'utf8',
-);
+const migration = [
+  '001_initial_schema.sql',
+  '002_remove_selection_normalized_name.sql',
+]
+  .map((filename) =>
+    readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
+  )
+  .join('\n');
 
 function createCatalog(t) {
   const database = new DatabaseSync(':memory:');

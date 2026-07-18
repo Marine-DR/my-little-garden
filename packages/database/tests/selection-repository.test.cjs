@@ -5,10 +5,14 @@ const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 const { SqliteSelectionRepository } = require('../dist');
 
-const migration = readFileSync(
-  join(__dirname, '..', 'migrations', '001_initial_schema.sql'),
-  'utf8',
-);
+const migration = [
+  '001_initial_schema.sql',
+  '002_remove_selection_normalized_name.sql',
+]
+  .map((filename) =>
+    readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
+  )
+  .join('\n');
 
 function createDatabase(t) {
   const database = new DatabaseSync(':memory:');
@@ -43,26 +47,24 @@ test('lists selection summaries with plant counts and four preview images', asyn
   database
     .prepare(
       `INSERT INTO selections (
-        id, name, normalized_name, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?)`,
+        id, name, created_at, updated_at
+      ) VALUES (?, ?, ?, ?)`,
     )
     .run(
       'selection-1',
       'Bordure plein soleil',
-      'bordure plein soleil',
       '2026-07-10T08:00:00.000Z',
       '2026-07-14T12:30:00.000Z',
     );
   database
     .prepare(
       `INSERT INTO selections (
-        id, name, normalized_name, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?)`,
+        id, name, created_at, updated_at
+      ) VALUES (?, ?, ?, ?)`,
     )
     .run(
       'selection-2',
       'Selection vide',
-      'selection vide',
       '2026-07-09T08:00:00.000Z',
       '2026-07-09T08:00:00.000Z',
     );
@@ -114,10 +116,9 @@ test('creates a trimmed named selection with unique plant links', async (t) => {
   assert.equal(result.name, 'Coin parfumé');
   assert.equal(result.plantCount, 2);
   const selection = database
-    .prepare('SELECT name, normalized_name FROM selections WHERE id = ?')
+    .prepare('SELECT name FROM selections WHERE id = ?')
     .get(result.selectionId);
   assert.equal(selection.name, 'Coin parfumé');
-  assert.equal(selection.normalized_name, 'coin parfume');
   const links = database
     .prepare(
       `SELECT plant_id FROM selection_plants
@@ -130,7 +131,7 @@ test('creates a trimmed named selection with unique plant links', async (t) => {
   );
 });
 
-test('rejects empty creation data and duplicate normalized names', async (t) => {
+test('rejects empty creation data and exact duplicate selection names', async (t) => {
   const database = createDatabase(t);
   const repository = new SqliteSelectionRepository(database);
   insertPlant(database, 'plant-1', 'Rose', 'rose');
@@ -157,11 +158,20 @@ test('rejects empty creation data and duplicate normalized names', async (t) => 
   });
   assert.equal(first.ok, true);
   assert.deepEqual(
-    await repository.create({ name: '  COIN PARFUME ', plantIds: ['plant-1'] }),
+    await repository.create({
+      name: '  Coin parfumé  ',
+      plantIds: ['plant-1'],
+    }),
     { ok: false, code: 'duplicate_name' },
   );
+  const distinctAccent = await repository.create({
+    name: 'Coin parfume',
+    plantIds: ['plant-1'],
+  });
+  assert.equal(distinctAccent.ok, true);
+  assert.notEqual(distinctAccent.selectionId, first.selectionId);
   assert.equal(
     database.prepare('SELECT count(*) AS count FROM selections').get().count,
-    1,
+    2,
   );
 });

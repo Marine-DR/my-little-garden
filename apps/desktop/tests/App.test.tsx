@@ -319,7 +319,7 @@ describe('App catalog', () => {
     expect(listPlantIds).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the creation dialog open when the selection name already exists', async () => {
+  it('keeps the creation dialog open when the exact selection name already exists', async () => {
     createSelection.mockResolvedValueOnce({
       ok: false,
       code: 'duplicate_name',
