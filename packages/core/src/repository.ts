@@ -62,7 +62,6 @@ export interface PlantCatalogRepository extends PlantRepository {
   listFilterOptions(): Promise<PlantCatalogFilterOptions>;
 }
 
-
 export interface PlantCatalogReplacementRepository {
   replace(plants: Iterable<PlantWriteInput>): number;
 }
