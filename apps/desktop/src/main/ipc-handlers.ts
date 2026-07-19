@@ -23,6 +23,9 @@ export function registerIpcHandlers({
   ipcMain.handle('selections:create', (_event, input) =>
     desktopApi.createSelection(input),
   );
+  ipcMain.handle('selections:get', (_event, selectionId: string) =>
+    desktopApi.getSelection(selectionId),
+  );
   ipcMain.handle('catalog:replace', (_event, filename: string, csv: string) =>
     desktopApi.replaceCatalog(filename, csv),
   );

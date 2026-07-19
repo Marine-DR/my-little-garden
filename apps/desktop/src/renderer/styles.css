@@ -224,6 +224,30 @@ main {
   width: 16px;
   height: 16px;
 }
+.selection-details-button {
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.selection-detail-count {
+  margin: 0;
+  color: #969191;
+  font-size: 14px;
+}
+.selection-detail-toolbar {
+  min-height: auto;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  align-items: center;
+  background: #fff;
+}
+.selection-detail-toolbar .catalog-toolbar-main {
+  align-items: center;
+}
+.selection-detail-toolbar .catalog-search-group {
+  justify-content: center;
+  gap: 5px;
+}
 .primary-button:hover:not(:disabled) {
   background: #245e26;
   border-color: #245e26;
@@ -493,7 +517,8 @@ main {
   justify-content: space-between;
   border-bottom: 1px solid #e5e7eb;
 }
-.filter-panel-header h2 {
+.filter-panel-header h2,
+.selection-detail-toolbar h1 {
   margin: 0;
   color: #000;
   font-size: 14px;
@@ -813,8 +838,12 @@ td:last-child {
   height: 72px;
   border-radius: 8px;
 }
+.plant-photo-cell {
+  vertical-align: middle;
+}
 .plant-photo {
   display: block;
+  margin: auto;
   object-fit: cover;
 }
 .image-import-banner {

@@ -110,6 +110,93 @@ test('uses offset and limit for subsequent pages', async (t) => {
   assert.equal(result.items.length, 5);
 });
 
+test('lists and hydrates catalog plants by id', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.listByIds([
+    'plant-00',
+    'plant-01',
+    'plant-00',
+    'missing-plant',
+  ]);
+
+  assert.deepEqual(
+    result.map(({ name }) => name),
+    ['Achillée', 'Échinacée'],
+  );
+  assert.deepEqual(result[0].soils, [
+    { id: 1, label: 'Drainé' },
+    { id: 2, label: 'Humide' },
+  ]);
+  assert.deepEqual(result[0].exposures, ['sun', 'shade']);
+  assert.deepEqual(await repository.listByIds([]), []);
+});
+
+test('upserts and finds a hydrated plant by id or normalized name', async (t) => {
+  const database = new DatabaseSync(':memory:');
+  database.exec(migration);
+  t.after(() => database.close());
+  const repository = new SqlitePlantCatalogRepository(database);
+
+  const created = await repository.upsert({
+    id: 'plant-sage',
+    name: 'Sauge officinale',
+    heightCm: { min: 30, max: 60 },
+    typeLabel: 'Vivace',
+    kind: 'flower',
+    soilLabels: ['Drainé'],
+    exposures: ['sun'],
+    bloom: { startMonth: 6, endMonth: 8 },
+    flowerColorLabels: ['Violet'],
+    leafColorLabels: ['Vert'],
+    minimumTemperatureCelsius: -10,
+    foliagePersistence: 'semi_evergreen',
+    spacingCm: 40,
+    plantingSeasons: ['spring', 'autumn'],
+    photo: {
+      managedFilename: 'sage.png',
+      mediaType: 'image/png',
+      checksumSha256: 'checksum-1',
+    },
+  });
+
+  assert.equal(created.id, 'plant-sage');
+  assert.equal(created.name, 'Sauge officinale');
+  assert.deepEqual(created.soils, [{ id: 1, label: 'Drainé' }]);
+  assert.deepEqual(created.exposures, ['sun']);
+  assert.equal(created.photo.managedFilename, 'sage.png');
+  assert.equal(
+    (await repository.findByNormalizedName('sauge officinale')).id,
+    'plant-sage',
+  );
+
+  const updated = await repository.upsert({
+    id: 'plant-sage',
+    name: 'Sauge officinale',
+    heightCm: { min: 40, max: 70 },
+    typeLabel: null,
+    kind: 'foliage',
+    soilLabels: ['Humide'],
+    exposures: ['partial_shade'],
+    bloom: null,
+    flowerColorLabels: [],
+    leafColorLabels: ['Gris vert'],
+    minimumTemperatureCelsius: -8,
+    foliagePersistence: 'evergreen',
+    spacingCm: 50,
+    plantingSeasons: ['autumn'],
+    photo: null,
+  });
+
+  assert.equal(updated.heightCm.min, 40);
+  assert.equal(updated.type, null);
+  assert.deepEqual(updated.soils, [{ id: 2, label: 'Humide' }]);
+  assert.deepEqual(updated.exposures, ['partial_shade']);
+  assert.deepEqual(updated.flowerColors, []);
+  assert.deepEqual(updated.leafColors, [{ id: 3, label: 'Gris vert' }]);
+  assert.equal(updated.photo, null);
+  assert.equal(await repository.findById('missing-plant'), null);
+});
+
 test('filters by soil without requiring exposure or bloom filters', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.list({

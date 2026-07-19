@@ -17,6 +17,7 @@ import type {
   PhotoImportResult,
   SelectionCreationInput,
   SelectionCreationResult,
+  SelectionDetails,
   SelectionSummary,
 } from '@my-little-garden/core';
 import { App } from '../src/renderer/App';
@@ -80,6 +81,8 @@ describe('App catalog', () => {
     >();
   const deletePhoto = vi.fn<(plantId: string) => Promise<PhotoDeleteResult>>();
   const listSelections = vi.fn<() => Promise<readonly SelectionSummary[]>>();
+  const getSelection =
+    vi.fn<(selectionId: string) => Promise<SelectionDetails | null>>();
   const createSelection =
     vi.fn<
       (input: SelectionCreationInput) => Promise<SelectionCreationResult>
@@ -98,6 +101,11 @@ describe('App catalog', () => {
     importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
     deletePhoto.mockResolvedValue({ ok: true });
     listSelections.mockResolvedValue([sunnyBorder]);
+    getSelection.mockResolvedValue({
+      id: sunnyBorder.id,
+      name: sunnyBorder.name,
+      plants: [rose],
+    });
     createSelection.mockResolvedValue({
       ok: true,
       selectionId: 'selection-created',
@@ -109,6 +117,7 @@ describe('App catalog', () => {
       listPlantIds,
       listFilterOptions,
       listSelections,
+      getSelection,
       createSelection,
       replaceCatalog,
       importPhotos,
@@ -597,6 +606,7 @@ describe('App catalog', () => {
       'Plantes',
       'Date de création',
       'Dernière modification',
+      'Actions',
     ]);
 
     const row = screen.getByRole('row', { name: /Bordure plein soleil/u });
@@ -606,6 +616,15 @@ describe('App catalog', () => {
     expect(
       within(row).getByLabelText('2 plantes non affichées'),
     ).toHaveTextContent('+2');
+    const detailsButton = within(row).getByRole('button', {
+      name: 'Voir les détails de Bordure plein soleil',
+    });
+    expect(detailsButton).toHaveClass(
+      'secondary-button',
+      'selection-details-button',
+    );
+    expect(detailsButton).toHaveTextContent('');
+    expect(detailsButton.querySelector('img')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mon Catalogue' }));
     expect(
@@ -615,6 +634,112 @@ describe('App catalog', () => {
       screen.getByRole('button', { name: 'Mes Sélections' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Rose page 1')).toBeInTheDocument();
+  });
+
+  it('opens a selection detail with catalog attributes and returns to selections', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+
+    const row = await screen.findByRole('row', {
+      name: /Bordure plein soleil/u,
+    });
+    fireEvent.click(
+      within(row).getByRole('button', {
+        name: 'Voir les détails de Bordure plein soleil',
+      }),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Bordure plein soleil' }),
+    ).toBeInTheDocument();
+    expect(getSelection).toHaveBeenCalledWith('sunny-border');
+    expect(screen.getByText('1 plante')).toBeInTheDocument();
+    expect(screen.queryByText(/dans la sélection/u)).not.toBeInTheDocument();
+    expect(screen.getByText('1-1 sur 1 plantes')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Nombre de plantes par page: 25' }),
+    ).toBeDisabled();
+    const detailToolbar = document.querySelector('.selection-detail-toolbar');
+    const administrationSpace = document.querySelector(
+      '.selections-administration-space',
+    );
+    const detailTable = document.querySelector('#selection-detail-table');
+    expect(detailToolbar?.compareDocumentPosition(administrationSpace!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(administrationSpace?.compareDocumentPosition(detailTable!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(
+      screen.getByRole('button', {
+        name: 'Fermer le détail de la sélection',
+      }),
+    ).toHaveClass('icon-button');
+    expect(
+      screen.getByRole('row', { name: /Rose ancienne/u }),
+    ).toHaveTextContent('50–80');
+    expect(
+      screen.getAllByRole('columnheader').map((heading) => heading.textContent),
+    ).toEqual([
+      'Photo',
+      'Nom',
+      '↨ (cm)',
+      'Type',
+      'Fleur/autre',
+      'Sol',
+      'Exposition',
+      'Floraison',
+      'Couleurs 🌸',
+      'Couleurs 🍃',
+      '❅ (°C)',
+      'Persistant',
+      '↔ (cm)',
+      'Plantation',
+    ]);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Fermer le détail de la sélection',
+      }),
+    );
+    expect(
+      await screen.findByRole('heading', { name: 'Mes Sélections' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', { name: /Bordure plein soleil/u }),
+    ).toBeInTheDocument();
+  });
+
+  it('paginates plants in a selection in groups of 25', async () => {
+    getSelection.mockResolvedValueOnce({
+      id: sunnyBorder.id,
+      name: sunnyBorder.name,
+      plants: Array.from({ length: 26 }, (_, index) => ({
+        ...rose,
+        id: `selection-plant-${index + 1}`,
+        name: `Plante sélection ${index + 1}`,
+      })),
+    });
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+    fireEvent.click(
+      within(
+        await screen.findByRole('row', { name: /Bordure plein soleil/u }),
+      ).getByRole('button', {
+        name: 'Voir les détails de Bordure plein soleil',
+      }),
+    );
+
+    expect(await screen.findByText('1-25 sur 26 plantes')).toBeInTheDocument();
+    expect(screen.getByText('Plante sélection 25')).toBeInTheDocument();
+    expect(screen.queryByText('Plante sélection 26')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
+    expect(screen.getByText('26-26 sur 26 plantes')).toBeInTheDocument();
+    expect(screen.getByText('Plante sélection 26')).toBeInTheDocument();
+    expect(screen.queryByText('Plante sélection 25')).not.toBeInTheDocument();
   });
 
   it('shows the selections empty state with a catalog return action', async () => {

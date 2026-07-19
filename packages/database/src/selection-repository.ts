@@ -1,6 +1,8 @@
 import type {
   SelectionCreationInput,
   SelectionCreationResult,
+  SelectionDetailsRecord,
+  PlantCatalogRepository,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -45,7 +47,10 @@ function decodePreviewRow(row: SqliteRow): PreviewRow {
 }
 
 export class SqliteSelectionRepository implements SelectionRepository {
-  constructor(private readonly database: DatabaseSync) {}
+  constructor(
+    private readonly database: DatabaseSync,
+    private readonly plantRepository: PlantCatalogRepository,
+  ) {}
 
   async listSummaries(): Promise<SelectionSummaryRecord[]> {
     const selections = this.database
@@ -98,6 +103,27 @@ export class SqliteSelectionRepository implements SelectionRepository {
       createdAt: selection.createdAt,
       updatedAt: selection.updatedAt,
     }));
+  }
+
+  async get(selectionId: string): Promise<SelectionDetailsRecord | null> {
+    const selection = this.database
+      .prepare('SELECT id, name FROM selections WHERE id = ?')
+      .get(selectionId) as SqliteRow | undefined;
+    if (!selection) {
+      return null;
+    }
+    const plantIds = this.database
+      .prepare(
+        `SELECT plant_id FROM selection_plants
+         WHERE selection_id = ? ORDER BY added_at, plant_id`,
+      )
+      .all(selectionId)
+      .map((row) => stringColumn(row as SqliteRow, 'plant_id'));
+    return {
+      id: stringColumn(selection, 'id'),
+      name: stringColumn(selection, 'name'),
+      plants: await this.plantRepository.listByIds(plantIds),
+    };
   }
 
   async create(

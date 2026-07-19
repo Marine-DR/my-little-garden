@@ -13,8 +13,10 @@ import {
 import { createDesktopApi } from './desktop-api.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
 import { handlePhotoRequests, registerPhotoScheme } from './photo-protocol.js';
+import { configureRuntimeEnvironment } from './runtime-environments/index.js';
 import { createMainWindow } from './window.js';
 
+configureRuntimeEnvironment(app);
 registerPhotoScheme();
 
 let database: DatabaseSync | undefined;
@@ -24,7 +26,10 @@ app.whenReady().then(async () => {
   database = openedDatabase;
   const photoDirectory = applicationPhotoDirectory(app);
   const catalogRepository = new SqlitePlantCatalogRepository(openedDatabase);
-  const selectionRepository = new SqliteSelectionRepository(openedDatabase);
+  const selectionRepository = new SqliteSelectionRepository(
+    openedDatabase,
+    catalogRepository,
+  );
   seedDemoCatalogIfNeeded(app, (csv) => seedDemoCatalog(openedDatabase, csv));
 
   handlePhotoRequests(photoDirectory);

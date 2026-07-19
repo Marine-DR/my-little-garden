@@ -12,7 +12,11 @@ import {
   replaceCatalogFromCsv,
   validateCatalogCsvStructure,
 } from './catalog-import.js';
-import { listCatalogPage, listSelectionSummaries } from './catalog-view.js';
+import {
+  getSelectionDetails,
+  listCatalogPage,
+  listSelectionSummaries,
+} from './catalog-view.js';
 import { deletePlantPhoto, importPlantPhotos } from './photo-import.js';
 
 export interface DesktopApiDependencies {
@@ -34,6 +38,8 @@ export function createDesktopApi({
     listPlantIds: (filters) => catalogRepository.listIds(filters),
     listFilterOptions: () => catalogRepository.listFilterOptions(),
     listSelections: () => listSelectionSummaries(selectionRepository),
+    getSelection: (selectionId) =>
+      getSelectionDetails(selectionRepository, selectionId),
     createSelection: (input) => selectionRepository.create(input),
     replaceCatalog: async (filename, csv) =>
       replaceCatalog(database, photoDirectory, filename, csv),

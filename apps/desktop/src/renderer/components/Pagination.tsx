@@ -15,22 +15,28 @@ export function Pagination({
   total,
   pageSize,
   onChange,
+  itemLabel = 'fleurs',
+  footerLabel = 'Pagination du catalogue',
+  pagesLabel = 'Pages du catalogue',
 }: {
   readonly page: number;
   readonly total: number;
   readonly pageSize: number;
   readonly onChange: (page: number) => void;
+  readonly itemLabel?: string;
+  readonly footerLabel?: string;
+  readonly pagesLabel?: string;
 }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, total);
 
   return (
-    <footer className="table-footer" aria-label="Pagination du catalogue">
+    <footer className="table-footer" aria-label={footerLabel}>
       <p className="result-count">
-        {first}-{last} sur {total} fleurs
+        {first}-{last} sur {total} {itemLabel}
       </p>
-      <nav className="pagination" aria-label="Pages du catalogue">
+      <nav className="pagination" aria-label={pagesLabel}>
         <button disabled={page === 1} onClick={() => onChange(page - 1)}>
           <img src={previousIcon} alt="" />
           Précédent
@@ -57,10 +63,10 @@ export function Pagination({
         <button
           className="page-size-control"
           type="button"
-          aria-label="Nombre de fleurs par page: 25"
+          aria-label={`Nombre de ${itemLabel} par page: ${pageSize}`}
           disabled
         >
-          25▼
+          {pageSize}▼
         </button>
       </div>
     </footer>

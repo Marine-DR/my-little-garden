@@ -21,6 +21,13 @@ function createDatabase(t) {
   return database;
 }
 
+function createRepository(
+  database,
+  plantRepository = { listByIds: async () => [] },
+) {
+  return new SqliteSelectionRepository(database, plantRepository);
+}
+
 function insertPlant(database, id, name, normalizedName, photoFilename = null) {
   database
     .prepare(
@@ -42,7 +49,7 @@ function insertPlant(database, id, name, normalizedName, photoFilename = null) {
 
 test('lists selection summaries with plant counts and four preview images', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
 
   database
     .prepare(
@@ -103,7 +110,7 @@ test('lists selection summaries with plant counts and four preview images', asyn
 
 test('creates a trimmed named selection with unique plant links', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
   insertPlant(database, 'plant-1', 'Rose', 'rose');
   insertPlant(database, 'plant-2', 'Sauge', 'sauge');
 
@@ -131,9 +138,55 @@ test('creates a trimmed named selection with unique plant links', async (t) => {
   );
 });
 
+test('gets a selection using the injected catalog lookup', async (t) => {
+  const database = createDatabase(t);
+  const requestedPlantIds = [];
+  const repository = createRepository(database, {
+    async listByIds(plantIds) {
+      requestedPlantIds.push([...plantIds]);
+      return [
+        {
+          id: 'plant-1',
+          name: 'Rose ancienne',
+          soils: [{ id: 1, label: 'Drainé' }],
+          exposures: ['sun'],
+        },
+      ];
+    },
+  });
+  insertPlant(database, 'plant-1', 'Rose ancienne', 'rose ancienne');
+  database
+    .prepare(
+      `INSERT INTO selections (
+        id, name, created_at, updated_at
+      ) VALUES (
+        'selection-1', 'Bordure plein soleil',
+        '2026-07-10T08:00:00.000Z', '2026-07-14T12:30:00.000Z'
+      )`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', 'plant-1', '2026-07-14T12:30:00.000Z')`,
+    )
+    .run();
+
+  const result = await repository.get('selection-1');
+
+  assert.equal(result.name, 'Bordure plein soleil');
+  assert.equal(result.plants.length, 1);
+  assert.equal(result.plants[0].name, 'Rose ancienne');
+  assert.deepEqual(result.plants[0].soils, [{ id: 1, label: 'Drainé' }]);
+  assert.deepEqual(result.plants[0].exposures, ['sun']);
+  assert.deepEqual(requestedPlantIds, [['plant-1']]);
+  assert.equal(await repository.get('missing-selection'), null);
+  assert.deepEqual(requestedPlantIds, [['plant-1']]);
+});
+
 test('rejects empty creation data and exact duplicate selection names', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
   insertPlant(database, 'plant-1', 'Rose', 'rose');
 
   assert.deepEqual(

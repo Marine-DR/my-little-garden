@@ -43,6 +43,12 @@ export interface SelectionSummary {
   readonly updatedAt: string;
 }
 
+export interface SelectionDetails {
+  readonly id: string;
+  readonly name: string;
+  readonly plants: readonly CatalogPlant[];
+}
+
 export interface SelectionCreationInput {
   readonly name: string;
   readonly plantIds: readonly string[];
@@ -100,6 +106,7 @@ export interface CatalogApi {
   listPlantIds(filters?: CatalogFilters): Promise<readonly string[]>;
   listFilterOptions(): Promise<CatalogFilterOptions>;
   listSelections(): Promise<readonly SelectionSummary[]>;
+  getSelection(selectionId: string): Promise<SelectionDetails | null>;
   createSelection(
     input: SelectionCreationInput,
   ): Promise<SelectionCreationResult>;

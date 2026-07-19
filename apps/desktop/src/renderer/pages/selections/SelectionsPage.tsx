@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SelectionSummary } from '@my-little-garden/core';
 import { SelectionsTable } from './components/SelectionsTable';
+import { SelectionDetailsPage } from './SelectionDetailsPage';
 
 export function SelectionsPage({
   onBackToCatalog,
@@ -11,6 +12,9 @@ export function SelectionsPage({
     readonly SelectionSummary[] | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSelectionId, setSelectedSelectionId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     let active = true;
@@ -31,6 +35,15 @@ export function SelectionsPage({
       active = false;
     };
   }, []);
+
+  if (selectedSelectionId) {
+    return (
+      <SelectionDetailsPage
+        selectionId={selectedSelectionId}
+        onBack={() => setSelectedSelectionId(null)}
+      />
+    );
+  }
 
   return (
     <>
@@ -59,6 +72,7 @@ export function SelectionsPage({
         <SelectionsTable
           selections={selections}
           onBackToCatalog={onBackToCatalog}
+          onViewDetails={setSelectedSelectionId}
         />
       ) : null}
     </>
