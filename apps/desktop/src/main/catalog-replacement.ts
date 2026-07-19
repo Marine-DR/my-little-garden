@@ -1,60 +1,16 @@
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type {
-  CatalogApi,
   CatalogImportError,
   CatalogImportResult,
-  PlantCatalogRepository,
-  SelectionRepository,
 } from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
 import {
   replaceCatalogFromCsv,
   validateCatalogCsvStructure,
 } from './catalog-import.js';
-import {
-  getSelectionDetails,
-  listCatalogPage,
-  listSelectionSummaries,
-  removePlantsFromSelection,
-} from './catalog-view.js';
-import { deletePlantPhoto, importPlantPhotos } from './photo-import.js';
 
-export interface DesktopApiDependencies {
-  readonly database: DatabaseSync;
-  readonly photoDirectory: string;
-  readonly catalogRepository: PlantCatalogRepository;
-  readonly selectionRepository: SelectionRepository;
-}
-
-export function createDesktopApi({
-  database,
-  photoDirectory,
-  catalogRepository,
-  selectionRepository,
-}: DesktopApiDependencies): CatalogApi {
-  return {
-    listPlants: (page, filters) =>
-      listCatalogPage(catalogRepository, page, filters),
-    listPlantIds: (filters) => catalogRepository.listIds(filters),
-    listFilterOptions: () => catalogRepository.listFilterOptions(),
-    listSelections: () => listSelectionSummaries(selectionRepository),
-    getSelection: (selectionId) =>
-      getSelectionDetails(selectionRepository, selectionId),
-    removePlantsFromSelection: (selectionId, plantIds) =>
-      removePlantsFromSelection(selectionRepository, selectionId, plantIds),
-    createSelection: (input) => selectionRepository.create(input),
-    addPlantsToSelection: (input) => selectionRepository.addPlants(input),
-    replaceCatalog: async (filename, csv) =>
-      replaceCatalog(database, photoDirectory, filename, csv),
-    importPhotos: async (files) =>
-      importPlantPhotos(database, photoDirectory, files),
-    deletePhoto: async (plantId) =>
-      deletePlantPhoto(database, photoDirectory, plantId),
-  };
-}
-
-function replaceCatalog(
+export function replaceCatalog(
   database: DatabaseSync,
   photoDirectory: string,
   filename: string,

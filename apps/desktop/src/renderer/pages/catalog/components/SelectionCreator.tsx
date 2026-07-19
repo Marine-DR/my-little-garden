@@ -37,7 +37,7 @@ export function SelectionCreator({
     setCreating(true);
     setError(null);
     try {
-      const result = await window.catalogApi.createSelection({
+      const result = await window.selectionService.createSelection({
         name,
         plantIds: selectedPlantIds,
       });

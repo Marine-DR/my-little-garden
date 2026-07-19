@@ -55,7 +55,7 @@ export function SelectionAdder({
     setSelections(null);
     setError(null);
     try {
-      setSelections(await window.catalogApi.listSelections());
+      setSelections(await window.selectionService.listSelections());
     } catch {
       setSelections([]);
       setError('Les sélections n’ont pas pu être chargées.');
@@ -69,7 +69,7 @@ export function SelectionAdder({
     setAdding(true);
     setError(null);
     try {
-      const result = await window.catalogApi.addPlantsToSelection({
+      const result = await window.selectionService.addPlantsToSelection({
         selectionId: selectedSelectionId,
         plantIds: selectedPlantIds,
       });

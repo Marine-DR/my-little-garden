@@ -139,16 +139,22 @@ describe('App catalog', () => {
       addedCount: 1,
       ignoredCount: 0,
     });
-    window.catalogApi = {
+    window.catalogService = {
       listPlants,
       listPlantIds,
       listFilterOptions,
+    };
+    window.selectionService = {
       listSelections,
       getSelection,
       removePlantsFromSelection,
       createSelection,
       addPlantsToSelection,
+    };
+    window.catalogManagementService = {
       replaceCatalog,
+    };
+    window.photoService = {
       importPhotos,
       deletePhoto,
     };

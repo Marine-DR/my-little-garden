@@ -32,7 +32,7 @@ export function CatalogManager({
     setErrors([]);
     setMenuOpen(false);
     try {
-      const result = await window.catalogApi.replaceCatalog(
+      const result = await window.catalogManagementService.replaceCatalog(
         file.name,
         await file.text(),
       );

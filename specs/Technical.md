@@ -68,14 +68,14 @@ flowchart TB
 
   subgraph Desktop["apps/desktop"]
     Renderer["Renderer\nReact UI"]
-    Preload["Preload\nCatalogApi bridge"]
+    Preload["Preload\nService-scoped bridges"]
     Main["Electron main\ncomposition root"]
-    Renderer -->|"calls CatalogApi"| Preload
+    Renderer -->|"calls scoped services"| Preload
     Preload -->|"IPC"| Main
   end
 
-  Renderer -. "uses core API types only" .-> Ports
-  Preload -. "uses core API types only" .-> Ports
+  Renderer -. "uses core DTOs and desktop service contracts" .-> Ports
+  Preload -. "uses core DTOs and desktop service contracts" .-> Ports
 
   Main -->|"depends on core ports"| Ports
   Main -->|"uses CSV adapters when importing/exporting"| Communication
@@ -93,7 +93,9 @@ Dependency direction:
 - `database` implements repository interfaces from `core`.
 - `communication` implements import/export interfaces from `core`.
 - `photo-handling` implements photo-related data handling using types from `core`.
-- `apps/desktop/src/renderer` and `apps/desktop/src/preload` use only the API contracts exposed by `core`.
+- `apps/desktop/src/shared` owns service-scoped IPC contracts for catalog queries, selections, catalog management, and photos.
+- `apps/desktop/src/renderer` consumes only the service contracts it needs, while `apps/desktop/src/preload` exposes one safe wrapper method per IPC action.
+- The service-scoped preload sources are bundled into one CommonJS preload artifact so they remain compatible with Electron's default renderer sandbox.
 - `apps/desktop/src/main` is the composition root. It is allowed to instantiate concrete adapters from `database`, `communication`, and `photo-handling` when needed.
 
 ## Core package

@@ -27,7 +27,7 @@ export function SelectionDetailsPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.selectionService
       .getSelection(selectionId)
       .then((result) => {
         if (active) {
@@ -76,7 +76,7 @@ export function SelectionDetailsPage({
     setRemoving(true);
     setError(null);
     try {
-      const result = await window.catalogApi.removePlantsFromSelection(
+      const result = await window.selectionService.removePlantsFromSelection(
         selectionId,
         selectedPlantIds,
       );

@@ -54,6 +54,17 @@ export class SqliteSelectionRepository implements SelectionRepository {
     private readonly plantRepository: PlantCatalogRepository,
   ) {}
 
+  private allPlantsExist(plantIds: readonly string[]): boolean {
+    const placeholders = plantIds.map(() => '?').join(', ');
+    const existingPlantIds = new Set(
+      this.database
+        .prepare(`SELECT id FROM plants WHERE id IN (${placeholders})`)
+        .all(...plantIds)
+        .map((row) => stringColumn(row as SqliteRow, 'id')),
+    );
+    return plantIds.every((plantId) => existingPlantIds.has(plantId));
+  }
+
   async listSummaries(): Promise<SelectionSummaryRecord[]> {
     const selections = this.database
       .prepare(
@@ -181,13 +192,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
         return { ok: false, code: 'duplicate_name' };
       }
 
-      const placeholders = plantIds.map(() => '?').join(', ');
-      const existingPlants = this.database
-        .prepare(
-          `SELECT count(*) AS count FROM plants WHERE id IN (${placeholders})`,
-        )
-        .get(...plantIds) as { count: number };
-      if (existingPlants.count !== plantIds.length) {
+      if (!this.allPlantsExist(plantIds)) {
         return { ok: false, code: 'unknown_plants' };
       }
 
@@ -238,13 +243,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
         return { ok: false, code: 'selection_not_found' };
       }
 
-      const placeholders = plantIds.map(() => '?').join(', ');
-      const existingPlants = this.database
-        .prepare(
-          `SELECT count(*) AS count FROM plants WHERE id IN (${placeholders})`,
-        )
-        .get(...plantIds) as { count: number };
-      if (existingPlants.count !== plantIds.length) {
+      if (!this.allPlantsExist(plantIds)) {
         return { ok: false, code: 'unknown_plants' };
       }
 

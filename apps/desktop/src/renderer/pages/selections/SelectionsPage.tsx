@@ -18,7 +18,7 @@ export function SelectionsPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.selectionService
       .listSelections()
       .then((result) => {
         if (active) {
@@ -42,7 +42,7 @@ export function SelectionsPage({
         selectionId={selectedSelectionId}
         onBack={() => setSelectedSelectionId(null)}
         onUpdated={() => {
-          void window.catalogApi
+          void window.selectionService
             .listSelections()
             .then(setSelections)
             .catch(() =>

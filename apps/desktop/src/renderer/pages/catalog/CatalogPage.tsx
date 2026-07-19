@@ -33,7 +33,7 @@ export function CatalogPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.catalogService
       .listPlants(page, filters)
       .then((result) => {
         if (active) {
@@ -53,7 +53,7 @@ export function CatalogPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.catalogService
       .listFilterOptions()
       .then((options) => {
         if (active) {
@@ -76,15 +76,15 @@ export function CatalogPage({
   };
 
   const refreshPage = async (): Promise<void> => {
-    const catalog = await window.catalogApi.listPlants(page, filters);
+    const catalog = await window.catalogService.listPlants(page, filters);
     setData(catalog);
     setError(null);
   };
 
   const refreshAfterCatalogReplacement = async (): Promise<void> => {
     const [catalog, options] = await Promise.all([
-      window.catalogApi.listPlants(1, filters),
-      window.catalogApi.listFilterOptions(),
+      window.catalogService.listPlants(1, filters),
+      window.catalogService.listFilterOptions(),
     ]);
     setPage(1);
     setData(catalog);
@@ -117,7 +117,7 @@ export function CatalogPage({
 
     setSelectingAll(true);
     try {
-      const plantIds = await window.catalogApi.listPlantIds(filters);
+      const plantIds = await window.catalogService.listPlantIds(filters);
       setSelectedPlantIds((current) =>
         current.length === 0 ? plantIds : current,
       );

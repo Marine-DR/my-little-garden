@@ -121,24 +121,3 @@ export type CatalogImportError = DataImportError;
 export type CatalogImportResult =
   | { readonly ok: true; readonly imported: number }
   | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
-
-export interface CatalogApi {
-  listPlants(page: number, filters?: CatalogFilters): Promise<CatalogPage>;
-  listPlantIds(filters?: CatalogFilters): Promise<readonly string[]>;
-  listFilterOptions(): Promise<CatalogFilterOptions>;
-  listSelections(): Promise<readonly SelectionSummary[]>;
-  getSelection(selectionId: string): Promise<SelectionDetails | null>;
-  removePlantsFromSelection(
-    selectionId: string,
-    plantIds: readonly string[],
-  ): Promise<SelectionDetails | null>;
-  createSelection(
-    input: SelectionCreationInput,
-  ): Promise<SelectionCreationResult>;
-  addPlantsToSelection(
-    input: SelectionPlantAdditionInput,
-  ): Promise<SelectionPlantAdditionResult>;
-  replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
-  importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
-  deletePhoto(plantId: string): Promise<PhotoDeleteResult>;
-}
