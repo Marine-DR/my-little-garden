@@ -45,22 +45,23 @@ export interface SelectionDetailsRecord {
   readonly plants: readonly Plant[];
 }
 
-export interface PlantCatalogRepository {
+/**
+ * Persistence port. Implementations must save the plant, vocabulary values,
+ * and relationship rows in one transaction.
+ */
+export interface PlantRepository {
+  upsert(input: PlantWriteInput): Promise<Plant>;
+  findById(id: string): Promise<Plant | null>;
+  findByNormalizedName(normalizedName: string): Promise<Plant | null>;
+}
+
+export interface PlantCatalogRepository extends PlantRepository {
   list(page: PlantPageRequest): Promise<PlantPage>;
   listByIds(ids: readonly string[]): Promise<readonly Plant[]>;
   listIds(filters?: PlantCatalogFilters): Promise<string[]>;
   listFilterOptions(): Promise<PlantCatalogFilterOptions>;
 }
 
-/**
- * Persistence port. Implementations must save the plant, vocabulary values,
- * and relationship rows in one transaction.
- */
-export interface PlantRepository extends PlantCatalogRepository {
-  upsert(input: PlantWriteInput): Promise<Plant>;
-  findById(id: string): Promise<Plant | null>;
-  findByNormalizedName(normalizedName: string): Promise<Plant | null>;
-}
 
 export interface PlantCatalogReplacementRepository {
   replace(plants: Iterable<PlantWriteInput>): number;

@@ -49,7 +49,7 @@ function decodePreviewRow(row: SqliteRow): PreviewRow {
 export class SqliteSelectionRepository implements SelectionRepository {
   constructor(
     private readonly database: DatabaseSync,
-    private readonly plantRepository: Pick<PlantCatalogRepository, 'listByIds'>,
+    private readonly plantRepository: PlantCatalogRepository
   ) {}
 
   async listSummaries(): Promise<SelectionSummaryRecord[]> {

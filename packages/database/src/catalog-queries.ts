@@ -265,6 +265,24 @@ export class CatalogQueries {
       .map((row) => decodeScalar(row as SqliteRow));
   }
 
+  byNormalizedName(normalizedName: string): CatalogScalarRow[] {
+    return this.database
+      .prepare(
+        `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
+                p.type_id, pt.label AS type_label, p.plant_kind,
+                p.bloom_start_month, p.bloom_end_month,
+                p.minimum_temperature_celsius, p.foliage_persistence,
+                p.spacing_cm, p.created_at, p.updated_at,
+                ph.managed_filename, ph.media_type, ph.checksum_sha256
+         FROM plants p
+         LEFT JOIN plant_types pt ON pt.id = p.type_id
+         LEFT JOIN plant_photos ph ON ph.plant_id = p.id
+         WHERE p.normalized_name = ?`,
+      )
+      .all(normalizedName)
+      .map((row) => decodeScalar(row as SqliteRow));
+  }
+
   filterOptions(): PlantCatalogFilterOptions {
     const soils = this.database
       .prepare(
