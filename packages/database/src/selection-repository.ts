@@ -2,7 +2,7 @@ import type {
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetailsRecord,
-  PlantLookupRepository,
+  PlantCatalogRepository,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -49,7 +49,7 @@ function decodePreviewRow(row: SqliteRow): PreviewRow {
 export class SqliteSelectionRepository implements SelectionRepository {
   constructor(
     private readonly database: DatabaseSync,
-    private readonly plantRepository: PlantLookupRepository,
+    private readonly plantRepository: Pick<PlantCatalogRepository, 'listByIds'>,
   ) {}
 
   async listSummaries(): Promise<SelectionSummaryRecord[]> {

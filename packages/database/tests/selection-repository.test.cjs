@@ -3,10 +3,7 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
-const {
-  SqlitePlantCatalogRepository,
-  SqliteSelectionRepository,
-} = require('../dist');
+const { SqliteSelectionRepository } = require('../dist');
 
 const migration = [
   '001_initial_schema.sql',
@@ -24,11 +21,11 @@ function createDatabase(t) {
   return database;
 }
 
-function createRepository(database) {
-  return new SqliteSelectionRepository(
-    database,
-    new SqlitePlantCatalogRepository(database),
-  );
+function createRepository(
+  database,
+  plantRepository = { listByIds: async () => [] },
+) {
+  return new SqliteSelectionRepository(database, plantRepository);
 }
 
 function insertPlant(database, id, name, normalizedName, photoFilename = null) {
@@ -141,25 +138,23 @@ test('creates a trimmed named selection with unique plant links', async (t) => {
   );
 });
 
-test('gets a selection with its current catalog plant attributes', async (t) => {
+test('gets a selection using the injected catalog lookup', async (t) => {
   const database = createDatabase(t);
-  const repository = createRepository(database);
+  const requestedPlantIds = [];
+  const repository = createRepository(database, {
+    async listByIds(plantIds) {
+      requestedPlantIds.push([...plantIds]);
+      return [
+        {
+          id: 'plant-1',
+          name: 'Rose ancienne',
+          soils: [{ id: 1, label: 'Drainé' }],
+          exposures: ['sun'],
+        },
+      ];
+    },
+  });
   insertPlant(database, 'plant-1', 'Rose ancienne', 'rose ancienne');
-  const soil = database
-    .prepare(
-      `INSERT INTO soil_types (label, normalized_label, created_at)
-       VALUES ('Drainé', 'draine', '2026-07-01T08:00:00.000Z') RETURNING id`,
-    )
-    .get();
-  database
-    .prepare('INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)')
-    .run('plant-1', Number(soil.id));
-  database
-    .prepare(
-      `INSERT INTO plant_exposures (plant_id, exposure_code)
-       VALUES ('plant-1', 'sun')`,
-    )
-    .run();
   database
     .prepare(
       `INSERT INTO selections (
@@ -184,7 +179,9 @@ test('gets a selection with its current catalog plant attributes', async (t) => 
   assert.equal(result.plants[0].name, 'Rose ancienne');
   assert.deepEqual(result.plants[0].soils, [{ id: 1, label: 'Drainé' }]);
   assert.deepEqual(result.plants[0].exposures, ['sun']);
+  assert.deepEqual(requestedPlantIds, [['plant-1']]);
   assert.equal(await repository.get('missing-selection'), null);
+  assert.deepEqual(requestedPlantIds, [['plant-1']]);
 });
 
 test('rejects empty creation data and exact duplicate selection names', async (t) => {

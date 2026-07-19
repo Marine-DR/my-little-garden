@@ -110,6 +110,27 @@ test('uses offset and limit for subsequent pages', async (t) => {
   assert.equal(result.items.length, 5);
 });
 
+test('lists and hydrates catalog plants by id', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.listByIds([
+    'plant-00',
+    'plant-01',
+    'plant-00',
+    'missing-plant',
+  ]);
+
+  assert.deepEqual(
+    result.map(({ name }) => name),
+    ['Achillée', 'Échinacée'],
+  );
+  assert.deepEqual(result[0].soils, [
+    { id: 1, label: 'Drainé' },
+    { id: 2, label: 'Humide' },
+  ]);
+  assert.deepEqual(result[0].exposures, ['sun', 'shade']);
+  assert.deepEqual(await repository.listByIds([]), []);
+});
+
 test('filters by soil without requiring exposure or bloom filters', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.list({

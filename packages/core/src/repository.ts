@@ -45,12 +45,9 @@ export interface SelectionDetailsRecord {
   readonly plants: readonly Plant[];
 }
 
-export interface PlantLookupRepository {
-  listByIds(ids: readonly string[]): Promise<readonly Plant[]>;
-}
-
-export interface PlantCatalogRepository extends PlantLookupRepository {
+export interface PlantCatalogRepository {
   list(page: PlantPageRequest): Promise<PlantPage>;
+  listByIds(ids: readonly string[]): Promise<readonly Plant[]>;
   listIds(filters?: PlantCatalogFilters): Promise<string[]>;
   listFilterOptions(): Promise<PlantCatalogFilterOptions>;
 }
