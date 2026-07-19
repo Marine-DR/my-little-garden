@@ -18,7 +18,7 @@ export function SelectionsPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.selectionService
       .listSelections()
       .then((result) => {
         if (active) {
@@ -41,6 +41,14 @@ export function SelectionsPage({
       <SelectionDetailsPage
         selectionId={selectedSelectionId}
         onBack={() => setSelectedSelectionId(null)}
+        onUpdated={() => {
+          void window.selectionService
+            .listSelections()
+            .then(setSelections)
+            .catch(() =>
+              setError('Les sélections n’ont pas pu être chargées.'),
+            );
+        }}
       />
     );
   }

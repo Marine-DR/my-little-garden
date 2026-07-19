@@ -1,8 +1,10 @@
 import type {
+  PlantCatalogRepository,
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetailsRecord,
-  PlantCatalogRepository,
+  SelectionPlantAdditionInput,
+  SelectionPlantAdditionResult,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -51,6 +53,17 @@ export class SqliteSelectionRepository implements SelectionRepository {
     private readonly database: DatabaseSync,
     private readonly plantRepository: PlantCatalogRepository,
   ) {}
+
+  private allPlantsExist(plantIds: readonly string[]): boolean {
+    const placeholders = plantIds.map(() => '?').join(', ');
+    const existingPlantIds = new Set(
+      this.database
+        .prepare(`SELECT id FROM plants WHERE id IN (${placeholders})`)
+        .all(...plantIds)
+        .map((row) => stringColumn(row as SqliteRow, 'id')),
+    );
+    return plantIds.every((plantId) => existingPlantIds.has(plantId));
+  }
 
   async listSummaries(): Promise<SelectionSummaryRecord[]> {
     const selections = this.database
@@ -126,6 +139,38 @@ export class SqliteSelectionRepository implements SelectionRepository {
     };
   }
 
+  async removePlants(
+    selectionId: string,
+    plantIds: readonly string[],
+  ): Promise<SelectionDetailsRecord | null> {
+    const selectionExists = this.database
+      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .get(selectionId);
+    if (!selectionExists) {
+      return null;
+    }
+
+    const uniquePlantIds = [...new Set(plantIds)];
+    if (uniquePlantIds.length > 0) {
+      runInTransaction(this.database, () => {
+        const placeholders = uniquePlantIds.map(() => '?').join(', ');
+        const result = this.database
+          .prepare(
+            `DELETE FROM selection_plants
+             WHERE selection_id = ? AND plant_id IN (${placeholders})`,
+          )
+          .run(selectionId, ...uniquePlantIds);
+        if (result.changes > 0) {
+          this.database
+            .prepare('UPDATE selections SET updated_at = ? WHERE id = ?')
+            .run(new Date().toISOString(), selectionId);
+        }
+      });
+    }
+
+    return this.get(selectionId);
+  }
+
   async create(
     input: SelectionCreationInput,
   ): Promise<SelectionCreationResult> {
@@ -147,13 +192,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
         return { ok: false, code: 'duplicate_name' };
       }
 
-      const placeholders = plantIds.map(() => '?').join(', ');
-      const existingPlants = this.database
-        .prepare(
-          `SELECT count(*) AS count FROM plants WHERE id IN (${placeholders})`,
-        )
-        .get(...plantIds) as { count: number };
-      if (existingPlants.count !== plantIds.length) {
+      if (!this.allPlantsExist(plantIds)) {
         return { ok: false, code: 'unknown_plants' };
       }
 
@@ -179,6 +218,59 @@ export class SqliteSelectionRepository implements SelectionRepository {
         selectionId,
         name,
         plantCount: plantIds.length,
+      };
+    });
+  }
+
+  async addPlants(
+    input: SelectionPlantAdditionInput,
+  ): Promise<SelectionPlantAdditionResult> {
+    const selectionId = input.selectionId.trim();
+    const plantIds = [...new Set(input.plantIds)];
+
+    if (!selectionId) {
+      return { ok: false, code: 'no_selection' };
+    }
+    if (plantIds.length === 0) {
+      return { ok: false, code: 'no_plants' };
+    }
+
+    return runInTransaction(this.database, () => {
+      const selection = this.database
+        .prepare('SELECT name FROM selections WHERE id = ?')
+        .get(selectionId) as SqliteRow | undefined;
+      if (!selection) {
+        return { ok: false, code: 'selection_not_found' };
+      }
+
+      if (!this.allPlantsExist(plantIds)) {
+        return { ok: false, code: 'unknown_plants' };
+      }
+
+      const now = new Date().toISOString();
+      const insertPlant = this.database.prepare(
+        `INSERT OR IGNORE INTO selection_plants (
+           selection_id, plant_id, added_at
+         ) VALUES (?, ?, ?)`,
+      );
+      let addedCount = 0;
+      for (const plantId of plantIds) {
+        addedCount += Number(
+          insertPlant.run(selectionId, plantId, now).changes,
+        );
+      }
+      if (addedCount > 0) {
+        this.database
+          .prepare('UPDATE selections SET updated_at = ? WHERE id = ?')
+          .run(now, selectionId);
+      }
+
+      return {
+        ok: true,
+        selectionId,
+        selectionName: stringColumn(selection, 'name'),
+        addedCount,
+        ignoredCount: plantIds.length - addedCount,
       };
     });
   }

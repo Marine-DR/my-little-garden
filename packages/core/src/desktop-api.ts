@@ -69,6 +69,27 @@ export type SelectionCreationResult =
       readonly code: SelectionCreationErrorCode;
     };
 
+export interface SelectionPlantAdditionInput {
+  readonly selectionId: string;
+  readonly plantIds: readonly string[];
+}
+
+export type SelectionPlantAdditionErrorCode =
+  'no_selection' | 'no_plants' | 'selection_not_found' | 'unknown_plants';
+
+export type SelectionPlantAdditionResult =
+  | {
+      readonly ok: true;
+      readonly selectionId: string;
+      readonly selectionName: string;
+      readonly addedCount: number;
+      readonly ignoredCount: number;
+    }
+  | {
+      readonly ok: false;
+      readonly code: SelectionPlantAdditionErrorCode;
+    };
+
 export type CatalogFilters = Required<PlantCatalogFilters>;
 
 export type CatalogFilterOptions = PlantCatalogFilterOptions;
@@ -100,17 +121,3 @@ export type CatalogImportError = DataImportError;
 export type CatalogImportResult =
   | { readonly ok: true; readonly imported: number }
   | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
-
-export interface CatalogApi {
-  listPlants(page: number, filters?: CatalogFilters): Promise<CatalogPage>;
-  listPlantIds(filters?: CatalogFilters): Promise<readonly string[]>;
-  listFilterOptions(): Promise<CatalogFilterOptions>;
-  listSelections(): Promise<readonly SelectionSummary[]>;
-  getSelection(selectionId: string): Promise<SelectionDetails | null>;
-  createSelection(
-    input: SelectionCreationInput,
-  ): Promise<SelectionCreationResult>;
-  replaceCatalog(filename: string, csv: string): Promise<CatalogImportResult>;
-  importPhotos(files: readonly PhotoImportFile[]): Promise<PhotoImportResult>;
-  deletePhoto(plantId: string): Promise<PhotoDeleteResult>;
-}

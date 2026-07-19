@@ -10,8 +10,10 @@ import {
   openApplicationDatabase,
   seedDemoCatalogIfNeeded,
 } from './database.js';
-import { createDesktopApi } from './desktop-api.js';
-import { registerIpcHandlers } from './ipc-handlers.js';
+import { registerCatalogHandlers } from './ipc/catalog-handlers.js';
+import { registerCatalogManagementHandlers } from './ipc/catalog-management-handlers.js';
+import { registerPhotoHandlers } from './ipc/photo-handlers.js';
+import { registerSelectionHandlers } from './ipc/selection-handlers.js';
 import { handlePhotoRequests, registerPhotoScheme } from './photo-protocol.js';
 import { configureRuntimeEnvironment } from './runtime-environments/index.js';
 import { createMainWindow } from './window.js';
@@ -33,15 +35,10 @@ app.whenReady().then(async () => {
   seedDemoCatalogIfNeeded(app, (csv) => seedDemoCatalog(openedDatabase, csv));
 
   handlePhotoRequests(photoDirectory);
-  registerIpcHandlers({
-    ipcMain,
-    desktopApi: createDesktopApi({
-      database: openedDatabase,
-      photoDirectory,
-      catalogRepository,
-      selectionRepository,
-    }),
-  });
+  registerCatalogHandlers(ipcMain, catalogRepository);
+  registerSelectionHandlers(ipcMain, selectionRepository);
+  registerCatalogManagementHandlers(ipcMain, openedDatabase, photoDirectory);
+  registerPhotoHandlers(ipcMain, openedDatabase, photoDirectory);
   await createMainWindow(app);
 
   app.on('activate', () => {

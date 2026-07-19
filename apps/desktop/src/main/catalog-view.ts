@@ -62,6 +62,25 @@ export async function getSelectionDetails(
   };
 }
 
+export async function removePlantsFromSelection(
+  selectionRepository: SelectionRepository,
+  selectionId: string,
+  plantIds: readonly string[],
+): Promise<SelectionDetails | null> {
+  const selection = await selectionRepository.removePlants(
+    selectionId,
+    plantIds,
+  );
+  if (!selection) {
+    return null;
+  }
+  return {
+    id: selection.id,
+    name: selection.name,
+    plants: selection.plants.map(toCatalogPlant),
+  };
+}
+
 function toCatalogPlant(plant: Plant): CatalogPlant {
   return {
     id: plant.id,

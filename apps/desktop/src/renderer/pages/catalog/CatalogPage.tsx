@@ -12,6 +12,7 @@ import { CatalogManager } from './components/CatalogManager';
 import { CatalogTable } from './components/CatalogTable';
 import { ImageManager } from './components/ImageManager';
 import { SelectionCreator } from './components/SelectionCreator';
+import { SelectionAdder } from './components/SelectionAdder';
 
 export function CatalogPage({
   onSuccess,
@@ -32,7 +33,7 @@ export function CatalogPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.catalogService
       .listPlants(page, filters)
       .then((result) => {
         if (active) {
@@ -52,7 +53,7 @@ export function CatalogPage({
 
   useEffect(() => {
     let active = true;
-    window.catalogApi
+    window.catalogService
       .listFilterOptions()
       .then((options) => {
         if (active) {
@@ -75,15 +76,15 @@ export function CatalogPage({
   };
 
   const refreshPage = async (): Promise<void> => {
-    const catalog = await window.catalogApi.listPlants(page, filters);
+    const catalog = await window.catalogService.listPlants(page, filters);
     setData(catalog);
     setError(null);
   };
 
   const refreshAfterCatalogReplacement = async (): Promise<void> => {
     const [catalog, options] = await Promise.all([
-      window.catalogApi.listPlants(1, filters),
-      window.catalogApi.listFilterOptions(),
+      window.catalogService.listPlants(1, filters),
+      window.catalogService.listFilterOptions(),
     ]);
     setPage(1);
     setData(catalog);
@@ -116,7 +117,7 @@ export function CatalogPage({
 
     setSelectingAll(true);
     try {
-      const plantIds = await window.catalogApi.listPlantIds(filters);
+      const plantIds = await window.catalogService.listPlantIds(filters);
       setSelectedPlantIds((current) =>
         current.length === 0 ? plantIds : current,
       );
@@ -131,6 +132,26 @@ export function CatalogPage({
   const selectionCreated = (name: string): void => {
     setSelectedPlantIds([]);
     onSuccess(`La sélection « ${name} » a été créée avec succès.`);
+  };
+
+  const plantsAdded = ({
+    selectionName,
+    addedCount,
+    ignoredCount,
+  }: {
+    readonly selectionName: string;
+    readonly addedCount: number;
+    readonly ignoredCount: number;
+  }): void => {
+    setSelectedPlantIds([]);
+    const addedLabel = `${addedCount} ${addedCount === 1 ? 'plante ajoutée' : 'plantes ajoutées'}`;
+    const ignoredLabel =
+      ignoredCount > 0
+        ? ` ${ignoredCount} ${ignoredCount === 1 ? 'association existante ignorée' : 'associations existantes ignorées'}.`
+        : '';
+    onSuccess(
+      `${addedLabel} à la sélection « ${selectionName} ».${ignoredLabel}`,
+    );
   };
 
   return (
@@ -174,6 +195,10 @@ export function CatalogPage({
           <SelectionCreator
             selectedPlantIds={selectedPlantIds}
             onCreated={selectionCreated}
+          />
+          <SelectionAdder
+            selectedPlantIds={selectedPlantIds}
+            onAdded={plantsAdded}
           />
         </div>
       </section>

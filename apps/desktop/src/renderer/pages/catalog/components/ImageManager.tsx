@@ -39,7 +39,7 @@ export function ImageManager({
           bytes: new Uint8Array(await file.arrayBuffer()),
         })),
       );
-      const result = await window.catalogApi.importPhotos(files);
+      const result = await window.photoService.importPhotos(files);
       if (!result.ok) {
         console.error('Photo import failed', result.errors);
         setErrors(result.errors.map(({ message }) => message));
