@@ -2,6 +2,7 @@ import type {
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetailsRecord,
+  PlantLookupRepository,
   SelectionRepository,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -14,7 +15,6 @@ import {
   type SqliteRow,
 } from './typed-query';
 import { runInTransaction } from './transaction';
-import { SqlitePlantCatalogRepository } from './catalog-repository';
 
 interface SelectionRow {
   readonly id: string;
@@ -47,7 +47,10 @@ function decodePreviewRow(row: SqliteRow): PreviewRow {
 }
 
 export class SqliteSelectionRepository implements SelectionRepository {
-  constructor(private readonly database: DatabaseSync) {}
+  constructor(
+    private readonly database: DatabaseSync,
+    private readonly plantRepository: PlantLookupRepository,
+  ) {}
 
   async listSummaries(): Promise<SelectionSummaryRecord[]> {
     const selections = this.database
@@ -116,11 +119,10 @@ export class SqliteSelectionRepository implements SelectionRepository {
       )
       .all(selectionId)
       .map((row) => stringColumn(row as SqliteRow, 'plant_id'));
-    const catalogRepository = new SqlitePlantCatalogRepository(this.database);
     return {
       id: stringColumn(selection, 'id'),
       name: stringColumn(selection, 'name'),
-      plants: catalogRepository.listByIds(plantIds),
+      plants: await this.plantRepository.listByIds(plantIds),
     };
   }
 

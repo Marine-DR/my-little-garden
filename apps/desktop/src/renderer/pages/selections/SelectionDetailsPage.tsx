@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { SelectionDetails } from '@my-little-garden/core';
 import { Pagination } from '@renderer/components/Pagination';
-import { PlantsTable } from '../catalog/components/CatalogTable';
+import { PlantsTable } from '@renderer/components/PlantsTable';
 
 const PLANTS_PER_PAGE = 25;
 

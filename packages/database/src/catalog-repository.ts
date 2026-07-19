@@ -66,7 +66,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     return { items: this.hydrate(rows), total };
   }
 
-  listByIds(ids: readonly string[]): Plant[] {
+  async listByIds(ids: readonly string[]): Promise<readonly Plant[]> {
     return this.hydrate(this.queries.byIds([...new Set(ids)]));
   }
 

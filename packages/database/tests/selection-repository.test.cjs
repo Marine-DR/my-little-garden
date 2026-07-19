@@ -3,7 +3,10 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
-const { SqliteSelectionRepository } = require('../dist');
+const {
+  SqlitePlantCatalogRepository,
+  SqliteSelectionRepository,
+} = require('../dist');
 
 const migration = [
   '001_initial_schema.sql',
@@ -19,6 +22,13 @@ function createDatabase(t) {
   database.exec(migration);
   t.after(() => database.close());
   return database;
+}
+
+function createRepository(database) {
+  return new SqliteSelectionRepository(
+    database,
+    new SqlitePlantCatalogRepository(database),
+  );
 }
 
 function insertPlant(database, id, name, normalizedName, photoFilename = null) {
@@ -42,7 +52,7 @@ function insertPlant(database, id, name, normalizedName, photoFilename = null) {
 
 test('lists selection summaries with plant counts and four preview images', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
 
   database
     .prepare(
@@ -103,7 +113,7 @@ test('lists selection summaries with plant counts and four preview images', asyn
 
 test('creates a trimmed named selection with unique plant links', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
   insertPlant(database, 'plant-1', 'Rose', 'rose');
   insertPlant(database, 'plant-2', 'Sauge', 'sauge');
 
@@ -133,7 +143,7 @@ test('creates a trimmed named selection with unique plant links', async (t) => {
 
 test('gets a selection with its current catalog plant attributes', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
   insertPlant(database, 'plant-1', 'Rose ancienne', 'rose ancienne');
   const soil = database
     .prepare(
@@ -179,7 +189,7 @@ test('gets a selection with its current catalog plant attributes', async (t) => 
 
 test('rejects empty creation data and exact duplicate selection names', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteSelectionRepository(database);
+  const repository = createRepository(database);
   insertPlant(database, 'plant-1', 'Rose', 'rose');
 
   assert.deepEqual(

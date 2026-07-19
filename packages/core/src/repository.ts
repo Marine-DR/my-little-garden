@@ -45,16 +45,20 @@ export interface SelectionDetailsRecord {
   readonly plants: readonly Plant[];
 }
 
-/**
- * Persistence port. Implementations must save the plant, vocabulary values,
- * and relationship rows in one transaction.
- */
-export interface PlantCatalogRepository {
+export interface PlantLookupRepository {
+  listByIds(ids: readonly string[]): Promise<readonly Plant[]>;
+}
+
+export interface PlantCatalogRepository extends PlantLookupRepository {
   list(page: PlantPageRequest): Promise<PlantPage>;
   listIds(filters?: PlantCatalogFilters): Promise<string[]>;
   listFilterOptions(): Promise<PlantCatalogFilterOptions>;
 }
 
+/**
+ * Persistence port. Implementations must save the plant, vocabulary values,
+ * and relationship rows in one transaction.
+ */
 export interface PlantRepository extends PlantCatalogRepository {
   upsert(input: PlantWriteInput): Promise<Plant>;
   findById(id: string): Promise<Plant | null>;
