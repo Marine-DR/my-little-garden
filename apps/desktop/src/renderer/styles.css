@@ -154,6 +154,26 @@ main {
   border-bottom: 0;
   border-left: 0;
 }
+.catalog-footer {
+  min-height: 53px;
+  padding: 10px 18px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: flex-start;
+}
+.software-version {
+  margin: 8px 0 0;
+  color: #2f7d32;
+  font-family: Inter, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.catalog-help-button {
+  padding-right: 6px;
+  padding-left: 6px;
+  gap: 1px;
+}
 .selections-administration-space {
   min-height: 53px;
 }

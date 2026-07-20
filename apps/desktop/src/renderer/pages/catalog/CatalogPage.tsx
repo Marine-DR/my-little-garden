@@ -4,11 +4,13 @@ import type {
   CatalogFilters,
   CatalogPage as CatalogPageData,
 } from '@my-little-garden/core';
+import { SoftwareVersion } from '@renderer/components/SoftwareVersion';
 import {
   CatalogFiltersPanel,
   EMPTY_FILTERS,
 } from './components/CatalogFiltersPanel';
 import { CatalogManager } from './components/CatalogManager';
+import { CatalogHelp } from './components/CatalogHelp';
 import { CatalogTable } from './components/CatalogTable';
 import { ImageManager } from './components/ImageManager';
 import { SelectionCreator } from './components/SelectionCreator';
@@ -227,6 +229,11 @@ export function CatalogPage({
           onToggleAll={() => void toggleAllPlants()}
         />
       ) : null}
+      <footer className="catalog-footer">
+        <CatalogHelp />
+        <SoftwareVersion />
+        <span aria-hidden="true" />
+      </footer>
     </>
   );
 }

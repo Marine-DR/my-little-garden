@@ -10,6 +10,7 @@ import {
   openApplicationDatabase,
   seedDemoCatalogIfNeeded,
 } from './database.js';
+import { registerApplicationHandlers } from './ipc/application-handlers.js';
 import { registerCatalogHandlers } from './ipc/catalog-handlers.js';
 import { registerCatalogManagementHandlers } from './ipc/catalog-management-handlers.js';
 import { registerPhotoHandlers } from './ipc/photo-handlers.js';
@@ -35,6 +36,7 @@ app.whenReady().then(async () => {
   seedDemoCatalogIfNeeded(app, (csv) => seedDemoCatalog(openedDatabase, csv));
 
   handlePhotoRequests(photoDirectory);
+  registerApplicationHandlers(ipcMain, app.getVersion());
   registerCatalogHandlers(ipcMain, catalogRepository);
   registerSelectionHandlers(ipcMain, selectionRepository);
   registerCatalogManagementHandlers(ipcMain, openedDatabase, photoDirectory);
