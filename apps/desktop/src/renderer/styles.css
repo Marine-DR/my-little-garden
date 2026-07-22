@@ -1304,11 +1304,122 @@ abbr {
 }
 .flowerbed-canvas-wrap {
   min-width: 0;
+  overflow: hidden;
+}
+.flowerbed-zoom-controls {
+  margin-bottom: 9px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.flowerbed-pan-help {
+  margin-right: auto;
+  align-self: center;
+  color: #666;
+  font-size: 11px;
+  font-weight: 400;
+}
+.flowerbed-zoom-controls button {
+  min-width: 33px;
+  height: 31px;
+  padding: 0 8px;
+  color: #2f7d32;
+  background: #fff;
+  border: 1px solid #2f7d32;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.flowerbed-zoom-controls button:hover:not(:disabled) {
+  background: #f4ffee;
+}
+.flowerbed-zoom-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.flowerbed-zoom-controls .flowerbed-zoom-value {
+  min-width: 70px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.flowerbed-canvas-viewport {
+  width: 100%;
+  min-width: 0;
+  height: clamp(360px, calc(100vh - 260px), 680px);
   overflow: auto;
+  overscroll-behavior: contain;
+  contain: layout paint;
+  background: #f8faf7;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+}
+.flowerbed-canvas-viewport-shell {
+  position: relative;
+  min-width: 0;
+}
+.flowerbed-pan-pad {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(3, 31px);
+  grid-template-rows: repeat(3, 31px);
+  filter: drop-shadow(0 2px 5px rgb(0 0 0 / 22%));
+}
+.flowerbed-pan-pad button,
+.flowerbed-pan-pad .pan-center {
+  width: 31px;
+  height: 31px;
+  color: #fff;
+  background: rgb(47 125 50 / 92%);
+  border: 1px solid #245e26;
+}
+.flowerbed-pan-pad button {
+  padding: 0;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.flowerbed-pan-pad button:hover {
+  background: #245e26;
+}
+.flowerbed-pan-pad .pan-up {
+  grid-column: 2;
+  grid-row: 1;
+  border-radius: 6px 6px 0 0;
+}
+.flowerbed-pan-pad .pan-left {
+  grid-column: 1;
+  grid-row: 2;
+  border-radius: 6px 0 0 6px;
+}
+.flowerbed-pan-pad .pan-center {
+  grid-column: 2;
+  grid-row: 2;
+  border-radius: 2px;
+}
+.flowerbed-pan-pad .pan-right {
+  grid-column: 3;
+  grid-row: 2;
+  border-radius: 0 6px 6px 0;
+}
+.flowerbed-pan-pad .pan-down {
+  grid-column: 2;
+  grid-row: 3;
+  border-radius: 0 0 6px 6px;
+}
+.flowerbed-canvas-viewport.is-panning,
+.flowerbed-canvas-viewport.is-panning * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+.flowerbed-canvas-stage {
+  margin: 0 auto;
+  transition: width 120ms ease-out;
 }
 .flowerbed-canvas {
   width: 100%;
-  max-height: calc(100vh - 220px);
   display: block;
   background: #fafbfa;
   border-radius: 4px;

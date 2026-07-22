@@ -971,6 +971,51 @@ describe('App catalog', () => {
     const drawing = screen.getByRole('img', {
       name: 'Plan du parterre 400 par 250 centimètres',
     });
+    const zoomValue = screen.getByRole('button', {
+      name: 'Réinitialiser le zoom',
+    });
+    expect(zoomValue).toHaveTextContent('100 %');
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom avant' }));
+    expect(zoomValue).toHaveTextContent('125 %');
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom arrière' }));
+    expect(zoomValue).toHaveTextContent('100 %');
+    const drawingZone = screen.getByLabelText('Zone de dessin');
+    fireEvent.wheel(drawingZone, { ctrlKey: false, deltaY: -100 });
+    expect(zoomValue).toHaveTextContent('100 %');
+    fireEvent.wheel(drawingZone, { ctrlKey: true, deltaY: -100 });
+    expect(zoomValue).toHaveTextContent('110 %');
+    fireEvent.wheel(drawingZone, { ctrlKey: true, deltaY: 100 });
+    expect(zoomValue).toHaveTextContent('100 %');
+    const middleDown = new MouseEvent('pointerdown', {
+      bubbles: true,
+      button: 1,
+      clientX: 100,
+      clientY: 100,
+    });
+    const panMove = new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 70,
+      clientY: 80,
+    });
+    const panEnd = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [middleDown, panMove, panEnd]) {
+      Object.defineProperty(event, 'pointerId', { value: 7 });
+    }
+    fireEvent(drawingZone, middleDown);
+    fireEvent(drawingZone, panMove);
+    expect(drawingZone).toHaveClass('is-panning');
+    expect(drawingZone.scrollLeft).toBe(30);
+    expect(drawingZone.scrollTop).toBe(20);
+    fireEvent(drawingZone, panEnd);
+    expect(drawingZone).not.toHaveClass('is-panning');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Déplacer la vue vers la droite' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Déplacer la vue vers le bas' }),
+    );
+    expect(drawingZone.scrollLeft).toBe(110);
+    expect(drawingZone.scrollTop).toBe(100);
     expect(
       screen.getByRole('button', { name: 'Dessiner une zone' }),
     ).toHaveClass('active');
