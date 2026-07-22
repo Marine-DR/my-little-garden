@@ -10,7 +10,6 @@ import type {
   FlowerbedDesign,
   FlowerbedPlantPlacementInput,
   FlowerbedSaveInput,
-  FlowerbedZoneInput,
   SelectionDetails,
   SelectionSummary,
 } from '@my-little-garden/core';
@@ -23,6 +22,8 @@ const MAX_ZOOM = 2;
 const ZOOM_STEP = 0.25;
 const WHEEL_ZOOM_STEP = 0.1;
 const PAN_STEP_PX = 80;
+const CORNER_HANDLE_RADIUS_CM = 6;
+const ZONE_CORNER_HANDLE_RADIUS_CM = 4;
 
 type EditorMode = 'select' | 'zone' | 'plant';
 
@@ -31,8 +32,13 @@ interface Point {
   readonly y: number;
 }
 
-interface ZoneDraft extends FlowerbedZoneInput {
+interface ZoneDraft {
   readonly id: string;
+  readonly xCm: number;
+  readonly yCm: number;
+  readonly widthCm: number;
+  readonly heightCm: number;
+  readonly boundaryPoints: readonly Point[];
 }
 
 interface PlacementDraft extends FlowerbedPlantPlacementInput {
@@ -47,6 +53,11 @@ interface DrawingZone {
 interface DraggingPlant {
   readonly id: string;
   readonly offset: Point;
+}
+
+interface DraggingZoneCorner {
+  readonly zoneId: string;
+  readonly cornerIndex: number;
 }
 
 interface PanningMap {
@@ -77,13 +88,7 @@ function adjustedZoom(current: number, change: number): number {
 }
 
 function circleInsideZone(placement: PlacementDraft, zone: ZoneDraft): boolean {
-  const radius = placement.spacingCmSnapshot / 2;
-  return (
-    placement.xCm - radius >= zone.xCm &&
-    placement.yCm - radius >= zone.yCm &&
-    placement.xCm + radius <= zone.xCm + zone.widthCm &&
-    placement.yCm + radius <= zone.yCm + zone.heightCm
-  );
+  return circleInsideBoundary(placement, zone.boundaryPoints);
 }
 
 function placementsOverlap(
@@ -100,12 +105,111 @@ function placementsOverlap(
   );
 }
 
-function zoneFromPoints(start: Point, current: Point): Omit<ZoneDraft, 'id'> {
+function rectangularBoundary(widthCm: number, heightCm: number): Point[] {
+  return [
+    { x: 0, y: 0 },
+    { x: widthCm, y: 0 },
+    { x: widthCm, y: heightCm },
+    { x: 0, y: heightCm },
+  ];
+}
+
+function pointInsidePolygon(point: Point, polygon: readonly Point[]): boolean {
+  let inside = false;
+  for (
+    let index = 0, previous = polygon.length - 1;
+    index < polygon.length;
+    previous = index++
+  ) {
+    const currentPoint = polygon[index];
+    const previousPoint = polygon[previous];
+    if (!currentPoint || !previousPoint) {
+      continue;
+    }
+    const crosses =
+      currentPoint.y > point.y !== previousPoint.y > point.y &&
+      point.x <
+        ((previousPoint.x - currentPoint.x) * (point.y - currentPoint.y)) /
+          (previousPoint.y - currentPoint.y) +
+          currentPoint.x;
+    if (crosses) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function distanceToSegment(point: Point, start: Point, end: Point): number {
+  const segmentX = end.x - start.x;
+  const segmentY = end.y - start.y;
+  const lengthSquared = segmentX * segmentX + segmentY * segmentY;
+  if (lengthSquared === 0) {
+    return Math.hypot(point.x - start.x, point.y - start.y);
+  }
+  const projection = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
+        lengthSquared,
+    ),
+  );
+  return Math.hypot(
+    point.x - (start.x + projection * segmentX),
+    point.y - (start.y + projection * segmentY),
+  );
+}
+
+function circleInsideBoundary(
+  placement: PlacementDraft,
+  boundary: readonly Point[],
+): boolean {
+  const center = { x: placement.xCm, y: placement.yCm };
+  if (!pointInsidePolygon(center, boundary)) {
+    return false;
+  }
+  const radius = placement.spacingCmSnapshot / 2;
+  return boundary.every((start, index) => {
+    const end = boundary[(index + 1) % boundary.length];
+    return end ? distanceToSegment(center, start, end) >= radius : false;
+  });
+}
+
+function zoneFromPoints(
+  start: Point,
+  current: Point,
+): Omit<ZoneDraft, 'id' | 'boundaryPoints'> {
   return {
     xCm: Math.min(start.x, current.x),
     yCm: Math.min(start.y, current.y),
     widthCm: Math.abs(current.x - start.x),
     heightCm: Math.abs(current.y - start.y),
+  };
+}
+
+function zoneBoundaryFromRectangle(
+  zone: Pick<ZoneDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'>,
+): Point[] {
+  return [
+    { x: zone.xCm, y: zone.yCm },
+    { x: zone.xCm + zone.widthCm, y: zone.yCm },
+    { x: zone.xCm + zone.widthCm, y: zone.yCm + zone.heightCm },
+    { x: zone.xCm, y: zone.yCm + zone.heightCm },
+  ];
+}
+
+function boundsFromPoints(
+  points: readonly Point[],
+): Pick<ZoneDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'> {
+  const xValues = points.map(({ x }) => x);
+  const yValues = points.map(({ y }) => y);
+  const minimumX = Math.min(...xValues);
+  const minimumY = Math.min(...yValues);
+  return {
+    xCm: minimumX,
+    yCm: minimumY,
+    widthCm: Math.max(...xValues) - minimumX,
+    heightCm: Math.max(...yValues) - minimumY,
   };
 }
 
@@ -157,10 +261,25 @@ export function FlowerbedEditorPage({
   const [selections, setSelections] = useState<readonly SelectionSummary[]>([]);
   const [selection, setSelection] = useState<SelectionDetails | null>(null);
   const [zones, setZones] = useState<readonly ZoneDraft[]>(
-    () => flowerbed?.zones.map((zone) => ({ ...zone })) ?? [],
+    () =>
+      flowerbed?.zones.map((zone) => ({
+        ...zone,
+        boundaryPoints: zone.boundaryPoints.map((point) => ({
+          x: point.xCm,
+          y: point.yCm,
+        })),
+      })) ?? [],
   );
   const [placements, setPlacements] = useState<readonly PlacementDraft[]>(
     () => flowerbed?.placements.map((placement) => ({ ...placement })) ?? [],
+  );
+  const [boundaryPoints, setBoundaryPoints] = useState<readonly Point[]>(() =>
+    flowerbed
+      ? flowerbed.boundaryPoints.map((point) => ({
+          x: point.xCm,
+          y: point.yCm,
+        }))
+      : rectangularBoundary(DEFAULT_WIDTH_CM, DEFAULT_HEIGHT_CM),
   );
   const [mode, setMode] = useState<EditorMode>('zone');
   const [selectedPlant, setSelectedPlant] = useState<CatalogPlant | null>(null);
@@ -169,6 +288,9 @@ export function FlowerbedEditorPage({
   const [draggingPlant, setDraggingPlant] = useState<DraggingPlant | null>(
     null,
   );
+  const [draggingCorner, setDraggingCorner] = useState<number | null>(null);
+  const [draggingZoneCorner, setDraggingZoneCorner] =
+    useState<DraggingZoneCorner | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -233,14 +355,7 @@ export function FlowerbedEditorPage({
       const insideAZone = zones.some((zone) =>
         circleInsideZone(placement, zone),
       );
-      const radius = placement.spacingCmSnapshot / 2;
-      if (
-        !insideAZone ||
-        placement.xCm - radius < 0 ||
-        placement.yCm - radius < 0 ||
-        placement.xCm + radius > widthCm ||
-        placement.yCm + radius > heightCm
-      ) {
+      if (!insideAZone || !circleInsideBoundary(placement, boundaryPoints)) {
         invalid.add(placement.id);
       }
       for (const other of placements) {
@@ -250,7 +365,7 @@ export function FlowerbedEditorPage({
       }
     }
     return invalid;
-  }, [heightCm, placements, widthCm, zones]);
+  }, [boundaryPoints, placements, zones]);
 
   const eventPoint = (event: ReactPointerEvent<SVGSVGElement>): Point => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -273,13 +388,8 @@ export function FlowerbedEditorPage({
   };
 
   const zoneContainingPoint = (point: Point): string | null =>
-    zones.find(
-      (zone) =>
-        point.x >= zone.xCm &&
-        point.x <= zone.xCm + zone.widthCm &&
-        point.y >= zone.yCm &&
-        point.y <= zone.yCm + zone.heightCm,
-    )?.id ?? null;
+    zones.find((zone) => pointInsidePolygon(point, zone.boundaryPoints))?.id ??
+    null;
 
   const handleCanvasPointerDown = (
     event: ReactPointerEvent<SVGSVGElement>,
@@ -322,6 +432,30 @@ export function FlowerbedEditorPage({
     if (drawingZone) {
       setDrawingZone({ ...drawingZone, current: point });
     }
+    if (draggingCorner !== null) {
+      setBoundaryPoints((current) =>
+        current.map((corner, index) =>
+          index === draggingCorner ? point : corner,
+        ),
+      );
+    }
+    if (draggingZoneCorner) {
+      setZones((current) =>
+        current.map((zone) => {
+          if (zone.id !== draggingZoneCorner.zoneId) {
+            return zone;
+          }
+          const nextBoundary = zone.boundaryPoints.map((corner, index) =>
+            index === draggingZoneCorner.cornerIndex ? point : corner,
+          );
+          return {
+            ...zone,
+            ...boundsFromPoints(nextBoundary),
+            boundaryPoints: nextBoundary,
+          };
+        }),
+      );
+    }
     if (draggingPlant) {
       const next = {
         x: Math.max(0, Math.min(widthCm, point.x - draggingPlant.offset.x)),
@@ -347,12 +481,21 @@ export function FlowerbedEditorPage({
       const rectangle = zoneFromPoints(drawingZone.start, drawingZone.current);
       if (rectangle.widthCm >= 10 && rectangle.heightCm >= 10) {
         const id = nextDraftId('zone');
-        setZones((current) => [...current, { id, ...rectangle }]);
+        setZones((current) => [
+          ...current,
+          {
+            id,
+            ...rectangle,
+            boundaryPoints: zoneBoundaryFromRectangle(rectangle),
+          },
+        ]);
         setSelectedObject(`zone:${id}`);
       }
       setDrawingZone(null);
     }
     setDraggingPlant(null);
+    setDraggingCorner(null);
+    setDraggingZoneCorner(null);
   };
 
   const deleteSelected = (): void => {
@@ -408,7 +551,21 @@ export function FlowerbedEditorPage({
       selectionId,
       widthCm,
       heightCm,
-      zones,
+      boundaryPoints: boundaryPoints.map((point) => ({
+        xCm: point.x,
+        yCm: point.y,
+      })),
+      zones: zones.map((zone) => ({
+        id: zone.id,
+        xCm: zone.xCm,
+        yCm: zone.yCm,
+        widthCm: zone.widthCm,
+        heightCm: zone.heightCm,
+        boundaryPoints: zone.boundaryPoints.map((point) => ({
+          xCm: point.x,
+          yCm: point.y,
+        })),
+      })),
       placements,
     };
     try {
@@ -424,6 +581,9 @@ export function FlowerbedEditorPage({
   const drawingRectangle = drawingZone
     ? zoneFromPoints(drawingZone.start, drawingZone.current)
     : null;
+  const boundaryPolygonPoints = boundaryPoints
+    .map((point) => `${point.x},${point.y}`)
+    .join(' ');
 
   const startPanning = (event: ReactPointerEvent<HTMLDivElement>): void => {
     if (event.button !== 1) {
@@ -681,32 +841,41 @@ export function FlowerbedEditorPage({
                         strokeWidth="1"
                       />
                     </pattern>
+                    <clipPath id="flowerbed-boundary-clip">
+                      <polygon points={boundaryPolygonPoints} />
+                    </clipPath>
                   </defs>
-                  <rect
+                  <polygon
                     className="flowerbed-boundary"
-                    x="1"
-                    y="1"
-                    width={Math.max(0, widthCm - 2)}
-                    height={Math.max(0, heightCm - 2)}
+                    points={boundaryPolygonPoints}
                   />
                   <rect
-                    x="1"
-                    y="1"
-                    width={Math.max(0, widthCm - 2)}
-                    height={Math.max(0, heightCm - 2)}
+                    x="0"
+                    y="0"
+                    width={widthCm}
+                    height={heightCm}
                     fill="url(#flowerbed-grid)"
+                    clipPath="url(#flowerbed-boundary-clip)"
                     pointerEvents="none"
                   />
                   {zones.map((zone, index) => (
                     <g key={zone.id}>
-                      <rect
+                      <polygon
                         className={`planting-zone ${selectedObject === `zone:${zone.id}` ? 'selected' : ''}`}
-                        x={zone.xCm}
-                        y={zone.yCm}
-                        width={zone.widthCm}
-                        height={zone.heightCm}
+                        points={zone.boundaryPoints
+                          .map((point) => `${point.x},${point.y}`)
+                          .join(' ')}
+                        role="button"
+                        aria-label={`Sélectionner la zone ${index + 1}`}
                         onPointerDown={(event) => {
                           if (event.button !== 0 || mode !== 'select') {
+                            return;
+                          }
+                          event.stopPropagation();
+                          setSelectedObject(`zone:${zone.id}`);
+                        }}
+                        onClick={(event) => {
+                          if (mode !== 'select') {
                             return;
                           }
                           event.stopPropagation();
@@ -720,6 +889,51 @@ export function FlowerbedEditorPage({
                       >
                         Zone {index + 1}
                       </text>
+                      {selectedObject === `zone:${zone.id}`
+                        ? zone.boundaryPoints.map((point, cornerIndex) => (
+                            <circle
+                              key={`${zone.id}-corner-${cornerIndex}`}
+                              className={`planting-zone-corner-handle ${draggingZoneCorner?.zoneId === zone.id && draggingZoneCorner.cornerIndex === cornerIndex ? 'dragging' : ''}`}
+                              cx={Math.max(
+                                ZONE_CORNER_HANDLE_RADIUS_CM,
+                                Math.min(
+                                  widthCm - ZONE_CORNER_HANDLE_RADIUS_CM,
+                                  point.x,
+                                ),
+                              )}
+                              cy={Math.max(
+                                ZONE_CORNER_HANDLE_RADIUS_CM,
+                                Math.min(
+                                  heightCm - ZONE_CORNER_HANDLE_RADIUS_CM,
+                                  point.y,
+                                ),
+                              )}
+                              r={ZONE_CORNER_HANDLE_RADIUS_CM}
+                              role="button"
+                              aria-label={`Déplacer le coin ${cornerIndex + 1} de la zone ${index + 1}`}
+                              onPointerDown={(event) => {
+                                if (event.button !== 0) {
+                                  return;
+                                }
+                                event.preventDefault();
+                                event.stopPropagation();
+                                event.currentTarget.ownerSVGElement?.setPointerCapture?.(
+                                  event.pointerId,
+                                );
+                                setMode('select');
+                                setSelectedPlant(null);
+                                setDraggingZoneCorner({
+                                  zoneId: zone.id,
+                                  cornerIndex,
+                                });
+                              }}
+                            >
+                              <title>
+                                Zone {index + 1}, coin {cornerIndex + 1}
+                              </title>
+                            </circle>
+                          ))
+                        : null}
                     </g>
                   ))}
                   {drawingRectangle ? (
@@ -788,6 +1002,41 @@ export function FlowerbedEditorPage({
                       </g>
                     );
                   })}
+                  {boundaryPoints.map((point, index) => (
+                    <circle
+                      key={`corner-${index}`}
+                      className={`flowerbed-corner-handle ${draggingCorner === index ? 'dragging' : ''}`}
+                      cx={Math.max(
+                        CORNER_HANDLE_RADIUS_CM,
+                        Math.min(widthCm - CORNER_HANDLE_RADIUS_CM, point.x),
+                      )}
+                      cy={Math.max(
+                        CORNER_HANDLE_RADIUS_CM,
+                        Math.min(heightCm - CORNER_HANDLE_RADIUS_CM, point.y),
+                      )}
+                      r={CORNER_HANDLE_RADIUS_CM}
+                      role="button"
+                      aria-label={`Déplacer le coin ${index + 1}`}
+                      onPointerDown={(event) => {
+                        if (event.button !== 0) {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        event.currentTarget.ownerSVGElement?.setPointerCapture?.(
+                          event.pointerId,
+                        );
+                        setMode('select');
+                        setSelectedPlant(null);
+                        setSelectedObject(null);
+                        setDraggingCorner(index);
+                      }}
+                    >
+                      <title>
+                        Coin {index + 1} · glissez pour modifier la forme
+                      </title>
+                    </circle>
+                  ))}
                 </svg>
               </div>
             </div>
