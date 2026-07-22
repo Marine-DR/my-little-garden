@@ -10,6 +10,8 @@ const migration = [
   '002_remove_selection_normalized_name.sql',
   '003_flowerbed_designs.sql',
   '004_flowerbed_placement_color.sql',
+  '005_flowerbed_boundary_points.sql',
+  '006_planting_zone_boundary_points.sql',
 ]
   .map((filename) =>
     readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
@@ -56,6 +58,12 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
     selectionId: 'selection-1',
     widthCm: 400.5,
     heightCm: 180,
+    boundaryPoints: [
+      { xCm: 15, yCm: 5 },
+      { xCm: 390, yCm: 20 },
+      { xCm: 370, yCm: 170 },
+      { xCm: 25, yCm: 160 },
+    ],
     zones: [
       {
         id: 'zone-1',
@@ -63,6 +71,12 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
         yCm: 15,
         widthCm: 360,
         heightCm: 140,
+        boundaryPoints: [
+          { xCm: 15, yCm: 20 },
+          { xCm: 365, yCm: 15 },
+          { xCm: 350, yCm: 150 },
+          { xCm: 25, yCm: 155 },
+        ],
       },
     ],
     placements: [
@@ -84,6 +98,12 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
   assert.equal(saved.widthCm, 400.5);
   assert.equal(saved.zoneCount, 1);
   assert.equal(saved.placementCount, 1);
+  assert.deepEqual(saved.boundaryPoints, [
+    { xCm: 15, yCm: 5 },
+    { xCm: 390, yCm: 20 },
+    { xCm: 370, yCm: 170 },
+    { xCm: 25, yCm: 160 },
+  ]);
   assert.match(saved.zones[0].id, /^[0-9a-f-]{36}$/);
   assert.deepEqual(
     { ...saved.zones[0], id: undefined },
@@ -93,6 +113,12 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
       yCm: 15,
       widthCm: 360,
       heightCm: 140,
+      boundaryPoints: [
+        { xCm: 15, yCm: 20 },
+        { xCm: 365, yCm: 15 },
+        { xCm: 350, yCm: 150 },
+        { xCm: 25, yCm: 155 },
+      ],
     },
   );
   assert.match(saved.placements[0].id, /^[0-9a-f-]{36}$/);
@@ -155,10 +181,22 @@ test('updates atomically and deletes removed child geometry', async (t) => {
   assert.equal(updated.name, 'Plan final');
   assert.deepEqual(updated.zones, []);
   assert.deepEqual(updated.placements, []);
+  assert.deepEqual(updated.boundaryPoints, [
+    { xCm: 0, yCm: 0 },
+    { xCm: 250, yCm: 0 },
+    { xCm: 250, yCm: 120 },
+    { xCm: 0, yCm: 120 },
+  ]);
   assert.equal(
     database.prepare('SELECT count(*) AS count FROM planting_zones').get()
       .count,
     0,
+  );
+  assert.equal(
+    database
+      .prepare('SELECT count(*) AS count FROM flowerbed_boundary_points')
+      .get().count,
+    4,
   );
 });
 
@@ -218,6 +256,18 @@ test('deletes a flowerbed and its children', async (t) => {
   assert.equal(
     database.prepare('SELECT count(*) AS count FROM planting_zones').get()
       .count,
+    0,
+  );
+  assert.equal(
+    database
+      .prepare('SELECT count(*) AS count FROM flowerbed_boundary_points')
+      .get().count,
+    0,
+  );
+  assert.equal(
+    database
+      .prepare('SELECT count(*) AS count FROM planting_zone_boundary_points')
+      .get().count,
     0,
   );
 });

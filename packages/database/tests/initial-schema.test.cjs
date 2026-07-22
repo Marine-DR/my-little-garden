@@ -25,7 +25,15 @@ const flowerbedColorMigration = readFileSync(
   join(__dirname, '..', 'migrations', '004_flowerbed_placement_color.sql'),
   'utf8',
 );
-const migration = `${initialMigration}\n${selectionNameMigration}\n${flowerbedMigration}\n${flowerbedColorMigration}`;
+const flowerbedBoundaryMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '005_flowerbed_boundary_points.sql'),
+  'utf8',
+);
+const zoneBoundaryMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '006_planting_zone_boundary_points.sql'),
+  'utf8',
+);
+const migration = `${initialMigration}\n${selectionNameMigration}\n${flowerbedMigration}\n${flowerbedColorMigration}\n${flowerbedBoundaryMigration}\n${zoneBoundaryMigration}`;
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -99,6 +107,8 @@ test('migration creates the expected tables', (t) => {
       'flowerbeds',
       'planting_zones',
       'flowerbed_plant_placements',
+      'flowerbed_boundary_points',
+      'planting_zone_boundary_points',
     ]),
   );
 });

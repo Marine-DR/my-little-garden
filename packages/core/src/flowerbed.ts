@@ -4,6 +4,12 @@ export interface FlowerbedZone {
   readonly yCm: number;
   readonly widthCm: number;
   readonly heightCm: number;
+  readonly boundaryPoints: readonly FlowerbedBoundaryPoint[];
+}
+
+export interface FlowerbedBoundaryPoint {
+  readonly xCm: number;
+  readonly yCm: number;
 }
 
 export interface FlowerbedPlantPlacement {
@@ -30,6 +36,7 @@ export interface FlowerbedSummary {
 }
 
 export interface FlowerbedDesign extends FlowerbedSummary {
+  readonly boundaryPoints: readonly FlowerbedBoundaryPoint[];
   readonly zones: readonly FlowerbedZone[];
   readonly placements: readonly FlowerbedPlantPlacement[];
 }
@@ -40,6 +47,7 @@ export interface FlowerbedZoneInput {
   readonly yCm: number;
   readonly widthCm: number;
   readonly heightCm: number;
+  readonly boundaryPoints?: readonly FlowerbedBoundaryPoint[];
 }
 
 export interface FlowerbedPlantPlacementInput {
@@ -59,6 +67,7 @@ export interface FlowerbedSaveInput {
   readonly selectionId: string | null;
   readonly widthCm: number;
   readonly heightCm: number;
+  readonly boundaryPoints?: readonly FlowerbedBoundaryPoint[];
   readonly zones: readonly FlowerbedZoneInput[];
   readonly placements: readonly FlowerbedPlantPlacementInput[];
 }

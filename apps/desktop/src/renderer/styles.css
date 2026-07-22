@@ -1437,6 +1437,32 @@ abbr {
   stroke: #2f7d32;
   stroke-width: 3;
 }
+.flowerbed-corner-handle {
+  fill: #fff;
+  stroke: #2f7d32;
+  stroke-width: 3;
+  cursor: grab;
+  vector-effect: non-scaling-stroke;
+}
+.flowerbed-corner-handle:hover,
+.flowerbed-corner-handle.dragging {
+  fill: #2f7d32;
+  stroke: #fff;
+  cursor: grabbing;
+}
+.planting-zone-corner-handle {
+  fill: #fff;
+  stroke: #0d47a1;
+  stroke-width: 2;
+  cursor: grab;
+  vector-effect: non-scaling-stroke;
+}
+.planting-zone-corner-handle:hover,
+.planting-zone-corner-handle.dragging {
+  fill: #0d47a1;
+  stroke: #fff;
+  cursor: grabbing;
+}
 .planting-zone {
   fill: rgb(47 125 50 / 13%);
   stroke: #2f7d32;

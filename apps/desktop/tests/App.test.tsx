@@ -971,6 +971,43 @@ describe('App catalog', () => {
     const drawing = screen.getByRole('img', {
       name: 'Plan du parterre 400 par 250 centimètres',
     });
+    vi.spyOn(drawing, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 400,
+      bottom: 250,
+      width: 400,
+      height: 250,
+      toJSON: () => ({}),
+    });
+    const firstCorner = screen.getByRole('button', {
+      name: 'Déplacer le coin 1',
+    });
+    expect(
+      screen.getAllByRole('button', { name: /Déplacer le coin/ }),
+    ).toHaveLength(4);
+    const cornerDown = new MouseEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      clientX: 6,
+      clientY: 6,
+    });
+    const cornerMove = new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 40,
+      clientY: 30,
+    });
+    const cornerUp = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [cornerDown, cornerMove, cornerUp]) {
+      Object.defineProperty(event, 'pointerId', { value: 4 });
+    }
+    fireEvent(firstCorner, cornerDown);
+    fireEvent(drawing, cornerMove);
+    fireEvent(drawing, cornerUp);
+    expect(firstCorner).toHaveAttribute('cx', '40');
+    expect(firstCorner).toHaveAttribute('cy', '30');
     const zoomValue = screen.getByRole('button', {
       name: 'Réinitialiser le zoom',
     });
@@ -1016,9 +1053,9 @@ describe('App catalog', () => {
     );
     expect(drawingZone.scrollLeft).toBe(110);
     expect(drawingZone.scrollTop).toBe(100);
-    expect(
-      screen.getByRole('button', { name: 'Dessiner une zone' }),
-    ).toHaveClass('active');
+    expect(screen.getByRole('button', { name: 'Déplacer' })).toHaveClass(
+      'active',
+    );
     fireEvent.click(screen.getByRole('button', { name: /Rose ancienne/ }));
     expect(
       screen.getByRole('button', { name: 'Placer la plante' }),
@@ -1045,6 +1082,12 @@ describe('App catalog', () => {
       placementCount: 1,
       createdAt: '2026-07-20T10:00:00.000Z',
       updatedAt: '2026-07-20T10:00:00.000Z',
+      boundaryPoints: [
+        { xCm: 0, yCm: 0 },
+        { xCm: 300, yCm: 0 },
+        { xCm: 300, yCm: 200 },
+        { xCm: 0, yCm: 200 },
+      ],
       zones: [
         {
           id: 'zone-1',
@@ -1052,6 +1095,12 @@ describe('App catalog', () => {
           yCm: 10,
           widthCm: 280,
           heightCm: 180,
+          boundaryPoints: [
+            { xCm: 10, yCm: 10 },
+            { xCm: 290, yCm: 10 },
+            { xCm: 290, yCm: 190 },
+            { xCm: 10, yCm: 190 },
+          ],
         },
       ],
       placements: [
@@ -1077,5 +1126,47 @@ describe('App catalog', () => {
     const title = await screen.findByText(/Rose ancienne · diamètre 40 cm/);
     const circle = title.parentElement?.querySelector('circle');
     expect(circle).toHaveStyle({ fill: '#ec4899' });
+    const drawing = screen.getByRole('img', {
+      name: 'Plan du parterre 300 par 200 centimètres',
+    });
+    vi.spyOn(drawing, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 300,
+      bottom: 200,
+      width: 300,
+      height: 200,
+      toJSON: () => ({}),
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Déplacer' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sélectionner la zone 1' }),
+    );
+    const zoneCorners = screen.getAllByRole('button', {
+      name: /de la zone 1/,
+    });
+    expect(zoneCorners).toHaveLength(4);
+    const zoneCornerDown = new MouseEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      clientX: 10,
+      clientY: 10,
+    });
+    const zoneCornerMove = new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 40,
+      clientY: 35,
+    });
+    const zoneCornerUp = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [zoneCornerDown, zoneCornerMove, zoneCornerUp]) {
+      Object.defineProperty(event, 'pointerId', { value: 8 });
+    }
+    fireEvent(zoneCorners[0]!, zoneCornerDown);
+    fireEvent(drawing, zoneCornerMove);
+    fireEvent(drawing, zoneCornerUp);
+    expect(zoneCorners[0]).toHaveAttribute('cx', '40');
+    expect(zoneCorners[0]).toHaveAttribute('cy', '35');
   });
 });
