@@ -13,6 +13,9 @@ import type {
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
+  FlowerbedDesign,
+  FlowerbedSaveInput,
+  FlowerbedSummary,
   PhotoDeleteResult,
   PhotoImportResult,
   SelectionCreationInput,
@@ -102,6 +105,12 @@ describe('App catalog', () => {
         input: SelectionPlantAdditionInput,
       ) => Promise<SelectionPlantAdditionResult>
     >();
+  const listFlowerbeds = vi.fn<() => Promise<readonly FlowerbedSummary[]>>();
+  const getFlowerbed =
+    vi.fn<(flowerbedId: string) => Promise<FlowerbedDesign | null>>();
+  const saveFlowerbed =
+    vi.fn<(input: FlowerbedSaveInput) => Promise<FlowerbedDesign>>();
+  const deleteFlowerbed = vi.fn<(flowerbedId: string) => Promise<boolean>>();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -142,6 +151,9 @@ describe('App catalog', () => {
     window.aboutService = {
       getAbout: vi.fn(async () => ({ version: 'test-version' })),
     };
+    listFlowerbeds.mockResolvedValue([]);
+    getFlowerbed.mockResolvedValue(null);
+    deleteFlowerbed.mockResolvedValue(true);
     window.catalogService = {
       listPlants,
       listPlantIds,
@@ -162,6 +174,12 @@ describe('App catalog', () => {
       importPhotos,
       deletePhoto,
     };
+    window.flowerbedService = {
+      listFlowerbeds,
+      getFlowerbed,
+      saveFlowerbed,
+      deleteFlowerbed,
+    };
   });
 
   afterEach(() => {
@@ -181,7 +199,7 @@ describe('App catalog', () => {
       name: 'Mes Parterres',
     });
     expect(flowerbedsButton).toBeVisible();
-    expect(flowerbedsButton).toBeDisabled();
+    expect(flowerbedsButton).toBeEnabled();
     expect(flowerbedsButton).toHaveClass('primary-button');
     const flowerbedIcon =
       flowerbedsButton.querySelector<HTMLElement>('.flowerbed-icon');
@@ -993,5 +1011,95 @@ describe('App catalog', () => {
     expect(
       await screen.findByRole('heading', { name: 'Mon Catalogue' }),
     ).toBeInTheDocument();
+  });
+
+  it('opens a top-down flowerbed editor using plants from a selection', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Mes Parterres' }),
+    ).toBeInTheDocument();
+    expect(listFlowerbeds).toHaveBeenCalledOnce();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dessiner un parterre' }),
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Nouveau parterre' }),
+    ).toBeInTheDocument();
+    await screen.findByRole('option', { name: sunnyBorder.name });
+    fireEvent.change(screen.getByLabelText('Sélection de plantes'), {
+      target: { value: sunnyBorder.id },
+    });
+
+    expect(await screen.findByText('Rose ancienne')).toBeInTheDocument();
+    expect(getSelection).toHaveBeenCalledWith(sunnyBorder.id);
+    const drawing = screen.getByRole('img', {
+      name: 'Plan du parterre 400 par 250 centimètres',
+    });
+    expect(
+      screen.getByRole('button', { name: 'Dessiner une zone' }),
+    ).toHaveClass('active');
+    fireEvent.click(screen.getByRole('button', { name: /Rose ancienne/ }));
+    expect(
+      screen.getByRole('button', { name: 'Placer la plante' }),
+    ).toHaveClass('active');
+
+    fireEvent.contextMenu(drawing);
+
+    expect(screen.getByRole('button', { name: 'Déplacer' })).toHaveClass(
+      'active',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Placer la plante' }),
+    ).toBeDisabled();
+  });
+
+  it('renders a saved plant circle with its first snapshotted color', async () => {
+    const design: FlowerbedDesign = {
+      id: 'flowerbed-1',
+      name: 'Massif rose',
+      selectionId: sunnyBorder.id,
+      widthCm: 300,
+      heightCm: 200,
+      zoneCount: 1,
+      placementCount: 1,
+      createdAt: '2026-07-20T10:00:00.000Z',
+      updatedAt: '2026-07-20T10:00:00.000Z',
+      zones: [
+        {
+          id: 'zone-1',
+          xCm: 10,
+          yCm: 10,
+          widthCm: 280,
+          heightCm: 180,
+        },
+      ],
+      placements: [
+        {
+          id: 'placement-1',
+          zoneId: 'zone-1',
+          plantId: rose.id,
+          plantNameSnapshot: rose.name,
+          spacingCmSnapshot: 40,
+          colorSnapshot: 'Rose',
+          xCm: 100,
+          yCm: 100,
+        },
+      ],
+    };
+    listFlowerbeds.mockResolvedValueOnce([design]);
+    getFlowerbed.mockResolvedValueOnce(design);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+
+    const title = await screen.findByText(/Rose ancienne · diamètre 40 cm/);
+    const circle = title.parentElement?.querySelector('circle');
+    expect(circle).toHaveStyle({ fill: '#ec4899' });
   });
 });

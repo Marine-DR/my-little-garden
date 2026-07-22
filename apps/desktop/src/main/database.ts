@@ -40,6 +40,8 @@ function ensureSchema(app: App, database: DatabaseSync): void {
   const migrationFilenames = [
     '001_initial_schema.sql',
     '002_remove_selection_normalized_name.sql',
+    '003_flowerbed_designs.sql',
+    '004_flowerbed_placement_color.sql',
   ];
   const hasPlants = database
     .prepare(

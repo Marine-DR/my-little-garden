@@ -6,6 +6,11 @@ import type {
   SelectionPlantAdditionInput,
   SelectionPlantAdditionResult,
 } from './desktop-api';
+import type {
+  FlowerbedDesign,
+  FlowerbedSaveInput,
+  FlowerbedSummary,
+} from './flowerbed';
 
 export interface PlantPageRequest {
   readonly offset: number;
@@ -85,4 +90,11 @@ export interface SelectionRepository {
   addPlants(
     input: SelectionPlantAdditionInput,
   ): Promise<SelectionPlantAdditionResult>;
+}
+
+export interface FlowerbedRepository {
+  list(): Promise<FlowerbedSummary[]>;
+  get(flowerbedId: string): Promise<FlowerbedDesign | null>;
+  save(input: FlowerbedSaveInput): Promise<FlowerbedDesign>;
+  delete(flowerbedId: string): Promise<boolean>;
 }

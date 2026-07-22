@@ -17,7 +17,15 @@ const selectionNameMigration = readFileSync(
   ),
   'utf8',
 );
-const migration = `${initialMigration}\n${selectionNameMigration}`;
+const flowerbedMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '003_flowerbed_designs.sql'),
+  'utf8',
+);
+const flowerbedColorMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '004_flowerbed_placement_color.sql'),
+  'utf8',
+);
+const migration = `${initialMigration}\n${selectionNameMigration}\n${flowerbedMigration}\n${flowerbedColorMigration}`;
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -88,6 +96,9 @@ test('migration creates the expected tables', (t) => {
       'plant_photos',
       'selections',
       'selection_plants',
+      'flowerbeds',
+      'planting_zones',
+      'flowerbed_plant_placements',
     ]),
   );
 });
