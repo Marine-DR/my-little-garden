@@ -18,6 +18,11 @@ import type {
 const DEFAULT_WIDTH_CM = 400;
 const DEFAULT_HEIGHT_CM = 250;
 const DEFAULT_SPACING_CM = 40;
+const MIN_ZOOM = 0.5;
+const MAX_ZOOM = 2;
+const ZOOM_STEP = 0.25;
+const WHEEL_ZOOM_STEP = 0.1;
+const PAN_STEP_PX = 80;
 
 type EditorMode = 'select' | 'zone' | 'plant';
 
@@ -44,6 +49,14 @@ interface DraggingPlant {
   readonly offset: Point;
 }
 
+interface PanningMap {
+  readonly pointerId: number;
+  readonly startX: number;
+  readonly startY: number;
+  readonly scrollLeft: number;
+  readonly scrollTop: number;
+}
+
 let draftSequence = 0;
 
 function nextDraftId(prefix: string): string {
@@ -54,6 +67,13 @@ function nextDraftId(prefix: string): string {
 function positiveDimension(value: string, fallback: number): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function adjustedZoom(current: number, change: number): number {
+  return (
+    Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current + change)) * 100) /
+    100
+  );
 }
 
 function circleInsideZone(placement: PlacementDraft, zone: ZoneDraft): boolean {
@@ -151,13 +171,38 @@ export function FlowerbedEditorPage({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [panning, setPanning] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const panningRef = useRef<PanningMap | null>(null);
 
   useEffect(() => {
     void window.selectionService
       .listSelections()
       .then(setSelections)
       .catch(() => setError('Les sélections n’ont pas pu être chargées.'));
+  }, []);
+
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    const handleWheel = (event: WheelEvent): void => {
+      if (!event.ctrlKey || event.deltaY === 0) {
+        return;
+      }
+      event.preventDefault();
+      setZoom((current) =>
+        adjustedZoom(
+          current,
+          event.deltaY < 0 ? WHEEL_ZOOM_STEP : -WHEEL_ZOOM_STEP,
+        ),
+      );
+    };
+    viewport.addEventListener('wheel', handleWheel, { passive: false });
+    return () => viewport.removeEventListener('wheel', handleWheel);
   }, []);
 
   useEffect(() => {
@@ -380,6 +425,54 @@ export function FlowerbedEditorPage({
     ? zoneFromPoints(drawingZone.start, drawingZone.current)
     : null;
 
+  const startPanning = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (event.button !== 1) {
+      return;
+    }
+    event.preventDefault();
+    panningRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: event.currentTarget.scrollLeft,
+      scrollTop: event.currentTarget.scrollTop,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setPanning(true);
+  };
+
+  const continuePanning = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    const pan = panningRef.current;
+    if (!pan || pan.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    event.currentTarget.scrollLeft =
+      pan.scrollLeft - (event.clientX - pan.startX);
+    event.currentTarget.scrollTop =
+      pan.scrollTop - (event.clientY - pan.startY);
+  };
+
+  const stopPanning = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (panningRef.current?.pointerId !== event.pointerId) {
+      return;
+    }
+    panningRef.current = null;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
+    setPanning(false);
+  };
+
+  const panMap = (horizontal: number, vertical: number): void => {
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    viewport.scrollLeft += horizontal;
+    viewport.scrollTop += vertical;
+  };
+
   return (
     <section className="flowerbed-editor">
       <header className="flowerbed-editor-heading">
@@ -504,139 +597,236 @@ export function FlowerbedEditorPage({
         </aside>
 
         <div className="flowerbed-canvas-wrap">
-          <svg
-            ref={svgRef}
-            className={`flowerbed-canvas mode-${mode}`}
-            viewBox={`0 0 ${widthCm} ${heightCm}`}
-            aria-label={`Plan du parterre ${widthCm} par ${heightCm} centimètres`}
-            role="img"
-            onPointerDown={handleCanvasPointerDown}
-            onPointerMove={handleCanvasPointerMove}
-            onPointerUp={handleCanvasPointerUp}
-            onPointerCancel={handleCanvasPointerUp}
-            onContextMenu={(event) => {
-              if (selectedPlant) {
-                event.preventDefault();
-                setMode('select');
-                setSelectedPlant(null);
+          <div className="flowerbed-zoom-controls" aria-label="Zoom du plan">
+            <span className="flowerbed-pan-help">
+              Maintenez la molette et glissez pour déplacer le plan
+            </span>
+            <button
+              type="button"
+              aria-label="Zoom arrière"
+              disabled={zoom <= MIN_ZOOM}
+              onClick={() =>
+                setZoom((current) => adjustedZoom(current, -ZOOM_STEP))
               }
-            }}
-          >
-            <defs>
-              <pattern
-                id="flowerbed-grid"
-                width="20"
-                height="20"
-                patternUnits="userSpaceOnUse"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="flowerbed-zoom-value"
+              aria-label="Réinitialiser le zoom"
+              onClick={() => setZoom(1)}
+            >
+              {Math.round(zoom * 100)} %
+            </button>
+            <button
+              type="button"
+              aria-label="Zoom avant"
+              disabled={zoom >= MAX_ZOOM}
+              onClick={() =>
+                setZoom((current) => adjustedZoom(current, ZOOM_STEP))
+              }
+            >
+              +
+            </button>
+          </div>
+          <div className="flowerbed-canvas-viewport-shell">
+            <div
+              ref={viewportRef}
+              className={`flowerbed-canvas-viewport ${panning ? 'is-panning' : ''}`}
+              aria-label="Zone de dessin"
+              onPointerDown={startPanning}
+              onPointerMove={continuePanning}
+              onPointerUp={stopPanning}
+              onPointerCancel={stopPanning}
+              onAuxClick={(event) => {
+                if (event.button === 1) {
+                  event.preventDefault();
+                }
+              }}
+            >
+              <div
+                className="flowerbed-canvas-stage"
+                style={{ width: `${zoom * 100}%` }}
               >
-                <path
-                  d="M 20 0 L 0 0 0 20"
-                  fill="none"
-                  stroke="#dfe8dc"
-                  strokeWidth="1"
-                />
-              </pattern>
-            </defs>
-            <rect
-              className="flowerbed-boundary"
-              x="1"
-              y="1"
-              width={Math.max(0, widthCm - 2)}
-              height={Math.max(0, heightCm - 2)}
-            />
-            <rect
-              x="1"
-              y="1"
-              width={Math.max(0, widthCm - 2)}
-              height={Math.max(0, heightCm - 2)}
-              fill="url(#flowerbed-grid)"
-              pointerEvents="none"
-            />
-            {zones.map((zone, index) => (
-              <g key={zone.id}>
-                <rect
-                  className={`planting-zone ${selectedObject === `zone:${zone.id}` ? 'selected' : ''}`}
-                  x={zone.xCm}
-                  y={zone.yCm}
-                  width={zone.widthCm}
-                  height={zone.heightCm}
-                  onPointerDown={(event) => {
-                    if (event.button !== 0 || mode !== 'select') {
-                      return;
+                <svg
+                  ref={svgRef}
+                  className={`flowerbed-canvas mode-${mode}`}
+                  viewBox={`0 0 ${widthCm} ${heightCm}`}
+                  aria-label={`Plan du parterre ${widthCm} par ${heightCm} centimètres`}
+                  role="img"
+                  onPointerDown={handleCanvasPointerDown}
+                  onPointerMove={handleCanvasPointerMove}
+                  onPointerUp={handleCanvasPointerUp}
+                  onPointerCancel={handleCanvasPointerUp}
+                  onContextMenu={(event) => {
+                    if (selectedPlant) {
+                      event.preventDefault();
+                      setMode('select');
+                      setSelectedPlant(null);
                     }
-                    event.stopPropagation();
-                    setSelectedObject(`zone:${zone.id}`);
-                  }}
-                />
-                <text className="zone-label" x={zone.xCm + 6} y={zone.yCm + 16}>
-                  Zone {index + 1}
-                </text>
-              </g>
-            ))}
-            {drawingRectangle ? (
-              <rect
-                className="planting-zone drawing"
-                x={drawingRectangle.xCm}
-                y={drawingRectangle.yCm}
-                width={drawingRectangle.widthCm}
-                height={drawingRectangle.heightCm}
-              />
-            ) : null}
-            {placements.map((placement, index) => {
-              const invalid = invalidPlacements.has(placement.id);
-              return (
-                <g
-                  key={placement.id}
-                  className={`plant-placement ${invalid ? 'invalid' : ''} ${selectedObject === `plant:${placement.id}` ? 'selected' : ''}`}
-                  onPointerDown={(event) => {
-                    if (event.button !== 0 || mode !== 'select') {
-                      return;
-                    }
-                    event.stopPropagation();
-                    const bounds = svgRef.current?.getBoundingClientRect();
-                    if (!bounds) {
-                      return;
-                    }
-                    const point = {
-                      x:
-                        ((event.clientX - bounds.left) / bounds.width) *
-                        widthCm,
-                      y:
-                        ((event.clientY - bounds.top) / bounds.height) *
-                        heightCm,
-                    };
-                    setSelectedObject(`plant:${placement.id}`);
-                    setDraggingPlant({
-                      id: placement.id,
-                      offset: {
-                        x: point.x - placement.xCm,
-                        y: point.y - placement.yCm,
-                      },
-                    });
                   }}
                 >
-                  <circle
-                    cx={placement.xCm}
-                    cy={placement.yCm}
-                    r={placement.spacingCmSnapshot / 2}
-                    style={{ fill: colorLabelToCss(placement.colorSnapshot) }}
+                  <defs>
+                    <pattern
+                      id="flowerbed-grid"
+                      width="20"
+                      height="20"
+                      patternUnits="userSpaceOnUse"
+                    >
+                      <path
+                        d="M 20 0 L 0 0 0 20"
+                        fill="none"
+                        stroke="#dfe8dc"
+                        strokeWidth="1"
+                      />
+                    </pattern>
+                  </defs>
+                  <rect
+                    className="flowerbed-boundary"
+                    x="1"
+                    y="1"
+                    width={Math.max(0, widthCm - 2)}
+                    height={Math.max(0, heightCm - 2)}
                   />
-                  <text
-                    x={placement.xCm}
-                    y={placement.yCm}
-                    dominantBaseline="middle"
-                  >
-                    {index + 1}
-                  </text>
-                  <title>
-                    {placement.plantNameSnapshot} · diamètre{' '}
-                    {placement.spacingCmSnapshot} cm
-                    {invalid ? ' · placement à vérifier' : ''}
-                  </title>
-                </g>
-              );
-            })}
-          </svg>
+                  <rect
+                    x="1"
+                    y="1"
+                    width={Math.max(0, widthCm - 2)}
+                    height={Math.max(0, heightCm - 2)}
+                    fill="url(#flowerbed-grid)"
+                    pointerEvents="none"
+                  />
+                  {zones.map((zone, index) => (
+                    <g key={zone.id}>
+                      <rect
+                        className={`planting-zone ${selectedObject === `zone:${zone.id}` ? 'selected' : ''}`}
+                        x={zone.xCm}
+                        y={zone.yCm}
+                        width={zone.widthCm}
+                        height={zone.heightCm}
+                        onPointerDown={(event) => {
+                          if (event.button !== 0 || mode !== 'select') {
+                            return;
+                          }
+                          event.stopPropagation();
+                          setSelectedObject(`zone:${zone.id}`);
+                        }}
+                      />
+                      <text
+                        className="zone-label"
+                        x={zone.xCm + 6}
+                        y={zone.yCm + 16}
+                      >
+                        Zone {index + 1}
+                      </text>
+                    </g>
+                  ))}
+                  {drawingRectangle ? (
+                    <rect
+                      className="planting-zone drawing"
+                      x={drawingRectangle.xCm}
+                      y={drawingRectangle.yCm}
+                      width={drawingRectangle.widthCm}
+                      height={drawingRectangle.heightCm}
+                    />
+                  ) : null}
+                  {placements.map((placement, index) => {
+                    const invalid = invalidPlacements.has(placement.id);
+                    return (
+                      <g
+                        key={placement.id}
+                        className={`plant-placement ${invalid ? 'invalid' : ''} ${selectedObject === `plant:${placement.id}` ? 'selected' : ''}`}
+                        onPointerDown={(event) => {
+                          if (event.button !== 0 || mode !== 'select') {
+                            return;
+                          }
+                          event.stopPropagation();
+                          const bounds =
+                            svgRef.current?.getBoundingClientRect();
+                          if (!bounds) {
+                            return;
+                          }
+                          const point = {
+                            x:
+                              ((event.clientX - bounds.left) / bounds.width) *
+                              widthCm,
+                            y:
+                              ((event.clientY - bounds.top) / bounds.height) *
+                              heightCm,
+                          };
+                          setSelectedObject(`plant:${placement.id}`);
+                          setDraggingPlant({
+                            id: placement.id,
+                            offset: {
+                              x: point.x - placement.xCm,
+                              y: point.y - placement.yCm,
+                            },
+                          });
+                        }}
+                      >
+                        <circle
+                          cx={placement.xCm}
+                          cy={placement.yCm}
+                          r={placement.spacingCmSnapshot / 2}
+                          style={{
+                            fill: colorLabelToCss(placement.colorSnapshot),
+                          }}
+                        />
+                        <text
+                          x={placement.xCm}
+                          y={placement.yCm}
+                          dominantBaseline="middle"
+                        >
+                          {index + 1}
+                        </text>
+                        <title>
+                          {placement.plantNameSnapshot} · diamètre{' '}
+                          {placement.spacingCmSnapshot} cm
+                          {invalid ? ' · placement à vérifier' : ''}
+                        </title>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
+            <div className="flowerbed-pan-pad" aria-label="Déplacer la vue">
+              <button
+                type="button"
+                className="pan-up"
+                aria-label="Déplacer la vue vers le haut"
+                onClick={() => panMap(0, -PAN_STEP_PX)}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="pan-left"
+                aria-label="Déplacer la vue vers la gauche"
+                onClick={() => panMap(-PAN_STEP_PX, 0)}
+              >
+                ←
+              </button>
+              <span className="pan-center" aria-hidden="true" />
+              <button
+                type="button"
+                className="pan-right"
+                aria-label="Déplacer la vue vers la droite"
+                onClick={() => panMap(PAN_STEP_PX, 0)}
+              >
+                →
+              </button>
+              <button
+                type="button"
+                className="pan-down"
+                aria-label="Déplacer la vue vers le bas"
+                onClick={() => panMap(0, PAN_STEP_PX)}
+              >
+                ↓
+              </button>
+            </div>
+          </div>
           <p className="flowerbed-canvas-status" role="status">
             {invalidPlacements.size > 0
               ? `${invalidPlacements.size} plante${invalidPlacements.size === 1 ? '' : 's'} à repositionner`
