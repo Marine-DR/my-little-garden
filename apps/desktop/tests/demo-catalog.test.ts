@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { CATALOG_CSV_TEMPLATE } from '@my-little-garden/communication';
+import { readCatalogCsvTemplate } from '@my-little-garden/communication';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -19,6 +19,7 @@ const demoCsv = readFileSync(
   resolve('apps/desktop/resources/demo-catalog.csv'),
   'utf8',
 );
+const catalogTemplate = readCatalogCsvTemplate();
 let database: DatabaseSync | undefined;
 
 afterEach(() => {
@@ -32,7 +33,7 @@ describe('demo catalog', () => {
     database.exec(initialMigration);
     database.exec('PRAGMA foreign_keys = ON');
 
-    expect(replaceCatalogFromCsv(database, CATALOG_CSV_TEMPLATE)).toBe(67);
+    expect(replaceCatalogFromCsv(database, catalogTemplate)).toBe(67);
   });
 
   it('imports all four CSV rows including plants with optional bloom and height', async () => {

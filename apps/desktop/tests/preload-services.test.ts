@@ -1,12 +1,12 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from 'vitest';
-import { createApplicationService } from '../src/preload/services/application';
+import { createAboutService } from '../src/preload/services/about';
 import { createCatalogManagementService } from '../src/preload/services/catalog-management';
 import { createCatalogService } from '../src/preload/services/catalog';
 import { createPhotoService } from '../src/preload/services/photos';
 import { createSelectionService } from '../src/preload/services/selections';
-import { APPLICATION_CHANNELS } from '../src/shared/application-service';
+import { ABOUT_CHANNELS } from '../src/shared/about-service';
 import { CATALOG_MANAGEMENT_CHANNELS } from '../src/shared/catalog-management-service';
 import { CATALOG_CHANNELS } from '../src/shared/catalog-service';
 import { PHOTO_CHANNELS } from '../src/shared/photo-service';
@@ -17,13 +17,13 @@ function createRenderer() {
 }
 
 describe('preload services', () => {
-  it('reads the packaged application version', async () => {
+  it('reads the release about properties', async () => {
     const renderer = createRenderer();
-    const service = createApplicationService(renderer);
+    const service = createAboutService(renderer);
 
-    await service.getVersion();
+    await service.getAbout();
 
-    expect(renderer.invoke).toHaveBeenCalledWith(APPLICATION_CHANNELS.version);
+    expect(renderer.invoke).toHaveBeenCalledWith(ABOUT_CHANNELS.get);
   });
 
   it('declares catalog query actions on the catalog service', async () => {

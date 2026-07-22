@@ -15,10 +15,22 @@
 * {
   box-sizing: border-box;
 }
+html,
+body,
+#root {
+  height: 100%;
+}
 body {
   margin: 0;
   min-width: 900px;
+  overflow: hidden;
   background: #f8faf7;
+}
+.app-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 button {
   font: inherit;
@@ -32,6 +44,7 @@ button:disabled span[aria-hidden='true'] {
   top: 0;
   z-index: 20;
   height: 53px;
+  flex: 0 0 53px;
   padding: 0 18px 0 30px;
   display: flex;
   align-items: center;
@@ -74,12 +87,17 @@ button:disabled span[aria-hidden='true'] {
   -webkit-mask-size: contain;
 }
 main {
-  min-height: calc(100vh - 53px);
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0 0 8px;
   background: #fff;
 }
 .catalog-toolbar {
   min-height: 108px;
+  flex: 0 0 auto;
   margin-bottom: 0;
   padding: 12px 18px;
   display: flex;
@@ -141,6 +159,7 @@ main {
 .catalog-actions {
   position: relative;
   z-index: 15;
+  flex: 0 0 auto;
   display: flex;
   justify-content: flex-start;
   margin-bottom: 0;
@@ -156,6 +175,7 @@ main {
 }
 .catalog-footer {
   min-height: 53px;
+  flex: 0 0 auto;
   padding: 10px 18px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -179,6 +199,7 @@ main {
 }
 .selection-actions {
   min-height: 53px;
+  flex: 0 0 auto;
   margin: 0 18px;
   padding: 8px 18px;
   display: flex;
@@ -341,6 +362,11 @@ main {
   border: 1px solid #e5e7eb;
   border-radius: 4px;
   box-shadow: 0 8px 20px rgb(45 87 47 / 15%);
+}
+.catalog-footer .catalog-menu-options {
+  top: auto;
+  bottom: calc(100% + 4px);
+  z-index: 30;
 }
 .catalog-menu-options button {
   width: 100%;
@@ -857,6 +883,10 @@ main {
   opacity: 0.25;
 }
 .catalog-card {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   margin: 0 18px;
   background: #fff;
@@ -864,7 +894,8 @@ main {
   border-radius: 0;
 }
 .table-scroll {
-  max-height: calc(100vh - 372px);
+  min-height: 0;
+  flex: 1;
   overflow: auto;
   scrollbar-color: #2f7d32 transparent;
   scrollbar-width: thin;
@@ -1069,6 +1100,7 @@ abbr {
 }
 .table-footer {
   min-height: 61px;
+  flex: 0 0 auto;
   padding: 15px 17px;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -1142,7 +1174,8 @@ abbr {
 }
 .empty-state,
 .loading {
-  min-height: 360px;
+  min-height: 0;
+  flex: 1;
   display: grid;
   place-content: center;
   justify-items: center;

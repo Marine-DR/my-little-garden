@@ -5,9 +5,9 @@ export function SoftwareVersion() {
 
   useEffect(() => {
     let active = true;
-    window.applicationService
-      .getVersion()
-      .then((applicationVersion) => {
+    window.aboutService
+      .getAbout()
+      .then(({ version: applicationVersion }) => {
         if (active) {
           setVersion(applicationVersion);
         }

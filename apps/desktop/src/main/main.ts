@@ -1,3 +1,4 @@
+import { readCatalogCsvTemplate } from '@my-little-garden/communication';
 import {
   SqlitePlantCatalogRepository,
   SqliteSelectionRepository,
@@ -10,7 +11,7 @@ import {
   openApplicationDatabase,
   seedDemoCatalogIfNeeded,
 } from './database.js';
-import { registerApplicationHandlers } from './ipc/application-handlers.js';
+import { registerAboutHandlers } from './ipc/about-handlers.js';
 import { registerCatalogHandlers } from './ipc/catalog-handlers.js';
 import { registerCatalogManagementHandlers } from './ipc/catalog-management-handlers.js';
 import { registerPhotoHandlers } from './ipc/photo-handlers.js';
@@ -34,12 +35,18 @@ app.whenReady().then(async () => {
     catalogRepository,
   );
   seedDemoCatalogIfNeeded(app, (csv) => seedDemoCatalog(openedDatabase, csv));
+  const catalogTemplate = readCatalogCsvTemplate();
 
   handlePhotoRequests(photoDirectory);
-  registerApplicationHandlers(ipcMain, app.getVersion());
+  registerAboutHandlers(ipcMain, { version: app.getVersion() });
   registerCatalogHandlers(ipcMain, catalogRepository);
   registerSelectionHandlers(ipcMain, selectionRepository);
-  registerCatalogManagementHandlers(ipcMain, openedDatabase, photoDirectory);
+  registerCatalogManagementHandlers(
+    ipcMain,
+    openedDatabase,
+    photoDirectory,
+    catalogTemplate,
+  );
   registerPhotoHandlers(ipcMain, openedDatabase, photoDirectory);
   await createMainWindow(app);
 

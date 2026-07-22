@@ -139,8 +139,8 @@ describe('App catalog', () => {
       addedCount: 1,
       ignoredCount: 0,
     });
-    window.applicationService = {
-      getVersion: vi.fn(async () => '0.1.0'),
+    window.aboutService = {
+      getAbout: vi.fn(async () => ({ version: 'test-version' })),
     };
     window.catalogService = {
       listPlants,
@@ -216,7 +216,7 @@ describe('App catalog', () => {
     expect(catalogTable?.compareDocumentPosition(catalogFooter!)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
-    expect(await screen.findByText('Version 0.1.0')).toHaveClass(
+    expect(await screen.findByText('Version test-version')).toHaveClass(
       'software-version',
     );
     expect(
