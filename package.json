@@ -19,7 +19,7 @@
     "build:database": "npm run build:communication && npm run build:photo && tsc -p packages/database/tsconfig.json",
     "build:preload": "vite build --config vite.preload.config.ts",
     "build:desktop": "npm run build:database && vite build && tsc -p apps/desktop/tsconfig.json && npm run build:preload",
-    "dist": "npm run build:desktop && electron-builder",
+    "dist": "npm run build:desktop && electron-builder --publish never",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "npm run build:database && tsc -p packages/core/tsconfig.json --noEmit && tsc -p packages/database/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.json --noEmit && tsc -p apps/desktop/tsconfig.renderer.json --noEmit && tsc -p apps/desktop/tsconfig.tests.json --noEmit",
