@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: my-little-garden-${{ needs.prepare-release.outputs.app_version }}-*
           merge-multiple: true
