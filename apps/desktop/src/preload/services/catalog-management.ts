@@ -10,5 +10,6 @@ export function createCatalogManagementService(
   return {
     replaceCatalog: (filename, csv) =>
       ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.replace, filename, csv),
+    getTemplate: () => ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.template),
   };
 }

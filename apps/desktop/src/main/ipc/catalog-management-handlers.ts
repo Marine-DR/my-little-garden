@@ -7,7 +7,9 @@ export function registerCatalogManagementHandlers(
   ipcMain: IpcMain,
   database: DatabaseSync,
   photoDirectory: string,
+  catalogTemplate: string,
 ): void {
+  ipcMain.handle(CATALOG_MANAGEMENT_CHANNELS.template, () => catalogTemplate);
   ipcMain.handle(
     CATALOG_MANAGEMENT_CHANNELS.replace,
     (_event, filename: string, csv: string) =>

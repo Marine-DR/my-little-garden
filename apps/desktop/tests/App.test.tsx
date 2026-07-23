@@ -139,6 +139,9 @@ describe('App catalog', () => {
       addedCount: 1,
       ignoredCount: 0,
     });
+    window.aboutService = {
+      getAbout: vi.fn(async () => ({ version: 'test-version' })),
+    };
     window.catalogService = {
       listPlants,
       listPlantIds,
@@ -153,6 +156,7 @@ describe('App catalog', () => {
     };
     window.catalogManagementService = {
       replaceCatalog,
+      getTemplate: vi.fn(async () => 'Nom,Sol,Exposition\nRose,Drainé,Soleil'),
     };
     window.photoService = {
       importPhotos,
@@ -163,6 +167,8 @@ describe('App catalog', () => {
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
+    Reflect.deleteProperty(URL, 'createObjectURL');
+    Reflect.deleteProperty(URL, 'revokeObjectURL');
   });
 
   it('shows every requested column and uses placeholders on a single plant row', async () => {
@@ -198,6 +204,21 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('button', { name: /Gérer le catalogue/u }),
     ).toHaveClass('secondary-button');
+    expect(screen.getByRole('button', { name: 'Aide' })).toHaveClass(
+      'secondary-button',
+      'catalog-help-button',
+    );
+    expect(screen.getByRole('button', { name: 'Aide' })).not.toHaveTextContent(
+      'Aide',
+    );
+    const catalogTable = document.querySelector('#catalog-table');
+    const catalogFooter = document.querySelector('.catalog-footer');
+    expect(catalogTable?.compareDocumentPosition(catalogFooter!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(await screen.findByText('Version test-version')).toHaveClass(
+      'software-version',
+    );
     expect(
       screen.getAllByRole('columnheader').map((heading) => heading.textContent),
     ).toEqual([
@@ -528,6 +549,51 @@ describe('App catalog', () => {
     expect(
       screen.queryByRole('button', { name: 'Importer une image' }),
     ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aide' }));
+    expect(
+      screen.getByRole('button', {
+        name: 'Télécharger le modèle du catalogue',
+      }),
+    ).toBeInTheDocument();
+    fireEvent.pointerDown(document.body);
+    expect(
+      screen.queryByRole('button', {
+        name: 'Télécharger le modèle du catalogue',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('downloads the catalog template from the catalog management service', async () => {
+    const createObjectURL = vi.fn(() => 'blob:catalog-template');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Aide' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Télécharger le modèle du catalogue',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(window.catalogManagementService.getTemplate).toHaveBeenCalled(),
+    );
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:catalog-template');
   });
 
   it('opens catalog management and refreshes the first page after replacement', async () => {
@@ -684,6 +750,9 @@ describe('App catalog', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Gérer le catalogue/u }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Aide' }),
     ).not.toBeInTheDocument();
     const selectionsToolbar = document.querySelector('.catalog-toolbar');
     const administrationSpace = document.querySelector(

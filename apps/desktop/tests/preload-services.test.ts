@@ -1,10 +1,12 @@
 // @vitest-environment node
 
 import { describe, expect, it, vi } from 'vitest';
+import { createAboutService } from '../src/preload/services/about';
 import { createCatalogManagementService } from '../src/preload/services/catalog-management';
 import { createCatalogService } from '../src/preload/services/catalog';
 import { createPhotoService } from '../src/preload/services/photos';
 import { createSelectionService } from '../src/preload/services/selections';
+import { ABOUT_CHANNELS } from '../src/shared/about-service';
 import { CATALOG_MANAGEMENT_CHANNELS } from '../src/shared/catalog-management-service';
 import { CATALOG_CHANNELS } from '../src/shared/catalog-service';
 import { PHOTO_CHANNELS } from '../src/shared/photo-service';
@@ -15,6 +17,15 @@ function createRenderer() {
 }
 
 describe('preload services', () => {
+  it('reads the release about properties', async () => {
+    const renderer = createRenderer();
+    const service = createAboutService(renderer);
+
+    await service.getAbout();
+
+    expect(renderer.invoke).toHaveBeenCalledWith(ABOUT_CHANNELS.get);
+  });
+
   it('declares catalog query actions on the catalog service', async () => {
     const renderer = createRenderer();
     const service = createCatalogService(renderer);
@@ -62,11 +73,13 @@ describe('preload services', () => {
     const photos = createPhotoService(photoRenderer);
 
     await catalogManagement.replaceCatalog('catalog.csv', 'name\nRose');
+    await catalogManagement.getTemplate();
     await photos.importPhotos([{ name: 'rose.png', bytes: new Uint8Array() }]);
     await photos.deletePhoto('plant-1');
 
     expect(catalogRenderer.invoke.mock.calls).toEqual([
       [CATALOG_MANAGEMENT_CHANNELS.replace, 'catalog.csv', 'name\nRose'],
+      [CATALOG_MANAGEMENT_CHANNELS.template],
     ]);
     expect(photoRenderer.invoke.mock.calls).toEqual([
       [PHOTO_CHANNELS.import, [{ name: 'rose.png', bytes: new Uint8Array() }]],
