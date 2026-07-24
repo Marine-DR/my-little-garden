@@ -928,11 +928,11 @@ Close
 
 Rectangle  
 4 m × 2.5 m  
-Change dimensions  
+Change dimensions
 
 Zoom controls  
 Fit  
-Grid  
+Grid
 
 24 plants  
 2 overlaps  
