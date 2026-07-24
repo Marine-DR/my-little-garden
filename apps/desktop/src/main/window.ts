@@ -2,6 +2,22 @@ import { join } from 'node:path';
 import type { App } from 'electron';
 import { BrowserWindow } from 'electron';
 
+function resolveWindowIcon(app: App): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, 'app-icon.png');
+  }
+
+  return join(
+    app.getAppPath(),
+    'apps',
+    'desktop',
+    'src',
+    'renderer',
+    'assets',
+    'app-icon.png',
+  );
+}
+
 function resolveRendererEntry(app: App): {
   type: 'file' | 'url';
   path?: string;
@@ -26,15 +42,7 @@ export async function createMainWindow(app: App): Promise<void> {
     minHeight: 600,
     autoHideMenuBar: true,
     backgroundColor: '#f8faf7',
-    icon: join(
-      app.getAppPath(),
-      'apps',
-      'desktop',
-      'src',
-      'renderer',
-      'assets',
-      'app-icon.png',
-    ),
+    icon: resolveWindowIcon(app),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

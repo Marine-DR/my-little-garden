@@ -51,6 +51,10 @@
       {
         "from": "apps/desktop/resources",
         "to": "resources"
+      },
+      {
+        "from": "apps/desktop/src/renderer/assets/app-icon.png",
+        "to": "app-icon.png"
       }
     ],
     "linux": {
@@ -59,7 +63,7 @@
       ],
       "category": "Utility",
       "syncDesktopName": true,
-      "icon": "build/icon.png"
+      "icon": "apps/desktop/src/renderer/assets/app-icon.png"
     },
     "mac": {
       "target": [
