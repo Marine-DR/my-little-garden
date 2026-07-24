@@ -116,7 +116,7 @@ Place the plants > the plants areas are displaied in red and a warning is displa
 
 ### Plants exceed the available space
 
-Place the plants > the plants areas are displaied in red and a warning is display when plants exceed the available space > save the design > click to generate the buying list and the planting plan > display a message to indicate there are plants areas that exceed the available space > confirm the generation > generate the document with a warning message on the planting plan
+Place the plants > the plants areas are displaied in orange and a warning is display when plants exceed the available space > save the design > click to generate the buying list and the planting plan > display a message to indicate there are plants areas that exceed the available space > confirm the generation > generate the document with a warning message on the planting plan
 
 ### Update the flowerbed dimension
 
