@@ -3,6 +3,7 @@
 > Sections explicitly labeled MVP remain the historical strict-MVP scope.
 > Post-MVP modified/deleted plant status and review behavior follow
 > [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md).
+> The final screen sections also define post-MVP batch selection deletion.
 
 ## Screen objective
 
@@ -272,6 +273,21 @@ must additionally verify:
 - close and acknowledgement clearing only the displayed warning kind;
 - photo cleanup after the last deleted warning reference is cleared.
 
+Post-MVP selection deletion scenarios must additionally verify:
+
+- Delete is available only after checking selections in the selections list.
+- Delete is absent from selection cards and the selection detail.
+- Several checked selections are deleted in one atomic transaction.
+- Cancelling the confirmation changes no selection or flowerbed.
+- Memberships, pending changes, and unreferenced retained photos are cleaned up.
+- A flowerbed with zero placed plants is deleted with its source selection.
+- A flowerbed with at least one placed plant is detached and permanently locked.
+- A locked flowerbed preserves its canvas, buying list, and flowerbed plan.
+- View, download, navigation, and flowerbed deletion remain available when
+  locked.
+- Every edit and unlock attempt is rejected for a locked flowerbed.
+- A failure during any deletion effect rolls back the complete batch.
+
 # Mes Sélections — Final screen structure
 
 ## 1. App header
@@ -361,9 +377,65 @@ Recommended actions:
 - **Duplicate**
 - **Delete**
 
-Deletion should be handled carefully if a selection is used in a flowerbed.
+Delete is available only in this administration row on the selections list.
+It is not available in the selection detail screen or as an individual card action.
 
-The deletion workflow is define in User_workflows.md
+### Delete checked selections
+
+The action deletes every checked selection in one atomic operation.
+
+Before confirmation, classify every flowerbed sourced from those selections:
+
+- **Delete flowerbed** when its buying list is empty, meaning it contains zero placed plant instances.
+- **Permanently lock flowerbed** when its buying list is not empty, meaning the user placed at least one plant.
+
+The confirmation dialog lists:
+
+- every checked selection name;
+- every empty flowerbed that will be deleted, grouped by selection;
+- every non-empty flowerbed that will be permanently locked, grouped by selection;
+- totals for selections, deleted flowerbeds, and locked flowerbeds.
+
+Example:
+
+```text
+Supprimer 3 sélections ?
+
+Les sélections et leurs données associées seront supprimées définitivement.
+
+2 parterres vides seront supprimés.
+1 parterre contenant des plantes sera verrouillé définitivement.
+
+Parterres supprimés
+- Bordure vide
+- Essai terrasse
+
+Parterres verrouillés
+- Entrée principale
+
+[Annuler] [Supprimer]
+```
+
+Confirmation rules:
+
+- use the destructive confirmation style;
+- disable confirmation while the impact preview is loading;
+- cancelling changes nothing;
+- a failure rolls back the complete batch;
+- after success, clear checked rows and show deleted-selection,
+  deleted-flowerbed, and locked-flowerbed counts.
+
+Deletion effects:
+
+- delete each selected `selections` row;
+- cascade its `selection_plants` and pending `selection_plant_changes` rows;
+- clean up retained managed photos that no live plant or remaining pending warning references;
+- delete affected flowerbeds whose buying list is empty;
+- retain affected flowerbeds whose buying list is not empty, sever their source selection association, and persist an irreversible
+  `source_selection_deleted` lock;
+- preserve the locked flowerbed canvas, buying list, and flowerbed plan;
+- allow the user to view, download, or delete a locked flowerbed;
+- reject all edits to a locked flowerbed.
 
 # Card view — recommended default
 
@@ -618,6 +690,8 @@ See details action:
 View details
 ```
 
+Deletion is intentionally absent from card actions. The user must check one or more selections and use the administration-row Delete action.
+
 ---
 
 # Suggested card layout
@@ -731,6 +805,8 @@ Actions:
 - Rename
 - Add plants
 - Delete plants
+
+There is no selection Delete action in the detail view. **Delete plants** removes checked plant memberships from this selection; it does not delete the selection or catalog plants.
 
 Metadata:
 

@@ -770,6 +770,36 @@ Actions:
 - Try again
 - Return to flowerbeds
 
+### 16.5 Permanently locked after source-selection deletion
+
+When the source selection is deleted and this flowerbed contains at least one placed plant, preserve the saved flowerbed and mark it permanently locked.
+
+Display a persistent, non-dismissible message:
+
+> The related selection was deleted. This flowerbed cannot be edited anymore.
+
+The user can:
+
+- view the complete flowerbed plan;
+- inspect the saved placed plants;
+- view and download the buying list;
+- view and download the flowerbed plan;
+- delete the flowerbed after confirmation;
+- return to the flowerbeds list.
+
+The user cannot:
+
+- change shape or dimensions;
+- add, move, duplicate, recolor, or remove plants;
+- save changes;
+- restore or replace the source selection;
+- unlock the flowerbed.
+
+Hide or disable every editing control consistently. Keep the flowerbed Delete action available and explain the locked reason in accessible text.
+
+If the source selection is deleted while the flowerbed contains zero placed plant instances, delete the flowerbed instead of creating this locked state.
+Generated or downloaded document history does not affect this rule.
+
 ---
 
 ## 17. Dimension dialog
@@ -912,6 +942,14 @@ The canvas should retain enough room to:
 - Saved status displayed
 - Warning colors remain visible
 - Warning banner remains available
+
+### State L — Permanently locked
+
+- Source selection no longer exists
+- Existing canvas, placed plants, buying list, and flowerbed plan remain visible
+- Persistent read-only explanation displayed
+- All editing and saving actions unavailable
+- View, download, navigation, and flowerbed deletion actions remain available
 
 ---
 

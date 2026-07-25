@@ -362,6 +362,24 @@ a live `plant_photos` row nor another pending change references the filename.
 
 Selection status is not a column of `selections`. It is derived when selections are queried and exposes exactly `up_to_date`, `contains_modified_plants`, or `contains_deleted_plants`. A pending deletion takes priority over a pending modification, while both counts remain available to the caller.
 
+Batch selection deletion is atomic. Deleting a selection cascades its
+`selection_plants` and `selection_plant_changes` rows. Before deletion, the
+application classifies each flowerbed using its current placed-plant count:
+
+- zero placed plants: delete the flowerbed;
+- one or more placed plants: preserve the design, sever its source-selection
+  association, and persist an irreversible `source_selection_deleted` lock.
+
+A locked flowerbed retains the saved data required to render and download its
+flowerbed plan and buying list without the deleted selection. Repository writes
+must reject every flowerbed edit while this lock is present; flowerbed deletion
+remains allowed.
+
+The future flowerbed schema must therefore support a nullable source selection
+reference using `ON DELETE SET NULL` or an equivalent transactional detach, plus
+a persisted lock reason. It must not cascade non-empty flowerbeds from
+`selections`.
+
 ## 6. Relationships
 
 ```mermaid
@@ -503,6 +521,15 @@ The plant write service must:
 | Pending modification baseline     | One versioned baseline per selection/plant                                                | Modify repeatedly and compare the first old state with the latest live state                                       |
 | Deleted-plant warning             | Historical UUID/name/photo record without a plant foreign key                             | Delete a selected plant, retain its warning, then clear the warning and clean up its unreferenced photo            |
 | Derived selection status          | Pending-change query with deleted above modified                                          | Verify deleted, modified, mixed, and cleared selection states                                                      |
+
+Selection deletion validation additionally verifies:
+
+- several checked selections and their dependent rows are deleted atomically;
+- a partial failure rolls back the complete batch;
+- empty flowerbeds are deleted;
+- non-empty flowerbeds are detached and permanently locked;
+- locked flowerbeds retain their outputs, reject edits, and can still be
+  deleted.
 
 ## 10. Deferred decisions
 

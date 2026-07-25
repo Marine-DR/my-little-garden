@@ -374,11 +374,11 @@ Status is derived from pending changes rather than stored on `selections`.
 
 The domain exposes exactly one of these three values:
 
-| Domain value               | French label                        | Derivation rule                                                 |
-| -------------------------- | ----------------------------------- | --------------------------------------------------------------- |
-| `contains_deleted_plants`  | **[Number of deleted plants] plantes supprimées** | At least one pending deletion exists                            |
-| `contains_modified_plants` | **[Number of modified plants] Contient des plantes modifiées**  | No deletion exists and at least one pending modification exists |
-| `up_to_date`               | **À jour**                          | No pending modification or deletion exists                      |
+| Domain value               | French label                                                   | Derivation rule                                                 |
+| -------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- |
+| `contains_deleted_plants`  | **[Number of deleted plants] plantes supprimées**              | At least one pending deletion exists                            |
+| `contains_modified_plants` | **[Number of modified plants] Contient des plantes modifiées** | No deletion exists and at least one pending modification exists |
+| `up_to_date`               | **À jour**                                                     | No pending modification or deletion exists                      |
 
 The order in the table is the display priority. A selection with both pending
 change kinds therefore has `contains_deleted_plants` status.

@@ -43,7 +43,7 @@ Select plants in the catalog > click on button to create a new selection > name 
 
 ### Delete a selection
 
-Select the selection > click on deletion button > confirm the action > the selection is deleted
+Check one or more selections in the selection list > click on the deletion button > preview the selected selections and affected flowerbeds > confirm the action > the selections are deleted, their unused flowerbeds are deleted and flowerbed that contain placed plants are permanently lock > display deleted selection, deleted-flowerbed and locked-flowerbed counts
 
 ## Flowerbed design
 
@@ -91,7 +91,6 @@ Check plants in the catalog > click on the delete button > review affected plant
 - Review deleted plants in a selection:
   Open the selection detail > review all deleted plants > acknowledge or close the deleted-plants warning > Update the selection status
 
-
 ### 2 photos for the same plant
 
 Upload a photo > a photo already exist for this plant > display a message to select the photo to keep > update the photo related to the plant
@@ -100,14 +99,14 @@ Upload a photo > a photo already exist for this plant > display a message to sel
 
 ### Cancel a selection deletion
 
-Select the selection > click on deletion button > cancel the action > the selection is not deleted
+Check one or more selections in the selection list > click on the deletion button > review selected selections and affected flowerbeds > cancel the action > no selection or flowerbed is changed
 
 ### Delete a selection used in a design
 
-- Buying list and planting plan generated:  
-  Select the selection > click on the deletion button > display the list of design impacted > confirm the action > the selection is deleted and the design remains but cannot be edited anymore
-- Buying list and planting plan not generated:  
-  Select the selection > click on the deletion button > display the list of design impacted > confirm the action > the selection and the design are deleted
+- Flowerbed buying list empty:
+  Select the selection > click on the deletion button > display the list of design impacted > Confirm deletion of the source selection > delete the flowerbed because it contains no placed plant
+- Flowerbed buying list not empty:
+  Select the selection > click on the deletion button > display the list of design impacted > Confirm deletion of the source selection > keep its flowerbed plan and buying list > click on the flowerbed to view and download the plan and buying list but cannot edit it anymore
 
 ### Cancel the removing of a plant in a selection
 
