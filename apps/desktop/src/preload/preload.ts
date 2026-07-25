@@ -3,7 +3,7 @@ import { createCatalogManagementService } from './services/catalog-management.js
 import { createCatalogService } from './services/catalog.js';
 import { createPhotoService } from './services/photos.js';
 import { createSelectionService } from './services/selections.js';
-import { createFlowerbedService } from './services/flowerbeds.js';
+import { createPropertyPlanService } from './services/property-plans.js';
 
 contextBridge.exposeInMainWorld(
   'catalogService',
@@ -22,6 +22,6 @@ contextBridge.exposeInMainWorld(
   createPhotoService(ipcRenderer),
 );
 contextBridge.exposeInMainWorld(
-  'flowerbedService',
-  createFlowerbedService(ipcRenderer),
+  'propertyPlanService',
+  createPropertyPlanService(ipcRenderer),
 );

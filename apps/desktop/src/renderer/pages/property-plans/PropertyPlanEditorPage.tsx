@@ -7,9 +7,9 @@ import {
 } from 'react';
 import type {
   CatalogPlant,
-  FlowerbedDesign,
-  FlowerbedPlantPlacementInput,
-  FlowerbedSaveInput,
+  PropertyPlanDesign,
+  PropertyPlanPlantPlacementInput,
+  PropertyPlanSaveInput,
   SelectionDetails,
   SelectionSummary,
 } from '@my-little-garden/core';
@@ -23,16 +23,16 @@ const ZOOM_STEP = 0.25;
 const WHEEL_ZOOM_STEP = 0.1;
 const PAN_STEP_PX = 80;
 const CORNER_HANDLE_RADIUS_CM = 6;
-const ZONE_CORNER_HANDLE_RADIUS_CM = 4;
+const FLOWERBED_CORNER_HANDLE_RADIUS_CM = 4;
 
-type EditorMode = 'select' | 'zone' | 'plant';
+type EditorMode = 'select' | 'flowerbed' | 'plant';
 
 interface Point {
   readonly x: number;
   readonly y: number;
 }
 
-interface ZoneDraft {
+interface FlowerbedDraft {
   readonly id: string;
   readonly xCm: number;
   readonly yCm: number;
@@ -41,11 +41,11 @@ interface ZoneDraft {
   readonly boundaryPoints: readonly Point[];
 }
 
-interface PlacementDraft extends FlowerbedPlantPlacementInput {
+interface PlacementDraft extends PropertyPlanPlantPlacementInput {
   readonly id: string;
 }
 
-interface DrawingZone {
+interface DrawingFlowerbed {
   readonly start: Point;
   readonly current: Point;
 }
@@ -55,8 +55,8 @@ interface DraggingPlant {
   readonly offset: Point;
 }
 
-interface DraggingZoneCorner {
-  readonly zoneId: string;
+interface DraggingFlowerbedCorner {
+  readonly flowerbedId: string;
   readonly cornerIndex: number;
 }
 
@@ -87,8 +87,11 @@ function adjustedZoom(current: number, change: number): number {
   );
 }
 
-function circleInsideZone(placement: PlacementDraft, zone: ZoneDraft): boolean {
-  return circleInsideBoundary(placement, zone.boundaryPoints);
+function circleInsideFlowerbed(
+  placement: PlacementDraft,
+  flowerbed: FlowerbedDraft,
+): boolean {
+  return circleInsideBoundary(placement, flowerbed.boundaryPoints);
 }
 
 function placementsOverlap(
@@ -175,10 +178,10 @@ function circleInsideBoundary(
   });
 }
 
-function zoneFromPoints(
+function flowerbedFromPoints(
   start: Point,
   current: Point,
-): Omit<ZoneDraft, 'id' | 'boundaryPoints'> {
+): Omit<FlowerbedDraft, 'id' | 'boundaryPoints'> {
   return {
     xCm: Math.min(start.x, current.x),
     yCm: Math.min(start.y, current.y),
@@ -187,20 +190,23 @@ function zoneFromPoints(
   };
 }
 
-function zoneBoundaryFromRectangle(
-  zone: Pick<ZoneDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'>,
+function flowerbedBoundaryFromRectangle(
+  flowerbed: Pick<FlowerbedDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'>,
 ): Point[] {
   return [
-    { x: zone.xCm, y: zone.yCm },
-    { x: zone.xCm + zone.widthCm, y: zone.yCm },
-    { x: zone.xCm + zone.widthCm, y: zone.yCm + zone.heightCm },
-    { x: zone.xCm, y: zone.yCm + zone.heightCm },
+    { x: flowerbed.xCm, y: flowerbed.yCm },
+    { x: flowerbed.xCm + flowerbed.widthCm, y: flowerbed.yCm },
+    {
+      x: flowerbed.xCm + flowerbed.widthCm,
+      y: flowerbed.yCm + flowerbed.heightCm,
+    },
+    { x: flowerbed.xCm, y: flowerbed.yCm + flowerbed.heightCm },
   ];
 }
 
 function boundsFromPoints(
   points: readonly Point[],
-): Pick<ZoneDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'> {
+): Pick<FlowerbedDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'> {
   const xValues = points.map(({ x }) => x);
   const yValues = points.map(({ y }) => y);
   const minimumX = Math.min(...xValues);
@@ -241,56 +247,59 @@ function firstPlantColor(plant: CatalogPlant): string | null {
   return plant.flowerColors[0] ?? plant.leafColors[0] ?? null;
 }
 
-export function FlowerbedEditorPage({
-  flowerbed,
+export function PropertyPlanEditorPage({
+  propertyPlan,
   onClose,
   onSaved,
 }: {
-  readonly flowerbed: FlowerbedDesign | null;
+  readonly propertyPlan: PropertyPlanDesign | null;
   readonly onClose: () => void;
   readonly onSaved: () => void;
 }) {
-  const [name, setName] = useState(flowerbed?.name ?? '');
+  const [name, setName] = useState(propertyPlan?.name ?? '');
   const [widthCm, setWidthCm] = useState(
-    flowerbed?.widthCm ?? DEFAULT_WIDTH_CM,
+    propertyPlan?.widthCm ?? DEFAULT_WIDTH_CM,
   );
   const [heightCm, setHeightCm] = useState(
-    flowerbed?.heightCm ?? DEFAULT_HEIGHT_CM,
+    propertyPlan?.heightCm ?? DEFAULT_HEIGHT_CM,
   );
-  const [selectionId, setSelectionId] = useState(flowerbed?.selectionId ?? '');
+  const [selectionId, setSelectionId] = useState(
+    propertyPlan?.selectionId ?? '',
+  );
   const [selections, setSelections] = useState<readonly SelectionSummary[]>([]);
   const [selection, setSelection] = useState<SelectionDetails | null>(null);
-  const [zones, setZones] = useState<readonly ZoneDraft[]>(
+  const [flowerbeds, setFlowerbeds] = useState<readonly FlowerbedDraft[]>(
     () =>
-      flowerbed?.zones.map((zone) => ({
-        ...zone,
-        boundaryPoints: zone.boundaryPoints.map((point) => ({
+      propertyPlan?.flowerbeds.map((flowerbed) => ({
+        ...flowerbed,
+        boundaryPoints: flowerbed.boundaryPoints.map((point) => ({
           x: point.xCm,
           y: point.yCm,
         })),
       })) ?? [],
   );
   const [placements, setPlacements] = useState<readonly PlacementDraft[]>(
-    () => flowerbed?.placements.map((placement) => ({ ...placement })) ?? [],
+    () => propertyPlan?.placements.map((placement) => ({ ...placement })) ?? [],
   );
   const [boundaryPoints, setBoundaryPoints] = useState<readonly Point[]>(() =>
-    flowerbed
-      ? flowerbed.boundaryPoints.map((point) => ({
+    propertyPlan
+      ? propertyPlan.propertyBoundaryPoints.map((point) => ({
           x: point.xCm,
           y: point.yCm,
         }))
       : rectangularBoundary(DEFAULT_WIDTH_CM, DEFAULT_HEIGHT_CM),
   );
-  const [mode, setMode] = useState<EditorMode>('zone');
+  const [mode, setMode] = useState<EditorMode>('flowerbed');
   const [selectedPlant, setSelectedPlant] = useState<CatalogPlant | null>(null);
   const [selectedObject, setSelectedObject] = useState<string | null>(null);
-  const [drawingZone, setDrawingZone] = useState<DrawingZone | null>(null);
+  const [drawingFlowerbed, setDrawingFlowerbed] =
+    useState<DrawingFlowerbed | null>(null);
   const [draggingPlant, setDraggingPlant] = useState<DraggingPlant | null>(
     null,
   );
   const [draggingCorner, setDraggingCorner] = useState<number | null>(null);
-  const [draggingZoneCorner, setDraggingZoneCorner] =
-    useState<DraggingZoneCorner | null>(null);
+  const [draggingFlowerbedCorner, setDraggingFlowerbedCorner] =
+    useState<DraggingFlowerbedCorner | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -352,10 +361,13 @@ export function FlowerbedEditorPage({
   const invalidPlacements = useMemo(() => {
     const invalid = new Set<string>();
     for (const placement of placements) {
-      const insideAZone = zones.some((zone) =>
-        circleInsideZone(placement, zone),
+      const insideAParterre = flowerbeds.some((flowerbed) =>
+        circleInsideFlowerbed(placement, flowerbed),
       );
-      if (!insideAZone || !circleInsideBoundary(placement, boundaryPoints)) {
+      if (
+        !insideAParterre ||
+        !circleInsideBoundary(placement, boundaryPoints)
+      ) {
         invalid.add(placement.id);
       }
       for (const other of placements) {
@@ -365,7 +377,7 @@ export function FlowerbedEditorPage({
       }
     }
     return invalid;
-  }, [boundaryPoints, placements, zones]);
+  }, [boundaryPoints, placements, flowerbeds]);
 
   const eventPoint = (event: ReactPointerEvent<SVGSVGElement>): Point => {
     const bounds = event.currentTarget.getBoundingClientRect();
@@ -387,9 +399,10 @@ export function FlowerbedEditorPage({
     };
   };
 
-  const zoneContainingPoint = (point: Point): string | null =>
-    zones.find((zone) => pointInsidePolygon(point, zone.boundaryPoints))?.id ??
-    null;
+  const flowerbedContainingPoint = (point: Point): string | null =>
+    flowerbeds.find((flowerbed) =>
+      pointInsidePolygon(point, flowerbed.boundaryPoints),
+    )?.id ?? null;
 
   const handleCanvasPointerDown = (
     event: ReactPointerEvent<SVGSVGElement>,
@@ -398,9 +411,9 @@ export function FlowerbedEditorPage({
       return;
     }
     const point = eventPoint(event);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    if (mode === 'zone') {
-      setDrawingZone({ start: point, current: point });
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    if (mode === 'flowerbed') {
+      setDrawingFlowerbed({ start: point, current: point });
       setSelectedObject(null);
       return;
     }
@@ -410,7 +423,7 @@ export function FlowerbedEditorPage({
         ...current,
         {
           id,
-          zoneId: zoneContainingPoint(point),
+          flowerbedId: flowerbedContainingPoint(point),
           plantId: selectedPlant.id,
           plantNameSnapshot: selectedPlant.name,
           spacingCmSnapshot: selectedPlant.spacingCm ?? DEFAULT_SPACING_CM,
@@ -429,8 +442,8 @@ export function FlowerbedEditorPage({
     event: ReactPointerEvent<SVGSVGElement>,
   ): void => {
     const point = eventPoint(event);
-    if (drawingZone) {
-      setDrawingZone({ ...drawingZone, current: point });
+    if (drawingFlowerbed) {
+      setDrawingFlowerbed({ ...drawingFlowerbed, current: point });
     }
     if (draggingCorner !== null) {
       setBoundaryPoints((current) =>
@@ -439,17 +452,17 @@ export function FlowerbedEditorPage({
         ),
       );
     }
-    if (draggingZoneCorner) {
-      setZones((current) =>
-        current.map((zone) => {
-          if (zone.id !== draggingZoneCorner.zoneId) {
-            return zone;
+    if (draggingFlowerbedCorner) {
+      setFlowerbeds((current) =>
+        current.map((flowerbed) => {
+          if (flowerbed.id !== draggingFlowerbedCorner.flowerbedId) {
+            return flowerbed;
           }
-          const nextBoundary = zone.boundaryPoints.map((corner, index) =>
-            index === draggingZoneCorner.cornerIndex ? point : corner,
+          const nextBoundary = flowerbed.boundaryPoints.map((corner, index) =>
+            index === draggingFlowerbedCorner.cornerIndex ? point : corner,
           );
           return {
-            ...zone,
+            ...flowerbed,
             ...boundsFromPoints(nextBoundary),
             boundaryPoints: nextBoundary,
           };
@@ -468,7 +481,7 @@ export function FlowerbedEditorPage({
                 ...placement,
                 xCm: next.x,
                 yCm: next.y,
-                zoneId: zoneContainingPoint(next),
+                flowerbedId: flowerbedContainingPoint(next),
               }
             : placement,
         ),
@@ -477,25 +490,28 @@ export function FlowerbedEditorPage({
   };
 
   const handleCanvasPointerUp = (): void => {
-    if (drawingZone) {
-      const rectangle = zoneFromPoints(drawingZone.start, drawingZone.current);
+    if (drawingFlowerbed) {
+      const rectangle = flowerbedFromPoints(
+        drawingFlowerbed.start,
+        drawingFlowerbed.current,
+      );
       if (rectangle.widthCm >= 10 && rectangle.heightCm >= 10) {
-        const id = nextDraftId('zone');
-        setZones((current) => [
+        const id = nextDraftId('flowerbed');
+        setFlowerbeds((current) => [
           ...current,
           {
             id,
             ...rectangle,
-            boundaryPoints: zoneBoundaryFromRectangle(rectangle),
+            boundaryPoints: flowerbedBoundaryFromRectangle(rectangle),
           },
         ]);
-        setSelectedObject(`zone:${id}`);
+        setSelectedObject(`flowerbed:${id}`);
       }
-      setDrawingZone(null);
+      setDrawingFlowerbed(null);
     }
     setDraggingPlant(null);
     setDraggingCorner(null);
-    setDraggingZoneCorner(null);
+    setDraggingFlowerbedCorner(null);
   };
 
   const deleteSelected = (): void => {
@@ -506,11 +522,15 @@ export function FlowerbedEditorPage({
     if (!id) {
       return;
     }
-    if (kind === 'zone') {
-      setZones((current) => current.filter((zone) => zone.id !== id));
+    if (kind === 'flowerbed') {
+      setFlowerbeds((current) =>
+        current.filter((flowerbed) => flowerbed.id !== id),
+      );
       setPlacements((current) =>
         current.map((placement) =>
-          placement.zoneId === id ? { ...placement, zoneId: null } : placement,
+          placement.flowerbedId === id
+            ? { ...placement, flowerbedId: null }
+            : placement,
         ),
       );
     } else {
@@ -529,7 +549,7 @@ export function FlowerbedEditorPage({
         deleteSelected();
       }
       if (event.key === 'Escape') {
-        setDrawingZone(null);
+        setDrawingFlowerbed(null);
         setDraggingPlant(null);
         setSelectedObject(null);
       }
@@ -539,29 +559,31 @@ export function FlowerbedEditorPage({
   });
 
   const save = async (): Promise<void> => {
-    if (!name.trim() || !selectionId || zones.length === 0) {
-      setError('Indiquez un nom, une sélection et dessinez au moins une zone.');
+    if (!name.trim() || !selectionId || flowerbeds.length === 0) {
+      setError(
+        'Indiquez un nom, une sélection et dessinez au moins un parterre.',
+      );
       return;
     }
     setSaving(true);
     setError(null);
-    const input: FlowerbedSaveInput = {
-      id: flowerbed?.id,
+    const input: PropertyPlanSaveInput = {
+      id: propertyPlan?.id,
       name: name.trim(),
       selectionId,
       widthCm,
       heightCm,
-      boundaryPoints: boundaryPoints.map((point) => ({
+      propertyBoundaryPoints: boundaryPoints.map((point) => ({
         xCm: point.x,
         yCm: point.y,
       })),
-      zones: zones.map((zone) => ({
-        id: zone.id,
-        xCm: zone.xCm,
-        yCm: zone.yCm,
-        widthCm: zone.widthCm,
-        heightCm: zone.heightCm,
-        boundaryPoints: zone.boundaryPoints.map((point) => ({
+      flowerbeds: flowerbeds.map((flowerbed) => ({
+        id: flowerbed.id,
+        xCm: flowerbed.xCm,
+        yCm: flowerbed.yCm,
+        widthCm: flowerbed.widthCm,
+        heightCm: flowerbed.heightCm,
+        boundaryPoints: flowerbed.boundaryPoints.map((point) => ({
           xCm: point.x,
           yCm: point.y,
         })),
@@ -569,17 +591,17 @@ export function FlowerbedEditorPage({
       placements,
     };
     try {
-      await window.flowerbedService.saveFlowerbed(input);
+      await window.propertyPlanService.savePropertyPlan(input);
       onSaved();
     } catch {
-      setError('Le parterre n’a pas pu être enregistré.');
+      setError('Le plan n’a pas pu être enregistré.');
     } finally {
       setSaving(false);
     }
   };
 
-  const drawingRectangle = drawingZone
-    ? zoneFromPoints(drawingZone.start, drawingZone.current)
+  const drawingRectangle = drawingFlowerbed
+    ? flowerbedFromPoints(drawingFlowerbed.start, drawingFlowerbed.current)
     : null;
   const boundaryPolygonPoints = boundaryPoints
     .map((point) => `${point.x},${point.y}`)
@@ -637,8 +659,10 @@ export function FlowerbedEditorPage({
     <section className="flowerbed-editor">
       <header className="flowerbed-editor-heading">
         <div>
-          <h1>{flowerbed ? 'Modifier le parterre' : 'Nouveau parterre'}</h1>
-          <p>Vue du dessus · toutes les dimensions sont en centimètres</p>
+          <h1>{propertyPlan ? 'Modifier le plan' : 'Nouveau plan'}</h1>
+          <p>
+            Limites de la propriété vues du dessus · dimensions en centimètres
+          </p>
         </div>
         <div className="flowerbed-editor-actions">
           <button type="button" className="secondary-button" onClick={onClose}>
@@ -662,14 +686,14 @@ export function FlowerbedEditorPage({
       <div className="flowerbed-editor-grid">
         <aside
           className="flowerbed-panel flowerbed-tools"
-          aria-label="Outils du parterre"
+          aria-label="Outils du plan"
         >
           <label>
             Nom
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Parterre terrasse"
+              placeholder="Plan de ma propriété"
             />
           </label>
           <label>
@@ -689,7 +713,8 @@ export function FlowerbedEditorPage({
               ))}
             </select>
           </label>
-          <div className="flowerbed-dimensions">
+          <fieldset className="flowerbed-property-dimensions">
+            <legend>Dimensions de la propriété</legend>
             <label>
               Largeur
               <input
@@ -702,7 +727,7 @@ export function FlowerbedEditorPage({
               />
             </label>
             <label>
-              Profondeur
+              Longueur
               <input
                 type="number"
                 min="20"
@@ -712,7 +737,7 @@ export function FlowerbedEditorPage({
                 }
               />
             </label>
-          </div>
+          </fieldset>
           <fieldset>
             <legend>Outil</legend>
             <button
@@ -724,10 +749,10 @@ export function FlowerbedEditorPage({
             </button>
             <button
               type="button"
-              className={mode === 'zone' ? 'active' : ''}
-              onClick={() => setMode('zone')}
+              className={mode === 'flowerbed' ? 'active' : ''}
+              onClick={() => setMode('flowerbed')}
             >
-              Dessiner une zone
+              Dessiner un parterre
             </button>
             <button
               type="button"
@@ -748,10 +773,10 @@ export function FlowerbedEditorPage({
           </button>
           <div className="flowerbed-legend">
             <p>
-              <span className="legend-zone" /> Zone de plantation
+              <span className="legend-flowerbed" /> Parterre
             </p>
             <p>
-              <span className="legend-warning" /> Chevauchement ou hors zone
+              <span className="legend-warning" /> Chevauchement ou hors parterre
             </p>
           </div>
         </aside>
@@ -794,7 +819,7 @@ export function FlowerbedEditorPage({
             <div
               ref={viewportRef}
               className={`flowerbed-canvas-viewport ${panning ? 'is-panning' : ''}`}
-              aria-label="Zone de dessin"
+              aria-label="Zone de dessin du plan"
               onPointerDown={startPanning}
               onPointerMove={continuePanning}
               onPointerUp={stopPanning}
@@ -813,7 +838,7 @@ export function FlowerbedEditorPage({
                   ref={svgRef}
                   className={`flowerbed-canvas mode-${mode}`}
                   viewBox={`0 0 ${widthCm} ${heightCm}`}
-                  aria-label={`Plan du parterre ${widthCm} par ${heightCm} centimètres`}
+                  aria-label={`Plan de la propriété ${widthCm} par ${heightCm} centimètres`}
                   role="img"
                   onPointerDown={handleCanvasPointerDown}
                   onPointerMove={handleCanvasPointerMove}
@@ -841,12 +866,12 @@ export function FlowerbedEditorPage({
                         strokeWidth="1"
                       />
                     </pattern>
-                    <clipPath id="flowerbed-boundary-clip">
+                    <clipPath id="property-boundary-clip">
                       <polygon points={boundaryPolygonPoints} />
                     </clipPath>
                   </defs>
                   <polygon
-                    className="flowerbed-boundary"
+                    className="property-boundary"
                     points={boundaryPolygonPoints}
                   />
                   <rect
@@ -855,62 +880,62 @@ export function FlowerbedEditorPage({
                     width={widthCm}
                     height={heightCm}
                     fill="url(#flowerbed-grid)"
-                    clipPath="url(#flowerbed-boundary-clip)"
+                    clipPath="url(#property-boundary-clip)"
                     pointerEvents="none"
                   />
-                  {zones.map((zone, index) => (
-                    <g key={zone.id}>
+                  {flowerbeds.map((flowerbed, index) => (
+                    <g key={flowerbed.id}>
                       <polygon
-                        className={`planting-zone ${selectedObject === `zone:${zone.id}` ? 'selected' : ''}`}
-                        points={zone.boundaryPoints
+                        className={`plan-flowerbed ${selectedObject === `flowerbed:${flowerbed.id}` ? 'selected' : ''}`}
+                        points={flowerbed.boundaryPoints
                           .map((point) => `${point.x},${point.y}`)
                           .join(' ')}
                         role="button"
-                        aria-label={`Sélectionner la zone ${index + 1}`}
+                        aria-label={`Sélectionner le parterre ${index + 1}`}
                         onPointerDown={(event) => {
                           if (event.button !== 0 || mode !== 'select') {
                             return;
                           }
                           event.stopPropagation();
-                          setSelectedObject(`zone:${zone.id}`);
+                          setSelectedObject(`flowerbed:${flowerbed.id}`);
                         }}
                         onClick={(event) => {
                           if (mode !== 'select') {
                             return;
                           }
                           event.stopPropagation();
-                          setSelectedObject(`zone:${zone.id}`);
+                          setSelectedObject(`flowerbed:${flowerbed.id}`);
                         }}
                       />
                       <text
-                        className="zone-label"
-                        x={zone.xCm + 6}
-                        y={zone.yCm + 16}
+                        className="flowerbed-label"
+                        x={flowerbed.xCm + 6}
+                        y={flowerbed.yCm + 16}
                       >
-                        Zone {index + 1}
+                        Parterre {index + 1}
                       </text>
-                      {selectedObject === `zone:${zone.id}`
-                        ? zone.boundaryPoints.map((point, cornerIndex) => (
+                      {selectedObject === `flowerbed:${flowerbed.id}`
+                        ? flowerbed.boundaryPoints.map((point, cornerIndex) => (
                             <circle
-                              key={`${zone.id}-corner-${cornerIndex}`}
-                              className={`planting-zone-corner-handle ${draggingZoneCorner?.zoneId === zone.id && draggingZoneCorner.cornerIndex === cornerIndex ? 'dragging' : ''}`}
+                              key={`${flowerbed.id}-corner-${cornerIndex}`}
+                              className={`planting-flowerbed-corner-handle ${draggingFlowerbedCorner?.flowerbedId === flowerbed.id && draggingFlowerbedCorner.cornerIndex === cornerIndex ? 'dragging' : ''}`}
                               cx={Math.max(
-                                ZONE_CORNER_HANDLE_RADIUS_CM,
+                                FLOWERBED_CORNER_HANDLE_RADIUS_CM,
                                 Math.min(
-                                  widthCm - ZONE_CORNER_HANDLE_RADIUS_CM,
+                                  widthCm - FLOWERBED_CORNER_HANDLE_RADIUS_CM,
                                   point.x,
                                 ),
                               )}
                               cy={Math.max(
-                                ZONE_CORNER_HANDLE_RADIUS_CM,
+                                FLOWERBED_CORNER_HANDLE_RADIUS_CM,
                                 Math.min(
-                                  heightCm - ZONE_CORNER_HANDLE_RADIUS_CM,
+                                  heightCm - FLOWERBED_CORNER_HANDLE_RADIUS_CM,
                                   point.y,
                                 ),
                               )}
-                              r={ZONE_CORNER_HANDLE_RADIUS_CM}
+                              r={FLOWERBED_CORNER_HANDLE_RADIUS_CM}
                               role="button"
-                              aria-label={`Déplacer le coin ${cornerIndex + 1} de la zone ${index + 1}`}
+                              aria-label={`Déplacer le coin ${cornerIndex + 1} du parterre ${index + 1}`}
                               onPointerDown={(event) => {
                                 if (event.button !== 0) {
                                   return;
@@ -922,14 +947,14 @@ export function FlowerbedEditorPage({
                                 );
                                 setMode('select');
                                 setSelectedPlant(null);
-                                setDraggingZoneCorner({
-                                  zoneId: zone.id,
+                                setDraggingFlowerbedCorner({
+                                  flowerbedId: flowerbed.id,
                                   cornerIndex,
                                 });
                               }}
                             >
                               <title>
-                                Zone {index + 1}, coin {cornerIndex + 1}
+                                Parterre {index + 1}, coin {cornerIndex + 1}
                               </title>
                             </circle>
                           ))
@@ -938,7 +963,7 @@ export function FlowerbedEditorPage({
                   ))}
                   {drawingRectangle ? (
                     <rect
-                      className="planting-zone drawing"
+                      className="plan-flowerbed drawing"
                       x={drawingRectangle.xCm}
                       y={drawingRectangle.yCm}
                       width={drawingRectangle.widthCm}
@@ -1005,7 +1030,7 @@ export function FlowerbedEditorPage({
                   {boundaryPoints.map((point, index) => (
                     <circle
                       key={`corner-${index}`}
-                      className={`flowerbed-corner-handle ${draggingCorner === index ? 'dragging' : ''}`}
+                      className={`property-corner-handle ${draggingCorner === index ? 'dragging' : ''}`}
                       cx={Math.max(
                         CORNER_HANDLE_RADIUS_CM,
                         Math.min(widthCm - CORNER_HANDLE_RADIUS_CM, point.x),
@@ -1016,7 +1041,7 @@ export function FlowerbedEditorPage({
                       )}
                       r={CORNER_HANDLE_RADIUS_CM}
                       role="button"
-                      aria-label={`Déplacer le coin ${index + 1}`}
+                      aria-label={`Déplacer le coin ${index + 1} de la propriété`}
                       onPointerDown={(event) => {
                         if (event.button !== 0) {
                           return;
@@ -1033,7 +1058,8 @@ export function FlowerbedEditorPage({
                       }}
                     >
                       <title>
-                        Coin {index + 1} · glissez pour modifier la forme
+                        Coin {index + 1} de la propriété · glissez pour modifier
+                        la limite
                       </title>
                     </circle>
                   ))}

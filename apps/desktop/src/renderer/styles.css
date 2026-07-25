@@ -1247,10 +1247,16 @@ abbr {
   font: inherit;
   font-weight: 400;
 }
-.flowerbed-dimensions {
+.flowerbed-property-dimensions {
+  padding: 8px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 5px;
+}
+.flowerbed-property-dimensions legend {
+  grid-column: 1 / -1;
 }
 .flowerbed-tools fieldset {
   margin: 0;
@@ -1287,14 +1293,14 @@ abbr {
   align-items: center;
   gap: 7px;
 }
-.legend-zone,
+.legend-flowerbed,
 .legend-warning {
   width: 16px;
   height: 16px;
   display: inline-block;
   border-radius: 50%;
 }
-.legend-zone {
+.legend-flowerbed {
   background: #e8f2e6;
   border: 1px solid #2f7d32;
 }
@@ -1426,58 +1432,58 @@ abbr {
   touch-action: none;
   user-select: none;
 }
-.flowerbed-canvas.mode-zone {
+.flowerbed-canvas.mode-flowerbed {
   cursor: crosshair;
 }
 .flowerbed-canvas.mode-plant {
   cursor: copy;
 }
-.flowerbed-boundary {
+.property-boundary {
   fill: #f8faf7;
   stroke: #2f7d32;
   stroke-width: 3;
 }
-.flowerbed-corner-handle {
+.property-corner-handle {
   fill: #fff;
   stroke: #2f7d32;
   stroke-width: 3;
   cursor: grab;
   vector-effect: non-scaling-stroke;
 }
-.flowerbed-corner-handle:hover,
-.flowerbed-corner-handle.dragging {
+.property-corner-handle:hover,
+.property-corner-handle.dragging {
   fill: #2f7d32;
   stroke: #fff;
   cursor: grabbing;
 }
-.planting-zone-corner-handle {
+.planting-flowerbed-corner-handle {
   fill: #fff;
   stroke: #0d47a1;
   stroke-width: 2;
   cursor: grab;
   vector-effect: non-scaling-stroke;
 }
-.planting-zone-corner-handle:hover,
-.planting-zone-corner-handle.dragging {
+.planting-flowerbed-corner-handle:hover,
+.planting-flowerbed-corner-handle.dragging {
   fill: #0d47a1;
   stroke: #fff;
   cursor: grabbing;
 }
-.planting-zone {
+.plan-flowerbed {
   fill: rgb(47 125 50 / 13%);
   stroke: #2f7d32;
   stroke-width: 2;
 }
-.planting-zone.drawing {
+.plan-flowerbed.drawing {
   fill: rgb(47 125 50 / 8%);
   stroke-dasharray: 7 5;
   pointer-events: none;
 }
-.planting-zone.selected {
+.plan-flowerbed.selected {
   stroke: #245e26;
   stroke-width: 4;
 }
-.zone-label {
+.flowerbed-label {
   fill: #2f7d32;
   font-size: 12px;
   font-weight: 600;

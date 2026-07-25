@@ -17,23 +17,23 @@ const selectionNameMigration = readFileSync(
   ),
   'utf8',
 );
-const flowerbedMigration = readFileSync(
-  join(__dirname, '..', 'migrations', '003_flowerbed_designs.sql'),
+const propertyPlanMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '003_property_plans.sql'),
   'utf8',
 );
-const flowerbedColorMigration = readFileSync(
-  join(__dirname, '..', 'migrations', '004_flowerbed_placement_color.sql'),
+const propertyPlanColorMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '004_property_plan_placement_color.sql'),
+  'utf8',
+);
+const propertyBoundaryMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '005_property_boundary_points.sql'),
   'utf8',
 );
 const flowerbedBoundaryMigration = readFileSync(
-  join(__dirname, '..', 'migrations', '005_flowerbed_boundary_points.sql'),
+  join(__dirname, '..', 'migrations', '006_flowerbed_boundary_points.sql'),
   'utf8',
 );
-const zoneBoundaryMigration = readFileSync(
-  join(__dirname, '..', 'migrations', '006_planting_zone_boundary_points.sql'),
-  'utf8',
-);
-const migration = `${initialMigration}\n${selectionNameMigration}\n${flowerbedMigration}\n${flowerbedColorMigration}\n${flowerbedBoundaryMigration}\n${zoneBoundaryMigration}`;
+const migration = `${initialMigration}\n${selectionNameMigration}\n${propertyPlanMigration}\n${propertyPlanColorMigration}\n${propertyBoundaryMigration}\n${flowerbedBoundaryMigration}`;
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -104,11 +104,11 @@ test('migration creates the expected tables', (t) => {
       'plant_photos',
       'selections',
       'selection_plants',
-      'flowerbeds',
-      'planting_zones',
-      'flowerbed_plant_placements',
+      'property_plans',
+      'property_plan_plant_placements',
+      'property_boundary_points',
       'flowerbed_boundary_points',
-      'planting_zone_boundary_points',
+      'flowerbeds',
     ]),
   );
 });

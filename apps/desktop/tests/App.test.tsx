@@ -13,9 +13,9 @@ import type {
   CatalogImportResult,
   CatalogPage,
   CatalogPlant,
-  FlowerbedDesign,
-  FlowerbedSaveInput,
-  FlowerbedSummary,
+  PropertyPlanDesign,
+  PropertyPlanSaveInput,
+  PropertyPlanSummary,
   PhotoDeleteResult,
   PhotoImportResult,
   SelectionCreationInput,
@@ -105,12 +105,14 @@ describe('App catalog', () => {
         input: SelectionPlantAdditionInput,
       ) => Promise<SelectionPlantAdditionResult>
     >();
-  const listFlowerbeds = vi.fn<() => Promise<readonly FlowerbedSummary[]>>();
-  const getFlowerbed =
-    vi.fn<(flowerbedId: string) => Promise<FlowerbedDesign | null>>();
-  const saveFlowerbed =
-    vi.fn<(input: FlowerbedSaveInput) => Promise<FlowerbedDesign>>();
-  const deleteFlowerbed = vi.fn<(flowerbedId: string) => Promise<boolean>>();
+  const listPropertyPlans =
+    vi.fn<() => Promise<readonly PropertyPlanSummary[]>>();
+  const getPropertyPlan =
+    vi.fn<(propertyPlanId: string) => Promise<PropertyPlanDesign | null>>();
+  const savePropertyPlan =
+    vi.fn<(input: PropertyPlanSaveInput) => Promise<PropertyPlanDesign>>();
+  const deletePropertyPlan =
+    vi.fn<(propertyPlanId: string) => Promise<boolean>>();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -148,9 +150,9 @@ describe('App catalog', () => {
       addedCount: 1,
       ignoredCount: 0,
     });
-    listFlowerbeds.mockResolvedValue([]);
-    getFlowerbed.mockResolvedValue(null);
-    deleteFlowerbed.mockResolvedValue(true);
+    listPropertyPlans.mockResolvedValue([]);
+    getPropertyPlan.mockResolvedValue(null);
+    deletePropertyPlan.mockResolvedValue(true);
     window.catalogService = {
       listPlants,
       listPlantIds,
@@ -170,11 +172,11 @@ describe('App catalog', () => {
       importPhotos,
       deletePhoto,
     };
-    window.flowerbedService = {
-      listFlowerbeds,
-      getFlowerbed,
-      saveFlowerbed,
-      deleteFlowerbed,
+    window.propertyPlanService = {
+      listPropertyPlans,
+      getPropertyPlan,
+      savePropertyPlan,
+      deletePropertyPlan,
     };
   });
 
@@ -189,14 +191,14 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('heading', { name: 'Mon Catalogue' }),
     ).toBeInTheDocument();
-    const flowerbedsButton = screen.getByRole('button', {
-      name: 'Mes Parterres',
+    const propertyPlansButton = screen.getByRole('button', {
+      name: 'Mes Plans',
     });
-    expect(flowerbedsButton).toBeVisible();
-    expect(flowerbedsButton).toBeEnabled();
-    expect(flowerbedsButton).toHaveClass('primary-button');
+    expect(propertyPlansButton).toBeVisible();
+    expect(propertyPlansButton).toBeEnabled();
+    expect(propertyPlansButton).toHaveClass('primary-button');
     const flowerbedIcon =
-      flowerbedsButton.querySelector<HTMLElement>('.flowerbed-icon');
+      propertyPlansButton.querySelector<HTMLElement>('.flowerbed-icon');
     expect(flowerbedIcon).toBeInTheDocument();
     expect(flowerbedIcon?.style.maskImage).toContain('url("');
     expect(
@@ -944,22 +946,20 @@ describe('App catalog', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens a top-down flowerbed editor using plants from a selection', async () => {
+  it('opens a property plan editor and distinguishes property from flowerbeds', async () => {
     render(<App />);
     await screen.findByText('Rose page 1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Plans' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Mes Parterres' }),
+      await screen.findByRole('heading', { name: 'Mes Plans' }),
     ).toBeInTheDocument();
-    expect(listFlowerbeds).toHaveBeenCalledOnce();
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Dessiner un parterre' }),
-    );
+    expect(listPropertyPlans).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Dessiner un plan' }));
 
     expect(
-      screen.getByRole('heading', { name: 'Nouveau parterre' }),
+      screen.getByRole('heading', { name: 'Nouveau plan' }),
     ).toBeInTheDocument();
     await screen.findByRole('option', { name: sunnyBorder.name });
     fireEvent.change(screen.getByLabelText('Sélection de plantes'), {
@@ -969,7 +969,7 @@ describe('App catalog', () => {
     expect(await screen.findByText('Rose ancienne')).toBeInTheDocument();
     expect(getSelection).toHaveBeenCalledWith(sunnyBorder.id);
     const drawing = screen.getByRole('img', {
-      name: 'Plan du parterre 400 par 250 centimètres',
+      name: 'Plan de la propriété 400 par 250 centimètres',
     });
     vi.spyOn(drawing, 'getBoundingClientRect').mockReturnValue({
       x: 0,
@@ -983,7 +983,7 @@ describe('App catalog', () => {
       toJSON: () => ({}),
     });
     const firstCorner = screen.getByRole('button', {
-      name: 'Déplacer le coin 1',
+      name: 'Déplacer le coin 1 de la propriété',
     });
     expect(
       screen.getAllByRole('button', { name: /Déplacer le coin/ }),
@@ -1016,12 +1016,12 @@ describe('App catalog', () => {
     expect(zoomValue).toHaveTextContent('125 %');
     fireEvent.click(screen.getByRole('button', { name: 'Zoom arrière' }));
     expect(zoomValue).toHaveTextContent('100 %');
-    const drawingZone = screen.getByLabelText('Zone de dessin');
-    fireEvent.wheel(drawingZone, { ctrlKey: false, deltaY: -100 });
+    const drawingArea = screen.getByLabelText('Zone de dessin du plan');
+    fireEvent.wheel(drawingArea, { ctrlKey: false, deltaY: -100 });
     expect(zoomValue).toHaveTextContent('100 %');
-    fireEvent.wheel(drawingZone, { ctrlKey: true, deltaY: -100 });
+    fireEvent.wheel(drawingArea, { ctrlKey: true, deltaY: -100 });
     expect(zoomValue).toHaveTextContent('110 %');
-    fireEvent.wheel(drawingZone, { ctrlKey: true, deltaY: 100 });
+    fireEvent.wheel(drawingArea, { ctrlKey: true, deltaY: 100 });
     expect(zoomValue).toHaveTextContent('100 %');
     const middleDown = new MouseEvent('pointerdown', {
       bubbles: true,
@@ -1038,21 +1038,21 @@ describe('App catalog', () => {
     for (const event of [middleDown, panMove, panEnd]) {
       Object.defineProperty(event, 'pointerId', { value: 7 });
     }
-    fireEvent(drawingZone, middleDown);
-    fireEvent(drawingZone, panMove);
-    expect(drawingZone).toHaveClass('is-panning');
-    expect(drawingZone.scrollLeft).toBe(30);
-    expect(drawingZone.scrollTop).toBe(20);
-    fireEvent(drawingZone, panEnd);
-    expect(drawingZone).not.toHaveClass('is-panning');
+    fireEvent(drawingArea, middleDown);
+    fireEvent(drawingArea, panMove);
+    expect(drawingArea).toHaveClass('is-panning');
+    expect(drawingArea.scrollLeft).toBe(30);
+    expect(drawingArea.scrollTop).toBe(20);
+    fireEvent(drawingArea, panEnd);
+    expect(drawingArea).not.toHaveClass('is-panning');
     fireEvent.click(
       screen.getByRole('button', { name: 'Déplacer la vue vers la droite' }),
     );
     fireEvent.click(
       screen.getByRole('button', { name: 'Déplacer la vue vers le bas' }),
     );
-    expect(drawingZone.scrollLeft).toBe(110);
-    expect(drawingZone.scrollTop).toBe(100);
+    expect(drawingArea.scrollLeft).toBe(110);
+    expect(drawingArea.scrollTop).toBe(100);
     expect(screen.getByRole('button', { name: 'Déplacer' })).toHaveClass(
       'active',
     );
@@ -1069,28 +1069,85 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('button', { name: 'Placer la plante' }),
     ).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Nom'), {
+      target: { value: 'Plan maison' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dessiner un parterre' }),
+    );
+    const flowerbedDown = new MouseEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      clientX: 80,
+      clientY: 60,
+    });
+    const flowerbedMove = new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 200,
+      clientY: 150,
+    });
+    const flowerbedUp = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [flowerbedDown, flowerbedMove, flowerbedUp]) {
+      Object.defineProperty(event, 'pointerId', { value: 9 });
+    }
+    fireEvent(drawing, flowerbedDown);
+    fireEvent(drawing, flowerbedMove);
+    fireEvent(drawing, flowerbedUp);
+    expect(
+      screen.getByRole('button', { name: 'Sélectionner le parterre 1' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(savePropertyPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Plan maison',
+          propertyBoundaryPoints: [
+            { xCm: 40, yCm: 30 },
+            { xCm: 400, yCm: 0 },
+            { xCm: 400, yCm: 250 },
+            { xCm: 0, yCm: 250 },
+          ],
+          flowerbeds: [
+            expect.objectContaining({
+              xCm: 80,
+              yCm: 60,
+              widthCm: 120,
+              heightCm: 90,
+              boundaryPoints: [
+                { xCm: 80, yCm: 60 },
+                { xCm: 200, yCm: 60 },
+                { xCm: 200, yCm: 150 },
+                { xCm: 80, yCm: 150 },
+              ],
+            }),
+          ],
+        }),
+      ),
+    );
   });
 
   it('renders a saved plant circle with its first snapshotted color', async () => {
-    const design: FlowerbedDesign = {
-      id: 'flowerbed-1',
+    const design: PropertyPlanDesign = {
+      id: 'property-plan-1',
       name: 'Massif rose',
       selectionId: sunnyBorder.id,
       widthCm: 300,
       heightCm: 200,
-      zoneCount: 1,
+      flowerbedCount: 1,
       placementCount: 1,
       createdAt: '2026-07-20T10:00:00.000Z',
       updatedAt: '2026-07-20T10:00:00.000Z',
-      boundaryPoints: [
+      propertyBoundaryPoints: [
         { xCm: 0, yCm: 0 },
         { xCm: 300, yCm: 0 },
         { xCm: 300, yCm: 200 },
         { xCm: 0, yCm: 200 },
       ],
-      zones: [
+      flowerbeds: [
         {
-          id: 'zone-1',
+          id: 'flowerbed-1',
           xCm: 10,
           yCm: 10,
           widthCm: 280,
@@ -1106,7 +1163,7 @@ describe('App catalog', () => {
       placements: [
         {
           id: 'placement-1',
-          zoneId: 'zone-1',
+          flowerbedId: 'flowerbed-1',
           plantId: rose.id,
           plantNameSnapshot: rose.name,
           spacingCmSnapshot: 40,
@@ -1116,18 +1173,18 @@ describe('App catalog', () => {
         },
       ],
     };
-    listFlowerbeds.mockResolvedValueOnce([design]);
-    getFlowerbed.mockResolvedValueOnce(design);
+    listPropertyPlans.mockResolvedValueOnce([design]);
+    getPropertyPlan.mockResolvedValueOnce(design);
     render(<App />);
     await screen.findByText('Rose page 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Plans' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
 
     const title = await screen.findByText(/Rose ancienne · diamètre 40 cm/);
     const circle = title.parentElement?.querySelector('circle');
     expect(circle).toHaveStyle({ fill: '#ec4899' });
     const drawing = screen.getByRole('img', {
-      name: 'Plan du parterre 300 par 200 centimètres',
+      name: 'Plan de la propriété 300 par 200 centimètres',
     });
     vi.spyOn(drawing, 'getBoundingClientRect').mockReturnValue({
       x: 0,
@@ -1142,31 +1199,35 @@ describe('App catalog', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Déplacer' }));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Sélectionner la zone 1' }),
+      screen.getByRole('button', { name: 'Sélectionner le parterre 1' }),
     );
-    const zoneCorners = screen.getAllByRole('button', {
-      name: /de la zone 1/,
+    const flowerbedCorners = screen.getAllByRole('button', {
+      name: /du parterre 1/,
     });
-    expect(zoneCorners).toHaveLength(4);
-    const zoneCornerDown = new MouseEvent('pointerdown', {
+    expect(flowerbedCorners).toHaveLength(4);
+    const flowerbedCornerDown = new MouseEvent('pointerdown', {
       bubbles: true,
       button: 0,
       clientX: 10,
       clientY: 10,
     });
-    const zoneCornerMove = new MouseEvent('pointermove', {
+    const flowerbedCornerMove = new MouseEvent('pointermove', {
       bubbles: true,
       clientX: 40,
       clientY: 35,
     });
-    const zoneCornerUp = new MouseEvent('pointerup', { bubbles: true });
-    for (const event of [zoneCornerDown, zoneCornerMove, zoneCornerUp]) {
+    const flowerbedCornerUp = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [
+      flowerbedCornerDown,
+      flowerbedCornerMove,
+      flowerbedCornerUp,
+    ]) {
       Object.defineProperty(event, 'pointerId', { value: 8 });
     }
-    fireEvent(zoneCorners[0]!, zoneCornerDown);
-    fireEvent(drawing, zoneCornerMove);
-    fireEvent(drawing, zoneCornerUp);
-    expect(zoneCorners[0]).toHaveAttribute('cx', '40');
-    expect(zoneCorners[0]).toHaveAttribute('cy', '35');
+    fireEvent(flowerbedCorners[0]!, flowerbedCornerDown);
+    fireEvent(drawing, flowerbedCornerMove);
+    fireEvent(drawing, flowerbedCornerUp);
+    expect(flowerbedCorners[0]).toHaveAttribute('cx', '40');
+    expect(flowerbedCorners[0]).toHaveAttribute('cy', '35');
   });
 });
