@@ -52,6 +52,7 @@ It keeps full-catalog replacement and adds:
 - deriving one status for each selection: **À jour**, **[Number of modified plants] plantes modifiées**, or **[Number of deleted plants] plantes supprimées**.
 - deleting one or more checked selections after previewing the impact on flowerbeds.
 - extending catalog filters with **Fleur / autre**, flower colors, and leaf colors, including an empty-value filter for optional attributes.
+- displaying saved selections as cards by default with a table/card presentation switch.
 
 CSV add and modify operations do not manage photos. Plant photos continue to
 use the separate photo-import workflow.

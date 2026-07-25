@@ -49,6 +49,10 @@ Select plants in the catalog > click on button to create a new selection > name 
 
 Check one or more selections in the selection list > click on the deletion button > preview the selected selections and affected flowerbeds > confirm the action > the selections are deleted, their unused flowerbeds are deleted and flowerbed that contain placed plants are permanently lock > display deleted selection, deleted-flowerbed and locked-flowerbed counts
 
+### Change the selections presentation
+
+Open **Présentation** in the selections list > choose **Cartes** or **Tableau** > same selections are displayed in the chosen view without clearing search, filters, sorting, pagination, or checked selections
+
 ## Flowerbed design
 
 - Create a new flowerbed design:  

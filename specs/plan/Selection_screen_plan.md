@@ -4,6 +4,7 @@
 > Post-MVP modified/deleted plant status and review behavior follow
 > [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md).
 > The final screen sections also define post-MVP batch selection deletion.
+> They define card view and table/card presentation switching for V2.
 
 ## Screen objective
 
@@ -288,6 +289,17 @@ Post-MVP selection deletion scenarios must additionally verify:
 - Every edit and unlock attempt is rejected for a locked flowerbed.
 - A failure during any deletion effect rolls back the complete batch.
 
+V2 presentation scenarios must additionally verify:
+
+- the first visit uses card view;
+- switching to table view displays the same result set;
+- switching views preserves search, filters, sorting, current page, page size, and checked selection IDs;
+- the last chosen view is restored after closing and reopening the application;
+- card and table modes support the same detail and bulk-deletion workflows;
+- the Columns action is available only in table view;
+- loading, empty, error, and pagination states work in both views;
+- card previews handle zero plants, missing photos, and more plants than the preview limit.
+
 # Mes Sélections — Final screen structure
 
 ## 1. App header
@@ -319,6 +331,42 @@ Right side:
 
 Screen name: Main page title style  
 Buttons: secondary buttons style
+
+### Presentation switcher
+
+**Présentation** is a secondary button that opens a two-choice menu:
+
+```text
+Présentation
+
+● Cartes
+○ Tableau
+```
+
+Behavior:
+
+- **Cartes** is the default when no preference has been stored.
+- Choosing an option updates the results area immediately and closes the menu.
+- Store the last choice locally as `cards` or `table`; this is interface preference, not selection domain data.
+- Restore the stored choice when **Mes Sélections** is opened again, including after an application restart.
+- Keep the same query and UI state when switching: search, filters, sorting, page number, page size, and checked selection IDs.
+- Do not refetch unrelated detail data merely because presentation changes.
+- Keep **Colonnes** visible and enabled only in table mode. Hide it in card mode.
+- Expose the current choice through `aria-pressed`, `aria-checked`, or equivalent accessible menu semantics.
+- Support keyboard opening, arrow navigation, selection, Escape, and focus return to the **Présentation** button.
+
+Both modes use the same paginated `SelectionSummary` result. Presentation switching must not change result ordering, total count, or page boundaries.
+
+For each visible selection, the summary contract supplies:
+
+- selection ID and name;
+- current plant count;
+- up to three preview plants with ID, name, and resolved photo URL;
+- creation and last-modification dates;
+- derived status plus modified-plant and deleted-plant counts;
+- flowerbed usage count and the names required by the usage popover.
+
+Choose preview plants deterministically by `selection_plants.added_at`, then plant ID as the tie-breaker. Return only the preview subset in the summary; do not load the complete plant collection for every card. No database migration is required solely for presentation switching.
 
 ### Search
 
@@ -471,6 +519,20 @@ A card should contain:
 7. **Usage**
 8. **Primary and secondary actions**
 
+Required card behavior:
+
+- place the checkbox at the top-left and keep it independent from the details action;
+- checking a card participates in the same bulk-selection state as table-row checkboxes;
+- show the selection name without truncation when it fits and use an accessible tooltip when it is ellipsized;
+- show current plant count and last modification date;
+- show up to three current plant photos, using the catalog photo placeholder when a plant has no photo;
+- show `+N` when more than three current plants exist;
+- show the standard empty preview when the selection contains zero plants;
+- display the derived status and both underlying counts according to the status rules below;
+- display flowerbed usage using the same data and interaction as table view;
+- open the detail screen only through **Détails** or an explicitly accessible equivalent, so clicking the checkbox or overflow menu never navigates;
+- keep selection deletion out of the card menu because deletion is a checked bulk action from the administration row.
+
 ---
 
 ## Example card — up-to-date selection
@@ -544,6 +606,11 @@ Use a responsive grid.
 ### Mobile
 
 - 1 card per row
+
+Use CSS grid with `minmax(300px, 340px)`-equivalent sizing and consistent gaps.
+Cards in the same row may stretch to the same height, but content must not be clipped. The results footer and pagination remain below the complete grid.
+
+Card mode uses the same 25/50/100 page-size choices as table mode. Changing the page size returns to page 1; switching presentation does not.
 
 ---
 
@@ -734,6 +801,8 @@ It is useful for:
 - sorting by status, usage, number of flowers, or modification date;
 - performing bulk actions;
 - managing large catalogs.
+
+Table rows and cards are two renderings of the same `SelectionSummary`. A selection checked in one mode remains checked in the other. Sorting, filtering, pagination, status, usage, dates, preview photos, and actions must have equivalent meaning in both modes.
 
 ---
 
@@ -953,8 +1022,7 @@ Is it used somewhere?
 What should I do next?
 ```
 
-Table will be used as MVP.  
-The table should remain available as a secondary compact mode for advanced users, large catalogs, sorting, and bulk operations.
+The historical strict MVP used only the table. V2 defaults to cards and keeps the table available through **Présentation** as a compact mode for advanced users, large catalogs, sorting, and bulk operations.
 
 The most important information to prioritize is:
 
