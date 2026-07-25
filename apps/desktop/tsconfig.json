@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "composite": true,
     "target": "ES2022",
     "module": "Node16",
     "moduleResolution": "Node16",
@@ -10,6 +11,12 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true
   },
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/communication" },
+    { "path": "../../packages/photo-handling" },
+    { "path": "../../packages/database" }
+  ],
   "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/shared/**/*.ts"],
   "exclude": ["src/**/*.test.ts"]
 }

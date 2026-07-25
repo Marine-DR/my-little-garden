@@ -57,8 +57,12 @@ The catalog database is created in Electron's application-data directory on
 first launch. The catalog table reads that SQLite database in alphabetical
 order and displays 25 plants per page.
 
-The supported Node.js version is recorded in `package.json`; TypeScript and
-other JavaScript dependencies are recorded in `package.json` and `package-lock.json`.
+The supported Node.js version is recorded in `package.json`. This branch uses
+the native TypeScript 7 compiler and Oxlint's tsgo-powered type-aware rules;
+their versions are recorded in `package.json` and `package-lock.json`.
+The root `tsconfig.json` describes the workspace build graph, allowing
+TypeScript to build independent projects concurrently and skip unchanged
+projects on subsequent builds.
 
 ## Contributors
 

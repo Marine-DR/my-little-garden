@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/communication" },
+    { "path": "packages/photo-handling" },
+    { "path": "packages/database" },
+    { "path": "apps/desktop" }
+  ]
+}

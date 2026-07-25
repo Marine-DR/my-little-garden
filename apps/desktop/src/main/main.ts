@@ -25,7 +25,7 @@ registerPhotoScheme();
 
 let database: DatabaseSync | undefined;
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   const openedDatabase = openApplicationDatabase(app);
   database = openedDatabase;
   const photoDirectory = applicationPhotoDirectory(app);
