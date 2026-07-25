@@ -7,10 +7,10 @@ import type {
   SelectionPlantAdditionResult,
 } from './desktop-api';
 import type {
-  FlowerbedDesign,
-  FlowerbedSaveInput,
-  FlowerbedSummary,
-} from './flowerbed';
+  PropertyPlanDesign,
+  PropertyPlanSaveInput,
+  PropertyPlanSummary,
+} from './property-plan';
 
 export interface PlantPageRequest {
   readonly offset: number;
@@ -92,9 +92,9 @@ export interface SelectionRepository {
   ): Promise<SelectionPlantAdditionResult>;
 }
 
-export interface FlowerbedRepository {
-  list(): Promise<FlowerbedSummary[]>;
-  get(flowerbedId: string): Promise<FlowerbedDesign | null>;
-  save(input: FlowerbedSaveInput): Promise<FlowerbedDesign>;
-  delete(flowerbedId: string): Promise<boolean>;
+export interface PropertyPlanRepository {
+  list(): Promise<PropertyPlanSummary[]>;
+  get(propertyPlanId: string): Promise<PropertyPlanDesign | null>;
+  save(input: PropertyPlanSaveInput): Promise<PropertyPlanDesign>;
+  delete(propertyPlanId: string): Promise<boolean>;
 }
