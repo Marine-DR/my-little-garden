@@ -77,7 +77,9 @@ Core interfaces:
 - The catalog selection action bar supports creating a new selection and adding checked plants to one or more existing selections. Existing plant-selection links are ignored without producing an error.
 - “Mes Sélections” displays saved selections and their current plants in a table-based management screen. Users can open a selection detail and remove plants from a selection after confirmation.
 - Selection rename, selection deletion, selection reliability status, modified/deleted plant review, flowerbed usage indicators, selection search, selection filters, and card/table view switching are deferred.
-- Confirm catalog replacement after preview, especially when saved selections will lose plants.
+- Before choosing a replacement CSV, warn that the complete catalog will be replaced and explain UUID-first, unique-normalized-name fallback matching.
+- Confirm catalog replacement after preview, especially when saved selections will lose plants. The post-MVP flowerbed consequences are defined in
+  [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md#67-flowerbed-catalog-impacts).
 - Keep layouts usable across ordinary desktop sizes; mobile navigation and touch-specific behavior are deferred.
 
 ## Test Plan
@@ -89,6 +91,7 @@ Core interfaces:
 - Verify adding catalog plants to existing selections ignores duplicate links and reports added versus ignored associations.
 - Verify removing plants from a selection requires confirmation and updates the selection detail.
 - Test image matching, missing images, duplicate filenames, unsupported formats, path traversal, copying, and cleanup after commit or rollback.
+- Verify cancelling the initial replacement warning opens no file picker and changes no state.
 - Component-test empty, loading, populated, filtered, paginated, validation, preview, and selection states.
 - Electron integration-test:
   - Fresh installation and template download.

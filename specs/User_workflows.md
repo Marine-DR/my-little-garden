@@ -4,7 +4,8 @@
 
 ### Replace the current plants catalog
 
-Click on button to replace > upload the .csv file with the new catalog > Confirm the action > The catalog of plants contains only the plants from the .csv
+Click on button to replace > review the identity and consequence warning > select a CSB > upload the CSV > preview impacts on catalog, selections and flowerbeds > confirm the
+replacement > the catalog is replaced and impact are automatically applyed to selection and flowerbed 
 
 ### Add new plants in the catalog
 
@@ -72,7 +73,7 @@ Open **Présentation** in the selections list > choose **Cartes** or **Tableau**
 
 ### Issue during plant catalog replacement
 
-Click on button to replace plant catalog > upload the new catalog > display all blocking errors > acknowledge the issue > cancel the replacement > catalog and selection warnings remain as before the replacement
+Click on button to replace plant catalog > upload the new catalog > display all blocking errors > acknowledge the issue > cancel the replacement > catalog,selection warnings, flowerbed placements, and flowerbed issues remain as before the replacement
 
 ### Issue when add a pool of plant via CSV
 
@@ -98,6 +99,10 @@ Check plants in the catalog > click on the delete button > review affected plant
   Open the selection detail > review all modified plants > acknowledge or close the modified-plants panel > clear the displayed modification warnings > Update the selection status
 - Review deleted plants in a selection:
   Open the selection detail > review all deleted plants > acknowledge or close the deleted-plants warning > Update the selection status
+
+### Acknowledge flowerbed catalog impacts
+
+Open an affected flowerbed > review catalog-impact errors and warnings > acknowledge the displayed issues > continue editing the flowerbed
 
 ### 2 photos for the same plant
 

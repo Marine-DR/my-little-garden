@@ -381,6 +381,66 @@ reference using `ON DELETE SET NULL` or an equivalent transactional detach, plus
 a persisted lock reason. It must not cascade non-empty flowerbeds from
 `selections`.
 
+### 5.8 Pending flowerbed catalog-impact issues
+
+The future flowerbed migration must add persistent catalog-impact issues
+alongside the flowerbed tables. A structure equivalent to this is required:
+
+```sql
+CREATE TABLE flowerbed_catalog_issues (
+    id                     TEXT PRIMARY KEY,
+    flowerbed_id           TEXT NOT NULL,
+    catalog_operation_id   TEXT NOT NULL,
+    plant_id               TEXT NOT NULL,
+    plant_name             TEXT NOT NULL,
+    severity               TEXT NOT NULL CHECK (
+        severity IN ('error', 'warning')
+    ),
+    issue_kind             TEXT NOT NULL CHECK (
+        issue_kind IN (
+            'plant_deleted',
+            'used_flower_color_deleted',
+            'spacing_changed',
+            'plant_name_changed',
+            'soil_requirements_changed',
+            'available_flower_colors_changed'
+        )
+    ),
+    flower_color_label     TEXT,
+    removed_instance_count INTEGER CHECK (
+        removed_instance_count IS NULL
+        OR removed_instance_count > 0
+    ),
+    details_version        INTEGER NOT NULL,
+    details_json           TEXT NOT NULL,
+    created_at             TEXT NOT NULL,
+    FOREIGN KEY (flowerbed_id)
+        REFERENCES flowerbeds (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_flowerbed_catalog_issues_flowerbed_operation
+    ON flowerbed_catalog_issues (flowerbed_id, catalog_operation_id);
+```
+
+This SQL is integrated when the authoritative flowerbed schema is added; it
+must not be migrated before `flowerbeds` exists.
+
+`plant_id` and the removed color label are historical data and deliberately
+have no foreign keys to live catalog rows. Issues must survive deletion of the
+plant or color relationship.
+
+Rules:
+
+- `plant_deleted` and `used_flower_color_deleted` are errors and retain the
+  number of automatically removed placed instances;
+- name, soil-requirement, spacing, and available-color changes are warnings;
+- `details_json` is a versioned snapshot of the relevant before/after values;
+- all issues created by one confirmed catalog mutation share one operation ID;
+- acknowledging displayed issues deletes only those issue rows;
+- closing the issue panel without acknowledgement retains them;
+- deleting a flowerbed cascades its issue rows;
+- issue creation and placed-instance removal occur in the catalog transaction.
+
 ## 6. Relationships
 
 ```mermaid
@@ -545,6 +605,22 @@ Selection deletion validation additionally verifies:
 - non-empty flowerbeds are detached and permanently locked;
 - locked flowerbeds retain their outputs, reject edits, and can still be
   deleted.
+
+Flowerbed catalog-impact validation additionally verifies:
+
+- deleting a catalog plant removes all its placed instances and creates an
+  error in every affected flowerbed;
+- deleting a used flower color removes only instances using that color and
+  creates errors with accurate counts;
+- name, soil-requirement, spacing, and available-color changes create warnings;
+- soil-change warnings retain previous and current soil requirements and, when
+  available, the flowerbed soil compatibility result;
+- spacing changes update required-space geometry and live layout warnings;
+- issues persist across reloads until acknowledged;
+- acknowledgement removes issue rows without restoring placements or reverting
+  catalog values;
+- a forced failure rolls back catalog, selection, flowerbed-placement, and issue
+  writes together.
 
 ## 10. Deferred decisions
 

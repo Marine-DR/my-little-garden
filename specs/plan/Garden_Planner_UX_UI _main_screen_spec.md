@@ -207,6 +207,33 @@ Dropdown:
 Plant deletion is performed from the checked-plant action bar, not from CSV.
 The blank addition template remains available from the catalog Help menu.
 
+### Replacement warning before file selection
+
+Selecting **Remplacer le catalogue** first opens a destructive warning. Do not open the file picker until the user continues.
+
+```text
+Remplacer tout le catalogue ?
+
+Le catalogue actuel sera remplacé par le contenu du fichier CSV.
+
+Comment les plantes sont reconnues :
+• Même UUID : la plante et ses liens avec les sélections sont conservés, même si son nom change.
+• Sans UUID, même nom unique : la plante et ses liens sont conservés.
+• Sans UUID et avec un nom modifié : l’ancienne plante sera supprimée et la ligne sera créée comme une nouvelle plante.
+• Une plante absente du fichier sera supprimée.
+
+Conséquences possibles :
+• Les plantes supprimées seront retirées des sélections et des parterres.
+• Les plantes placées utilisant une couleur supprimée seront retirées du parterre.
+• Un changement des sols requis par une plante utilisée dans un parterre générera un avertissement de compatibilité.
+
+Les parterres impactés seront identifiés et les modifications effectués seront listées.
+
+[Annuler] [Choisir un fichier CSV]
+```
+
+Use the normal destructive-dialog styling. **Annuler** closes the dialog with no file picker and no state change. **Choisir un fichier CSV** opens the picker; it does not commit the replacement.
+
 ### Import Workflow
 
 ```text
@@ -231,6 +258,20 @@ The preview is always shown. Example:
 
 The preview lists row details for creation, modification, unchanged plants, conflicts, ignored rows, new vocabulary values, warnings, and blocking errors.
 Any blocking error disables confirmation and leaves the catalog unchanged.
+
+For full replacement, the preview additionally displays:
+
+- plants matched by UUID;
+- plants matched by unique normalized name;
+- plants that will be created, updated, or deleted;
+- selections that will lose plants or receive modification warnings;
+- flowerbeds that will receive catalog-impact errors or warnings;
+- placed plant instances that will be removed automatically;
+- used flower colors that will be removed.
+
+Expected flowerbed impact errors and warnings do not disable confirmation. Keep them visually separate from blocking CSV validation errors.
+
+The final confirmation repeats the impact totals immediately above the destructive **Remplacer le catalogue** button.
 
 Add conflict:
 

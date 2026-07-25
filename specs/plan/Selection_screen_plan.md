@@ -236,6 +236,9 @@ Catalog replacement behavior:
 - keep selections that become empty;
 - do not persist modified/deleted plant status in the MVP.
 
+In V2, removing a plant link through replacement also removes that plant's placed instances from flowerbeds and creates persistent flowerbed errors. The selection remains present even when it becomes empty. Flowerbed issue behavior follows
+[Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md#67-flowerbed-catalog-impacts).
+
 Post-MVP catalog maintenance adds `selection_plant_changes` without changing
 the historical MVP schema:
 
@@ -270,6 +273,9 @@ must additionally verify:
 - first-old versus latest comparison after repeated modifications;
 - automatic removal when a plant returns to its baseline;
 - deletion removing the live link while retaining UUID, name, and photo warning data;
+- deletion removing placed flowerbed instances and creating persistent flowerbed errors;
+- used flower-color deletion removing only affected placed instances;
+- impacting name, soil-requirement, spacing, and available-color changes creating flowerbed warnings;
 - merging all pending deleted plants;
 - close and acknowledgement clearing only the displayed warning kind;
 - photo cleanup after the last deleted warning reference is cleared.

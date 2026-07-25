@@ -364,11 +364,18 @@ regardless of how many delete operations created them.
 
 Full-catalog replacement uses the same matching and warning rules:
 
-- preserve stable UUIDs for matched plants;
+- match by UUID first;
+- when UUID is absent, match by unique normalized name;
+- preserve stable UUIDs and selection links for either match kind;
+- allow a UUID-matched plant to be renamed;
+- treat a renamed row without UUID as a new plant and the unmatched old plant as deleted;
 - create modification records for materially changed matched plants;
 - create deletion records before removing plants absent from the replacement;
-- preserve selection links for matched plants;
 - remove live links for deleted plants.
+
+Before file selection, show the replacement explanation specified in
+[Garden_Planner_UX_UI _main_screen_spec.md](Garden_Planner_UX_UI%20_main_screen_spec.md).
+After validation, show actual match-kind and impact counts before confirmation.
 
 ### 6.5 Derived selection status
 
@@ -420,6 +427,64 @@ clears every change currently displayed in that panel:
 
 Photo cleanup runs after clearing deleted warnings according to section 5.3.
 
+### 6.7 Flowerbed catalog impacts
+
+Catalog replacement and incremental modification/deletion use the same flowerbed-impact rules for placed plants.
+
+#### Plant deletion
+
+When a deleted catalog plant has placed instances:
+
+- remove every placed instance of that plant from every flowerbed;
+- update the derived buying list immediately;
+- create one persistent `error` issue per affected flowerbed and plant, including the removed instance count and last plant name;
+- keep the flowerbed editable.
+
+#### Used flower-color deletion
+
+When a plant remains in the catalog but one of its flower colors is removed:
+
+- find placed instances using that removed color;
+- remove only those instances;
+- keep instances of the same plant that use still-available colors;
+- update the derived buying list immediately;
+- create one persistent `error` issue per affected flowerbed, plant, and removed color, including the removed instance count;
+- keep the flowerbed editable.
+
+#### Impacting modifications
+
+Create a persistent `warning` for a flowerbed using the plant when any of these fields changes:
+
+- plant name;
+- soil requirements;
+- spacing;
+- available flower colors.
+
+Apply the latest catalog value immediately:
+
+- update displayed names and buying-list labels after a name change;
+- compare the latest plant soil requirements with the flowerbed soil type when that attribute is available;
+- update required-space geometry after a spacing change and recalculate overlap and outside-boundary indicators;
+- refresh available flower colors after a color-list change.
+
+A soil-requirement change always creates a warning for flowerbeds using the plant. When the flowerbed soil type is known, the warning states whether the plant is still compatible. Until flowerbed soil is modeled, show the previous and current plant soil requirements and explain that compatibility must be reviewed.
+
+A used-color deletion follows the error/removal rule above rather than producing only a warning. A color-list change that does not remove a used color retains all placed instances and produces a warning.
+
+Other plant-field changes do not create flowerbed catalog-impact issues.
+
+#### Issue review and acknowledgement
+
+- Errors and warnings remain visible across application restarts until acknowledged.
+- Group issues by the catalog operation that created them and show plant, change, and automatic-action details.
+- Acknowledgement clears only the issues currently displayed.
+- Acknowledgement does not undo placement removal or catalog updates.
+- Catalog-impact issues are separate from live layout warnings such as overlap and outside-boundary conditions.
+
+#### Transaction boundary
+
+Catalog writes, selection links/change records, flowerbed placement removals, and flowerbed issue records commit in one transaction. Any failure rolls back the complete replacement or incremental mutation. Managed-file cleanup still runs only after database commit.
+
 ## 7. Service contracts
 
 The precise TypeScript names may follow repository naming conventions, but the
@@ -449,6 +514,14 @@ The preview DTO contains row details and counts for create, modify, unchanged,
 conflict, warning, error, and new-vocabulary categories.
 
 The result DTO contains created, modified, ignored, and unchanged counts.
+
+Full-replacement preview and result DTOs additionally expose:
+
+- UUID-match and normalized-name-match counts;
+- affected selection IDs and names;
+- affected flowerbed IDs and names;
+- catalog-impact errors and warnings;
+- placed-instance removal counts.
 
 ### 7.2 Export
 
@@ -487,6 +560,14 @@ Selection details add:
 The selection service provides separate acknowledgement actions for all
 currently displayed modified changes and all currently displayed deleted
 changes.
+
+### 7.5 Flowerbed catalog issues
+
+The flowerbed service provides:
+
+- list unacknowledged catalog-impact issues for one flowerbed;
+- acknowledge the currently displayed issue IDs;
+- reject acknowledgement IDs that do not belong to that flowerbed.
 
 ## 8. Package responsibilities
 
@@ -546,6 +627,17 @@ catalog data unchanged.
 - Derive deleted status above modified status.
 - Clear only the displayed warning kind on close or acknowledgement.
 - Apply the same selection tracking during full-catalog replacement.
+- Explain UUID and normalized-name matching before choosing a replacement CSV.
+- Preview actual match kinds and selection/flowerbed impacts before replacement.
+- Preserve links for UUID and unique normalized-name matches.
+- Treat a rename without UUID as deletion plus creation.
+- Remove deleted plants from selections and every flowerbed.
+- Remove only placed instances using a deleted flower color.
+- Create persistent errors for automatic placement removals.
+- Create persistent warnings for impacting name, soil-requirement, spacing, and available-color changes.
+- Keep affected flowerbeds editable.
+- Acknowledge displayed catalog-impact issues without undoing applied changes.
+- Roll back flowerbed placements and issues with the catalog transaction.
 - Roll back plant, relationship, vocabulary, and change-record writes together
   when commit fails.
 
