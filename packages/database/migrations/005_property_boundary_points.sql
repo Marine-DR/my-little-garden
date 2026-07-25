@@ -2,7 +2,7 @@ BEGIN IMMEDIATE;
 
 CREATE TABLE property_boundary_points (
     property_plan_id TEXT NOT NULL,
-    position         INTEGER NOT NULL CHECK (position BETWEEN 0 AND 3),
+    position         INTEGER NOT NULL CHECK (position >= 0),
     x_cm             REAL NOT NULL,
     y_cm             REAL NOT NULL,
     PRIMARY KEY (property_plan_id, position),

@@ -115,8 +115,10 @@ function validateInput(input: PropertyPlanSaveInput): string {
   const boundaryPoints =
     input.propertyBoundaryPoints ??
     rectangularBoundary(input.widthCm, input.heightCm);
-  if (boundaryPoints.length !== 4) {
-    throw new RangeError('A property boundary must contain four points.');
+  if (boundaryPoints.length < 3) {
+    throw new RangeError(
+      'A property boundary must contain at least three points.',
+    );
   }
   for (const point of boundaryPoints) {
     requireFinite(point.xCm, 'boundaryPoint.xCm');
@@ -132,8 +134,10 @@ function validateInput(input: PropertyPlanSaveInput): string {
     }
     const flowerbedBoundary =
       flowerbed.boundaryPoints ?? rectangularFlowerbedBoundary(flowerbed);
-    if (flowerbedBoundary.length !== 4) {
-      throw new RangeError('A flowerbed boundary must contain four points.');
+    if (flowerbedBoundary.length < 3) {
+      throw new RangeError(
+        'A flowerbed boundary must contain at least three points.',
+      );
     }
     for (const point of flowerbedBoundary) {
       requireFinite(point.xCm, 'flowerbed.boundaryPoint.xCm');

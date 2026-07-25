@@ -61,6 +61,7 @@ test('saves and reads a centimetre-based property plan', async (t) => {
     propertyBoundaryPoints: [
       { xCm: 15, yCm: 5 },
       { xCm: 390, yCm: 20 },
+      { xCm: 400, yCm: 95 },
       { xCm: 370, yCm: 170 },
       { xCm: 25, yCm: 160 },
     ],
@@ -74,6 +75,7 @@ test('saves and reads a centimetre-based property plan', async (t) => {
         boundaryPoints: [
           { xCm: 15, yCm: 20 },
           { xCm: 365, yCm: 15 },
+          { xCm: 375, yCm: 80 },
           { xCm: 350, yCm: 150 },
           { xCm: 25, yCm: 155 },
         ],
@@ -101,6 +103,7 @@ test('saves and reads a centimetre-based property plan', async (t) => {
   assert.deepEqual(saved.propertyBoundaryPoints, [
     { xCm: 15, yCm: 5 },
     { xCm: 390, yCm: 20 },
+    { xCm: 400, yCm: 95 },
     { xCm: 370, yCm: 170 },
     { xCm: 25, yCm: 160 },
   ]);
@@ -116,6 +119,7 @@ test('saves and reads a centimetre-based property plan', async (t) => {
       boundaryPoints: [
         { xCm: 15, yCm: 20 },
         { xCm: 365, yCm: 15 },
+        { xCm: 375, yCm: 80 },
         { xCm: 350, yCm: 150 },
         { xCm: 25, yCm: 155 },
       ],

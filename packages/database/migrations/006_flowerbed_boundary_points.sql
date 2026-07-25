@@ -2,7 +2,7 @@ BEGIN IMMEDIATE;
 
 CREATE TABLE flowerbed_boundary_points (
     flowerbed_id TEXT NOT NULL,
-    position     INTEGER NOT NULL CHECK (position BETWEEN 0 AND 3),
+    position     INTEGER NOT NULL CHECK (position >= 0),
     x_cm         REAL NOT NULL,
     y_cm         REAL NOT NULL,
     PRIMARY KEY (flowerbed_id, position),

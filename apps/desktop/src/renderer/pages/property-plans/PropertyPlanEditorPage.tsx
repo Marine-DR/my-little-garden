@@ -3,6 +3,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type {
@@ -58,6 +59,20 @@ interface DraggingPlant {
 interface DraggingFlowerbedCorner {
   readonly flowerbedId: string;
   readonly cornerIndex: number;
+}
+
+type EdgeOwner =
+  | { readonly kind: 'property' }
+  | {
+      readonly kind: 'flowerbed';
+      readonly flowerbedId: string;
+      readonly flowerbedIndex: number;
+    };
+
+interface SelectedEdge {
+  readonly owner: EdgeOwner;
+  readonly edgeIndex: number;
+  readonly point: Point;
 }
 
 interface PanningMap {
@@ -161,6 +176,39 @@ function distanceToSegment(point: Point, start: Point, end: Point): number {
     point.x - (start.x + projection * segmentX),
     point.y - (start.y + projection * segmentY),
   );
+}
+
+function closestPointOnSegment(point: Point, start: Point, end: Point): Point {
+  const segmentX = end.x - start.x;
+  const segmentY = end.y - start.y;
+  const lengthSquared = segmentX * segmentX + segmentY * segmentY;
+  if (lengthSquared === 0) {
+    return start;
+  }
+  const projection = Math.max(
+    0,
+    Math.min(
+      1,
+      ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
+        lengthSquared,
+    ),
+  );
+  return {
+    x: start.x + projection * segmentX,
+    y: start.y + projection * segmentY,
+  };
+}
+
+function insertPointAfter(
+  points: readonly Point[],
+  edgeIndex: number,
+  point: Point,
+): readonly Point[] {
+  return [
+    ...points.slice(0, edgeIndex + 1),
+    point,
+    ...points.slice(edgeIndex + 1),
+  ];
 }
 
 function circleInsideBoundary(
@@ -300,6 +348,7 @@ export function PropertyPlanEditorPage({
   const [draggingCorner, setDraggingCorner] = useState<number | null>(null);
   const [draggingFlowerbedCorner, setDraggingFlowerbedCorner] =
     useState<DraggingFlowerbedCorner | null>(null);
+  const [selectedEdge, setSelectedEdge] = useState<SelectedEdge | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -379,24 +428,84 @@ export function PropertyPlanEditorPage({
     return invalid;
   }, [boundaryPoints, placements, flowerbeds]);
 
-  const eventPoint = (event: ReactPointerEvent<SVGSVGElement>): Point => {
-    const bounds = event.currentTarget.getBoundingClientRect();
+  const pointFromClientPosition = (clientX: number, clientY: number): Point => {
+    const bounds = svgRef.current?.getBoundingClientRect();
+    if (!bounds || bounds.width === 0 || bounds.height === 0) {
+      return { x: 0, y: 0 };
+    }
     return {
       x: Math.max(
         0,
-        Math.min(
-          widthCm,
-          ((event.clientX - bounds.left) / bounds.width) * widthCm,
-        ),
+        Math.min(widthCm, ((clientX - bounds.left) / bounds.width) * widthCm),
       ),
       y: Math.max(
         0,
-        Math.min(
-          heightCm,
-          ((event.clientY - bounds.top) / bounds.height) * heightCm,
-        ),
+        Math.min(heightCm, ((clientY - bounds.top) / bounds.height) * heightCm),
       ),
     };
+  };
+
+  const eventPoint = (event: ReactPointerEvent<SVGSVGElement>): Point =>
+    pointFromClientPosition(event.clientX, event.clientY);
+
+  const selectEdge = (
+    owner: EdgeOwner,
+    edgeIndex: number,
+    points: readonly Point[],
+    event: ReactMouseEvent<SVGLineElement>,
+  ): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    const start = points[edgeIndex];
+    const end = points[(edgeIndex + 1) % points.length];
+    if (!start || !end) {
+      return;
+    }
+    setMode('select');
+    setSelectedPlant(null);
+    setSelectedObject(
+      owner.kind === 'flowerbed' ? `flowerbed:${owner.flowerbedId}` : null,
+    );
+    setSelectedEdge({
+      owner,
+      edgeIndex,
+      point: closestPointOnSegment(
+        pointFromClientPosition(event.clientX, event.clientY),
+        start,
+        end,
+      ),
+    });
+  };
+
+  const splitSelectedEdge = (): void => {
+    if (!selectedEdge) {
+      return;
+    }
+    if (selectedEdge.owner.kind === 'property') {
+      setBoundaryPoints((current) =>
+        insertPointAfter(current, selectedEdge.edgeIndex, selectedEdge.point),
+      );
+    } else {
+      const flowerbedId = selectedEdge.owner.flowerbedId;
+      setFlowerbeds((current) =>
+        current.map((flowerbed) => {
+          if (flowerbed.id !== flowerbedId) {
+            return flowerbed;
+          }
+          const nextBoundary = insertPointAfter(
+            flowerbed.boundaryPoints,
+            selectedEdge.edgeIndex,
+            selectedEdge.point,
+          );
+          return {
+            ...flowerbed,
+            ...boundsFromPoints(nextBoundary),
+            boundaryPoints: nextBoundary,
+          };
+        }),
+      );
+    }
+    setSelectedEdge(null);
   };
 
   const flowerbedContainingPoint = (point: Point): string | null =>
@@ -412,6 +521,7 @@ export function PropertyPlanEditorPage({
     }
     const point = eventPoint(event);
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    setSelectedEdge(null);
     if (mode === 'flowerbed') {
       setDrawingFlowerbed({ start: point, current: point });
       setSelectedObject(null);
@@ -446,6 +556,7 @@ export function PropertyPlanEditorPage({
       setDrawingFlowerbed({ ...drawingFlowerbed, current: point });
     }
     if (draggingCorner !== null) {
+      setSelectedEdge(null);
       setBoundaryPoints((current) =>
         current.map((corner, index) =>
           index === draggingCorner ? point : corner,
@@ -453,6 +564,7 @@ export function PropertyPlanEditorPage({
       );
     }
     if (draggingFlowerbedCorner) {
+      setSelectedEdge(null);
       setFlowerbeds((current) =>
         current.map((flowerbed) => {
           if (flowerbed.id !== draggingFlowerbedCorner.flowerbedId) {
@@ -537,6 +649,7 @@ export function PropertyPlanEditorPage({
       setPlacements((current) => current.filter((plant) => plant.id !== id));
     }
     setSelectedObject(null);
+    setSelectedEdge(null);
   };
 
   useEffect(() => {
@@ -552,6 +665,7 @@ export function PropertyPlanEditorPage({
         setDrawingFlowerbed(null);
         setDraggingPlant(null);
         setSelectedObject(null);
+        setSelectedEdge(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -914,6 +1028,48 @@ export function PropertyPlanEditorPage({
                       >
                         Parterre {index + 1}
                       </text>
+                      {flowerbed.boundaryPoints.map((point, edgeIndex) => {
+                        const end =
+                          flowerbed.boundaryPoints[
+                            (edgeIndex + 1) % flowerbed.boundaryPoints.length
+                          ];
+                        if (!end) {
+                          return null;
+                        }
+                        const isSelected =
+                          selectedEdge?.owner.kind === 'flowerbed' &&
+                          selectedEdge.owner.flowerbedId === flowerbed.id &&
+                          selectedEdge.edgeIndex === edgeIndex;
+                        return (
+                          <line
+                            key={`${flowerbed.id}-edge-${edgeIndex}`}
+                            className={`polygon-edge-hit-area flowerbed-edge ${isSelected ? 'selected' : ''}`}
+                            x1={point.x}
+                            y1={point.y}
+                            x2={end.x}
+                            y2={end.y}
+                            role="button"
+                            aria-label={`Options de l’arête ${edgeIndex + 1} du parterre ${index + 1}`}
+                            onPointerDown={(event) => {
+                              if (event.button === 0) {
+                                event.stopPropagation();
+                              }
+                            }}
+                            onClick={(event) =>
+                              selectEdge(
+                                {
+                                  kind: 'flowerbed',
+                                  flowerbedId: flowerbed.id,
+                                  flowerbedIndex: index,
+                                },
+                                edgeIndex,
+                                flowerbed.boundaryPoints,
+                                event,
+                              )
+                            }
+                          />
+                        );
+                      })}
                       {selectedObject === `flowerbed:${flowerbed.id}`
                         ? flowerbed.boundaryPoints.map((point, cornerIndex) => (
                             <circle
@@ -1027,6 +1183,41 @@ export function PropertyPlanEditorPage({
                       </g>
                     );
                   })}
+                  {boundaryPoints.map((point, edgeIndex) => {
+                    const end =
+                      boundaryPoints[(edgeIndex + 1) % boundaryPoints.length];
+                    if (!end) {
+                      return null;
+                    }
+                    const isSelected =
+                      selectedEdge?.owner.kind === 'property' &&
+                      selectedEdge.edgeIndex === edgeIndex;
+                    return (
+                      <line
+                        key={`property-edge-${edgeIndex}`}
+                        className={`polygon-edge-hit-area property-edge ${isSelected ? 'selected' : ''}`}
+                        x1={point.x}
+                        y1={point.y}
+                        x2={end.x}
+                        y2={end.y}
+                        role="button"
+                        aria-label={`Options de l’arête ${edgeIndex + 1} de la propriété`}
+                        onPointerDown={(event) => {
+                          if (event.button === 0) {
+                            event.stopPropagation();
+                          }
+                        }}
+                        onClick={(event) =>
+                          selectEdge(
+                            { kind: 'property' },
+                            edgeIndex,
+                            boundaryPoints,
+                            event,
+                          )
+                        }
+                      />
+                    );
+                  })}
                   {boundaryPoints.map((point, index) => (
                     <circle
                       key={`corner-${index}`}
@@ -1064,6 +1255,44 @@ export function PropertyPlanEditorPage({
                     </circle>
                   ))}
                 </svg>
+                {selectedEdge ? (
+                  <div
+                    className={`edge-context-menu ${
+                      selectedEdge.point.x / widthCm < 0.2
+                        ? 'align-left'
+                        : selectedEdge.point.x / widthCm > 0.8
+                          ? 'align-right'
+                          : ''
+                    } ${
+                      selectedEdge.point.y / heightCm > 0.75
+                        ? 'align-above'
+                        : ''
+                    }`}
+                    role="menu"
+                    aria-label={
+                      selectedEdge.owner.kind === 'property'
+                        ? `Arête ${selectedEdge.edgeIndex + 1} de la propriété`
+                        : `Arête ${selectedEdge.edgeIndex + 1} du parterre ${selectedEdge.owner.flowerbedIndex + 1}`
+                    }
+                    style={{
+                      left: `${(selectedEdge.point.x / widthCm) * 100}%`,
+                      top: `${(selectedEdge.point.y / heightCm) * 100}%`,
+                    }}
+                    onPointerDown={(event) => event.stopPropagation()}
+                  >
+                    <button type="button" onClick={splitSelectedEdge}>
+                      Scinder l’arête
+                    </button>
+                    <button
+                      type="button"
+                      className="edge-context-menu-close"
+                      aria-label="Fermer le menu de l’arête"
+                      onClick={() => setSelectedEdge(null)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="flowerbed-pan-pad" aria-label="Déplacer la vue">

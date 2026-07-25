@@ -1077,6 +1077,21 @@ describe('App catalog', () => {
     fireEvent(drawing, cornerUp);
     expect(firstCorner).toHaveAttribute('cx', '40');
     expect(firstCorner).toHaveAttribute('cy', '30');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Options de l’arête 2 de la propriété',
+      }),
+      { clientX: 400, clientY: 125 },
+    );
+    expect(
+      screen.getByRole('menu', { name: 'Arête 2 de la propriété' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Scinder l’arête' }));
+    expect(
+      screen.getAllByRole('button', {
+        name: /Déplacer le coin \d+ de la propriété/,
+      }),
+    ).toHaveLength(5);
     const zoomValue = screen.getByRole('button', {
       name: 'Réinitialiser le zoom',
     });
@@ -1166,6 +1181,21 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('button', { name: 'Sélectionner le parterre 1' }),
     ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Options de l’arête 1 du parterre 1',
+      }),
+      { clientX: 140, clientY: 60 },
+    );
+    expect(
+      screen.getByRole('menu', { name: 'Arête 1 du parterre 1' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Scinder l’arête' }));
+    expect(
+      screen.getAllByRole('button', {
+        name: /Déplacer le coin \d+ du parterre 1/,
+      }),
+    ).toHaveLength(5);
 
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() =>
@@ -1175,6 +1205,7 @@ describe('App catalog', () => {
           propertyBoundaryPoints: [
             { xCm: 40, yCm: 30 },
             { xCm: 400, yCm: 0 },
+            { xCm: 400, yCm: 125 },
             { xCm: 400, yCm: 250 },
             { xCm: 0, yCm: 250 },
           ],
@@ -1186,6 +1217,7 @@ describe('App catalog', () => {
               heightCm: 90,
               boundaryPoints: [
                 { xCm: 80, yCm: 60 },
+                { xCm: 140, yCm: 60 },
                 { xCm: 200, yCm: 60 },
                 { xCm: 200, yCm: 150 },
                 { xCm: 80, yCm: 150 },
@@ -1271,7 +1303,7 @@ describe('App catalog', () => {
       screen.getByRole('button', { name: 'Sélectionner le parterre 1' }),
     );
     const flowerbedCorners = screen.getAllByRole('button', {
-      name: /du parterre 1/,
+      name: /Déplacer le coin \d+ du parterre 1/,
     });
     expect(flowerbedCorners).toHaveLength(4);
     const flowerbedCornerDown = new MouseEvent('pointerdown', {
