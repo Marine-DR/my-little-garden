@@ -86,8 +86,11 @@ Check plants in the catalog > click on the delete button > review affected plant
   Keep the first old state and compare it with the latest catalog state > count the plant once > remove the warning automatically if the plant returns exactly to the retained baseline
 - Delete plants used in a selection:  
   Select one or several plants > click on delete button > display affected selections in the confirmation > confirm the deletion > remove plants from the catalog and selections > display deleted-plants status in every affected selections
-- Review selection changes:
-  Open the selection detail > review all plants modified > acknowledge or close the panel > the selection status is updated
+- Review modified plants in a selection:
+  Open the selection detail > review all modified plants > acknowledge or close the modified-plants panel > clear the displayed modification warnings > Update the selection status
+- Review deleted plants in a selection:
+  Open the selection detail > review all deleted plants > acknowledge or close the deleted-plants warning > Update the selection status
+
 
 ### 2 photos for the same plant
 

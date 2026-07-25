@@ -360,6 +360,8 @@ Rules:
 Managed image files referenced by deleted changes remain on disk until neither
 a live `plant_photos` row nor another pending change references the filename.
 
+Selection status is not a column of `selections`. It is derived when selections are queried and exposes exactly `up_to_date`, `contains_modified_plants`, or `contains_deleted_plants`. A pending deletion takes priority over a pending modification, while both counts remain available to the caller.
+
 ## 6. Relationships
 
 ```mermaid

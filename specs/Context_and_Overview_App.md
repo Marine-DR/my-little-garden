@@ -48,8 +48,8 @@ It keeps full-catalog replacement and adds:
 - exporting the current catalog with stable plant UUIDs;
 - deleting checked catalog plants after confirmation;
 - warning when deletion affects saved selections;
-- tracking unreviewed plant modifications and deletions in each affected
-  selection.
+- tracking unreviewed plant modifications and deletions in each affected selection;
+- deriving one status for each selection: **À jour**, **[Number of modified plants] plantes modifiées**, or **[Number of deleted plants] plantes supprimées**.
 
 CSV add and modify operations do not manage photos. Plant photos continue to
 use the separate photo-import workflow.

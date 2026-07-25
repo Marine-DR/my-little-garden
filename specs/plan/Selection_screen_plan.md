@@ -482,11 +482,15 @@ The status is the most important information after the selection name.
 It tells the user whether catalog changes still need to be reviewed. Status is
 derived from pending selection plant changes.
 
-Priority is:
+Every selection has exactly one displayed status:
 
-1. Contains deleted plants.
-2. Contains modified plants.
-3. Up to date.
+| Status                   | Display condition                                               |
+| ------------------------ | --------------------------------------------------------------- |
+| Contains deleted plants  | At least one pending deletion exists                            |
+| Contains modified plants | No deletion exists and at least one pending modification exists |
+| Up to date               | No pending modified or deleted plant warning remains            |
+
+This order is also the priority: a selection that contains both deleted and modified plants displays **Contains deleted plants**.
 
 The selections list exposes modified and deleted counts even when deleted
 plants determine the displayed status.
@@ -555,6 +559,13 @@ All pending deleted plants are merged into one warning. It contains only each de
 Use Error styling.
 
 ---
+
+## Status transitions after review
+
+- Clearing deleted-plant warnings changes the status to **Contains modified plants** when modification warnings remain.
+- Clearing modified-plant warnings leaves **Contains deleted plants** when deletion warnings remain.
+- Clearing the final pending warning changes the status to **Up to date**.
+- Closing one review panel clears only the changes displayed by that panel and never clears the other warning kind.
 
 # Usage indicator
 

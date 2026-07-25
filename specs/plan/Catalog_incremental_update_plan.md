@@ -372,16 +372,30 @@ Full-catalog replacement uses the same matching and warning rules:
 
 Status is derived from pending changes rather than stored on `selections`.
 
-Priority is:
+The domain exposes exactly one of these three values:
 
-1. **Contient des plantes supprimées** when at least one pending deletion
-   exists.
-2. **Contient des plantes modifiées** when no deletion exists and at least one
-   pending modification exists.
-3. **À jour** when no pending change exists.
+| Domain value               | French label                        | Derivation rule                                                 |
+| -------------------------- | ----------------------------------- | --------------------------------------------------------------- |
+| `contains_deleted_plants`  | **[Number of deleted plants] plantes supprimées** | At least one pending deletion exists                            |
+| `contains_modified_plants` | **[Number of modified plants] Contient des plantes modifiées**  | No deletion exists and at least one pending modification exists |
+| `up_to_date`               | **À jour**                          | No pending modification or deletion exists                      |
+
+The order in the table is the display priority. A selection with both pending
+change kinds therefore has `contains_deleted_plants` status.
 
 Selection summaries expose both modified and deleted counts even when deletion
 has display priority.
+
+The status is recalculated after every catalog mutation and every
+acknowledgement:
+
+| Event                                                       | Resulting status           |
+| ----------------------------------------------------------- | -------------------------- |
+| First material modification                                 | `contains_modified_plants` |
+| Any deletion while either no warning or modifications exist | `contains_deleted_plants`  |
+| Clear deletions while modifications remain                  | `contains_modified_plants` |
+| Clear modifications while deletions remain                  | `contains_deleted_plants`  |
+| Clear the last pending warning                              | `up_to_date`               |
 
 ### 6.6 Review and clearing
 
