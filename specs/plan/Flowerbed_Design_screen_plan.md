@@ -689,7 +689,7 @@ Mise à jour du catalogue
 Severity:
 
 - **Error** when placed instances were removed because the catalog plant was deleted or because their selected flower color is no longer available.
-- **Warning** when a placed plant's name, soil requirements, spacing, or available flower colors changed without requiring that placed instance to be  removed.
+- **Warning** when a placed plant's name, soil requirements, spacing, or available flower colors changed without requiring that placed instance to be removed.
 
 **Examiner les impacts** opens a panel grouped by catalog operation.
 

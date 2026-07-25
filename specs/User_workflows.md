@@ -5,7 +5,7 @@
 ### Replace the current plants catalog
 
 Click on button to replace > review the identity and consequence warning > select a CSB > upload the CSV > preview impacts on catalog, selections and flowerbeds > confirm the
-replacement > the catalog is replaced and impact are automatically applyed to selection and flowerbed 
+replacement > the catalog is replaced and impact are automatically applyed to selection and flowerbed
 
 ### Add new plants in the catalog
 
