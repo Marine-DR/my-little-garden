@@ -28,6 +28,10 @@ containing all plants and related informations > edit the file for a later modif
 
 Check one or more plants in the catalog > click on the delete button > display the plant names and every affected selection > confirm the action > display deleted plant and affected selection counts
 
+### Filter the catalog
+
+Open the filter drawer > select one or more exposures, soils, flowering months, plant kinds, flower colors, or leaf colors > apply the filters > return to the first results page and display plants matching any selected value within each category and every active category together
+
 ## Flowers selection management
 
 ### Create a new selection

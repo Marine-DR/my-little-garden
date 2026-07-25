@@ -164,6 +164,7 @@ CREATE TABLE plants (
 );
 
 CREATE INDEX idx_plants_type_id ON plants (type_id);
+CREATE INDEX idx_plants_kind ON plants (plant_kind);
 CREATE INDEX idx_plants_bloom_period
     ON plants (bloom_start_month, bloom_end_month);
 ```
@@ -521,6 +522,20 @@ The plant write service must:
 | Pending modification baseline     | One versioned baseline per selection/plant                                                | Modify repeatedly and compare the first old state with the latest live state                                       |
 | Deleted-plant warning             | Historical UUID/name/photo record without a plant foreign key                             | Delete a selected plant, retain its warning, then clear the warning and clean up its unreferenced photo            |
 | Derived selection status          | Pending-change query with deleted above modified                                          | Verify deleted, modified, mixed, and cleared selection states                                                      |
+
+Catalog filter validation additionally verifies:
+
+- `plant_kind` filtering uses `idx_plants_kind`;
+- flower-color filtering uses `idx_plant_flower_colors_color_plant`;
+- leaf-color filtering uses `idx_plant_leaf_colors_color_plant`;
+- multiple values within one category use OR;
+- plant kind, flower color, leaf color, soil, exposure, and flowering
+  categories combine with AND;
+- color joins return each matching plant only once;
+- empty scalar and range attributes use `IS NULL`;
+- empty multi-valued attributes use `NOT EXISTS`;
+- the empty-filter choice is a typed query instruction and is never stored as a
+  vocabulary or plant value.
 
 Selection deletion validation additionally verifies:
 

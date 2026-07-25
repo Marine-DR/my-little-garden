@@ -19,6 +19,8 @@ tracking rules.
 This plan does not add an individual plant creation or editing form. Photos
 remain managed through the separate photo-import workflow.
 
+It also defines the V2 extension of catalog filtering with plant kind, flower color, and leaf color while preserving the historical strict-MVP filter scope.
+
 ## 2. Catalog management actions
 
 The **Gérer le catalogue** menu contains:
@@ -546,3 +548,120 @@ catalog data unchanged.
 - Apply the same selection tracking during full-catalog replacement.
 - Roll back plant, relationship, vocabulary, and change-record writes together
   when commit fails.
+
+## 11. V2 catalog filter extension
+
+Add three filter categories to the existing catalog filter contract:
+
+- `plantKinds`: values from the existing `plant_kind` domain;
+- `flowerColors`: color display labels linked through `plant_flower_colors`;
+- `leafColors`: color display labels linked through `plant_leaf_colors`.
+
+The existing soil, exposure, and flowering-month filters remain unchanged.
+
+### 11.1 Combination rules
+
+- Allow multiple selected values in every category.
+- Use OR between selected values within one category.
+- Use AND between all active categories.
+- A plant with several colors matches when at least one corresponding color is selected.
+- Treat **Non renseigné** as another OR choice inside an optional-attribute category.
+- When **Non renseigné** is not selected, missing values do not match populated values selected in that category.
+- With none of the three new categories selected, results are identical to the existing filter behavior.
+
+Example:
+
+```text
+Fleur / autre: Fleur OR Graminée
+Flower colors: Blanc OR Non renseigné
+Leaf colors: Vert
+Soil: Drainé
+```
+
+A result must match one selected plant kind, either the selected flower color or an empty flower-color value, the selected leaf color, and the selected soil.
+
+### 11.2 Options and labels
+
+`listFilterOptions()` additionally returns:
+
+- every distinct non-empty plant kind currently used by catalog plants;
+- distinct flower colors currently linked to catalog plants;
+- distinct leaf colors currently linked to catalog plants;
+- whether at least one empty value exists for every optional filter category.
+
+Flower and leaf colors use the same normalized vocabulary identities but are queried independently. A color used only for leaves must not appear as a flower-color option.
+
+**Fleur / autre** follows the same option behavior as **Sol**:
+
+- query the current catalog for distinct stored values;
+- sort their translated display labels alphabetically, using the same locale as soil labels;
+- do not hardcode which values are visible in the drawer;
+- refresh the list after catalog add, modify, delete, or replacement.
+
+The currently supported domain values retain their French translations:
+`flower` → **Fleur**, `foliage` → **Feuillage**, `grass` → **Graminée**, and `other` → **Autre**. The visible subset changes over time with the catalog.
+
+Color options use their stored display labels and the existing color-chip presentation.
+
+### 11.3 Empty-value filtering
+
+Every optional attribute must support filtering for an empty value. For the functional V2 filter set this applies to:
+
+- flowering period;
+- `plant_kind` (**Fleur / autre**);
+- flower colors;
+- leaf colors.
+
+Future filters for other optional attributes must follow the same rule when they become functional.
+
+Expose a typed missing-value selection independently from real domain values; do not persist a magic label such as `Non renseigné` in the database. A contract equivalent to this is acceptable:
+
+```ts
+type EmptyCatalogField = 'bloom' | 'plantKind' | 'flowerColors' | 'leafColors';
+
+interface CatalogFilters {
+  readonly emptyFields: readonly EmptyCatalogField[];
+}
+
+interface CatalogFilterOptions {
+  readonly fieldsWithEmptyValues: readonly EmptyCatalogField[];
+}
+```
+
+The UI displays **Non renseigné** only when the field appears in
+`fieldsWithEmptyValues`. Empty means:
+
+- scalar attribute: the column is `NULL`;
+- complete optional range such as flowering: both range columns are `NULL`;
+- multi-valued relationship such as colors: no relationship row exists for the plant.
+
+Selecting **Non renseigné** alone returns only plants missing that attribute.
+Selecting it with populated values returns plants matching either condition.
+The missing-value choice counts as one active filter.
+
+### 11.4 Query and interaction requirements
+
+- Apply the new filters to paginated catalog reads, total counts, and
+  `listPlantIds()` so filtered select-all uses the same result set.
+- Avoid duplicate plants when a plant matches several selected colors.
+- Reset pagination to page 1 after applying or clearing filters.
+- Keep draft selections inside the drawer until the user presses **Appliquer**.
+- **Désactiver les filtres** clears existing and new categories together.
+- Refresh all filter options after catalog add, modify, delete, or replacement.
+- The active-filter count includes every selected plant kind, color, and **Non renseigné** choice.
+
+### 11.5 Validation
+
+- Test each new filter independently.
+- Test multiple values within plant kind, flower color, and leaf color.
+- Test AND combinations between the three new categories.
+- Test combinations with soil, exposure, and flowering month.
+- Test plants with multiple colors and plants with no colors.
+- Test a plant with no `plant_kind`.
+- Test flowering periods that are empty.
+- Test **Non renseigné** alone and combined with populated values in the same category.
+- Verify **Non renseigné** is offered only while at least one matching empty value exists.
+- Verify empty filtering uses `IS NULL` or `NOT EXISTS` semantics rather than a stored placeholder value.
+- Verify paginated items, totals, and filtered IDs return the same set.
+- Verify flower-color and leaf-color option lists remain independent.
+- Verify clearing filters restores the unfiltered catalog.

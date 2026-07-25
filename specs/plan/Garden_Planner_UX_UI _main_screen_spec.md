@@ -816,6 +816,31 @@ Sort Z→A
 Width: 600 px
 On left side
 
+## V2 functional filter set
+
+The functional V2 drawer contains:
+
+1. Exposition
+2. Sol
+3. Floraison
+4. Fleur / autre
+5. Couleur fleurs
+6. Couleur feuilles
+
+The remaining mockup sections below stay deferred until their filter contracts are explicitly planned.
+
+The drawer keeps draft values until **Appliquer** is pressed. Each field allows multiple selections:
+
+- selected values inside the same field use OR;
+- active fields use AND with one another;
+- every optional field offers **Non renseigné** when at least one catalog plant has no value for it.
+
+The active-filter count includes each selected value. **Désactiver les filtres** clears all six fields, and applying or clearing filters returns the
+catalog to page 1.
+
+Selecting **Non renseigné** alone shows only plants missing that attribute.
+Selecting it with populated values uses OR, like selecting several soils.
+
 ````
 
 Allow multi selection for each field.
@@ -844,7 +869,11 @@ Max [150]
 ☐ Feuillage
 ☐ Graminée
 ☐ Autre
+☐ Non renseigné
 ```
+
+This field behaves exactly like **Sol**. Build its checkbox list from every distinct non-empty value currently stored by catalog plants and sort translated labels alphabetically. The visible values therefore change with the catalog; the text above is only an example. Add **Non renseigné** when at least one plant
+has no value.
 
 ## Sol
 
@@ -871,6 +900,8 @@ Month picker:
 Jan Fev Mar Avr Mai Jun Jul Aou Sep Oct Nov Dec
 ```
 
+Add **Non renseigné** after the month choices when at least one plant has no flowering period.
+
 ## Couleur fleurs
 
 Color chips:
@@ -879,6 +910,10 @@ Color chips:
 ⚪ 🟡 🔴 🟣 🔵 🩷 🟠
 ```
 
+Populate chips from colors currently linked as flower colors. Selecting several chips matches a plant with any selected flower color.
+
+Add a **Non renseigné** checkbox beside the chips when at least one plant has no flower-color relationship.
+
 ## Couleur feuilles
 
 Color chips:
@@ -886,6 +921,11 @@ Color chips:
 ```text
 ⚪ 🟡 🟢 🔴 🟣 🟤
 ```
+
+Populate chips independently from colors currently linked as leaf colors.
+Selecting several chips matches a plant with any selected leaf color.
+
+Add a **Non renseigné** checkbox beside the chips when at least one plant has no leaf-color relationship.
 
 ## Température minimale
 
