@@ -88,6 +88,12 @@ Displayed above the flower grid.
 ```
 
 Buttons: secondary buttons style
+
+The post-MVP batch-maintenance behavior is defined by
+[Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md).
+Individual plant creation and editing drawers below remain future product
+concepts and are not part of that increment.
+
 ---
 
 # Flower Creation
@@ -195,42 +201,69 @@ Dropdown:
 - Supprimer des fleurs
 ⮔ Remplacer tout le catalogue
 ────────────
-📥 Télécharger le catalogue CSV
+📥 Télécharger le catalogue actuel
 ```
+
+Plant deletion is performed from the checked-plant action bar, not from CSV.
+The blank addition template remains available from the catalog Help menu.
 
 ### Import Workflow
 
 ```text
 1. Upload du fichier
 2. Prévisualisation
-3. Validation
-4. Confirmation
+3. Résolution du groupe de conflits
+4. Validation et confirmation
 5. Résultat
 ```
 
-Validation example:
+The preview is always shown. Example:
 
 ```text
 125 lignes détectées
 
-✓ 120 lignes valides
+✓ 80 plantes à créer
+🖉 30 plantes à modifier
+– 10 plantes inchangées
 ⚠ 3 avertissements
 ❌ 2 erreurs
 ```
 
-Matching rule:
+The preview lists row details for creation, modification, unchanged plants, conflicts, ignored rows, new vocabulary values, warnings, and blocking errors.
+Any blocking error disables confirmation and leaves the catalog unchanged.
+
+Add conflict:
 
 ```text
-Nom
+12 plantes existent déjà.
+
+○ Mettre à jour toutes les plantes existantes
+○ Ignorer toutes les plantes existantes
 ```
 
-Future fallback:
+Modify conflict:
 
 ```text
-Nom + Type
+4 plantes n’existent pas.
+
+○ Créer toutes les plantes absentes
+○ Ignorer toutes les plantes absentes
 ```
 
-Backend manages `flower_id`.
+One choice applies to the complete conflict group.
+
+Matching rules:
+
+1. Match optional `plant_id` first.
+2. When the ID is absent, match the normalized `Nom`.
+3. A UUID/name pair resolving to different plants is a blocking error.
+
+The importer accepts both the legacy header without `plant_id` and the new
+header with `plant_id` first. Each row is a complete plant record; blank
+optional cells clear existing values. Modifications preserve managed photos.
+
+**Télécharger le catalogue actuel** downloads all complete plant rows with
+stable UUIDs. The exported file supports reliable modification and renaming.
 
 ---
 
@@ -471,8 +504,12 @@ Printemps
 30
 Pintemps Automne
 
-🖉 🗑️
+🖉
 ```
+
+The edit icon belongs to the future individual-editing drawer. Catalog deletion
+for the incremental-maintenance release is available only from the checked
+plant action bar.
 
 ---
 
@@ -497,16 +534,25 @@ When selected:
 Delete confirmation:
 
 ```text
-Supprimer 3 fleurs ?
+Supprimer 3 plantes du catalogue ?
 
 Achillée
 Pavot
 Acorus
 
-Cette action est définitive.
+Sélections concernées
+
+Massif plein soleil
+Prairie fleurie
+
+Les plantes seront retirées du catalogue et des sélections concernées.
+Chaque sélection conservera un avertissement jusqu’à sa fermeture ou son
+acquittement.
 
 [Annuler] [Supprimer]
 ```
+
+The affected selection section is omitted when no selection contains a checked plant. Cancellation changes nothing.
 
 ---
 
@@ -923,30 +969,42 @@ When no flowers match the filters:
 Aucune fleur trouvée
 
 Essayez de modifier vos filtres
-ou ajoutez une nouvelle fleur.
+ou ajoutez des plantes depuis un CSV.
 
-[Ajouter une fleur]
+[Gérer le catalogue]
 ```
 
 ---
 
 # Import Result Status
 
-After a CSV or image import, display a small admin summary.
+After a CSV catalog operation or image import, display a small admin summary.
 
 ```text
 Dernière importation
 
 03/06/2026 - 14:35
 
-CSV - Mise à jour
+CSV - Ajout
 
 125 lignes traitées
 
-✓ 118 réussies
-⚠ 5 avertissements
-❌ 2 erreurs
+✓ 80 plantes ajoutées
+🖉 30 plantes mises à jour
+– 10 plantes inchangées
+⚠ 5 plantes ignorées
 ```
+
+Catalog success banners use:
+
+```text
+Ajout terminé : X plantes ajoutées, Y mises à jour, Z ignorées.
+Modification terminée : X plantes modifiées, Y créées, Z ignorées, W inchangées.
+Suppression terminée : X plantes supprimées. Y sélections ont été mises à jour.
+```
+
+Use correct singular/plural forms. Validation and commit errors use the
+existing error-modal pattern and never produce a partial import.
 
 ---
 
@@ -983,8 +1041,11 @@ CSV - Mise à jour
 - Add flowers to multiple existing lists
 - Automatically ignore duplicate flower/list associations
 - CSV import wizard with validation
+- Separate Add and Modify conflict policies applied to the full conflict group
+- Stable UUID export for reliable updates and renames
+- Checked-plant deletion with affected-selection confirmation
 - Dedicated image import workflow
 - Image matching by flower name
 - Import preview before commit
-- Backend-managed flower identifiers
+- UUID-first matching with normalized-name fallback when the ID is absent
 - Separation of responsibilities between Flower Catalog and Mes listes modules

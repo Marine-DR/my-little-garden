@@ -38,9 +38,25 @@ When the design is done, a planting plan and a flower list are generated. The fl
 
 The MVP does not include flowerbed design yet. Selection rename, selection deletion, selection usage in flowerbeds, reliability status for modified or deleted plants, and flowerbed impact warnings are future behavior.
 
+# Post-MVP catalog maintenance
+
+The first post-MVP catalog-maintenance increment is defined in
+[Catalog_incremental_update_plan.md](plan/Catalog_incremental_update_plan.md).
+It keeps full-catalog replacement and adds:
+
+- adding or modifying a pool of plants from a complete-record CSV;
+- exporting the current catalog with stable plant UUIDs;
+- deleting checked catalog plants after confirmation;
+- warning when deletion affects saved selections;
+- tracking unreviewed plant modifications and deletions in each affected
+  selection.
+
+CSV add and modify operations do not manage photos. Plant photos continue to
+use the separate photo-import workflow.
+
 # Main features
 
-- Catalog of plant: this list contains plants and some related attributes, including photo. This allows to select the most relevant plants for the project. The user can update this list by adding, modifying or deleting elements. He can do it by batch (via .csv) or one by one. The user will be able to hide/show the different column and to deplace it.
+- Catalog of plant: this list contains plants and some related attributes, including photo. This allows to select the most relevant plants for the project. The user can add or modify plants in batch from CSV, delete checked catalog plants after confirmation, replace the complete catalog, and manage photos separately. Individual plant forms remain future behavior. The user will be able to hide/show the different column and to deplace it.
 - Flower selection: the user can select the plants he likes most and that have the same needs. He can save this list to reuse it later to design his flowerbed. To find easily the plants, he can filter, sort and search in the list. He can select plants by ticking the box then adding it in the selection. The selection can be new or an existing one. To easily identify the selection, the user have to name it. The selection can be modified and deleted one by one. A flower can be in several selection but only once in the same selection.
 - Design the flowerbed: to design it, the user will have to define the space available and his dimensions. Once it is done, the user can select the plants from the selection and place it. The tool will indicate the space needed around each plants. A same plants can be used several times in the same flowerbed. If the flower exist in different color the user has to select the color he wants for the plant before placing it. The same selection can be used to design several flowerbed.
 - Generate a list of flowers to buy: This list of flower includes the name of each flowers, the color and the number of elements needed for each plants. If the list contains the same flower in different colors, the number of flowers needed is indicated for each color (for example 2 white cosmos and 3 pink cosmos). This list will allow to buy the right number of each plants to realize the flowerbed as designed.

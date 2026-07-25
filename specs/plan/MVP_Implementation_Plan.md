@@ -1,5 +1,10 @@
 # MyLittleGarden — Strict MVP Implementation Plan
 
+> This document remains the historical scope authority for the strict MVP.
+> Incremental CSV add/modify, checked-plant deletion, catalog export, and
+> selection change tracking are specified as a post-MVP increment in
+> [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md).
+
 ## Summary
 
 Build an offline Windows/Linux desktop application for one gardener using Electron, React, TypeScript, and SQLite. The MVP covers:
@@ -98,6 +103,9 @@ Core interfaces:
 ## Deferred Features and Assumptions
 
 - Exclude individual plant CRUD, additive/update/delete CSV modes, ZIP image import, search, sorting, configurable columns, selection rename, selection deletion, selection reliability status, selection card view, flowerbed design, generated documents, accounts, synchronization, and hosted services.
+- The deferred incremental catalog-maintenance behavior is now defined in
+  [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md)
+  without changing what belonged to the strict MVP.
 - The application works entirely offline and has one local data owner.
 - Imported horticultural values use the controlled vocabulary defined by the existing catalog specification; internal enum keys remain language-neutral.
 - No starter plant dataset or licensed imagery is bundled.

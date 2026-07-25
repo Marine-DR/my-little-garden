@@ -1,31 +1,32 @@
 # Happy Flow
 
-## List of plants management
+## Catalog of plants management
 
-### Replace the current plants list
+### Replace the current plants catalog
 
-Click on button to replace > upload the .csv file with the new list > Confirm the action > The list of plants contains only the plants from the .csv
+Click on button to replace > upload the .csv file with the new catalog > Confirm the action > The catalog of plants contains only the plants from the .csv
 
-### Add new plants in the list
+### Add new plants in the catalog
 
 - Several at the time:  
-  Click on button to add plants by batch > upload the .csv file with the new plants > The plants from the .csv file are added to the list
+  Click on button to add plants by batch > upload the .csv file with the new plants > The plants from the .csv file are added to the catalog
 - One by one:
-  Click on button to add only 1 plant > complete the plant information > save the new plant > plant is added to the list
+  Click on button to add only 1 plant > complete the plant information > save the new plant > plant is added to the catalog
 
-### Modify plants in the list
+### Modify plants in the catalog
 
-- Several at the time:  
-  Click on button to modify plants by batch > upload the .csv file with the information to modify > The plants from the .csv file are modified in the list
-- One by one:  
-  Click on button to modify only 1 plant > modify the plant information > save the change > information are updated in the list
+Click on button to modify plants by batch > upload a CSV file with all the information about plants to modify > preview modified, missing, unchanged, warning, and error rows > if plants are missing, choose to create missing plant or ignore them > confirm the complete batch > modify existing plants and apply the conflict choice in one transaction > display modified, created, ignored, and unchanged counts
 
-### Delete plants from the list
+Blank optional cells clear existing optional values. Current photos are preserved.
 
-- Several at the time:  
-  Click on button to delete plants by batch > upload the .csv file with the plants to delete > Confirm the action > The plants from the .csv file are deleted from the list
-- One by one:  
-  Click on button to delete only 1 plant > confirm the action > plant is removed from the list
+### Export the current plants catalog
+
+Click on button to download the catalog > download a complete CSV
+containing all plants and related informations > edit the file for a later modification or replacement
+
+### Delete plants from the catalog
+
+Check one or more plants in the catalog > click on the delete button > display the plant names and every affected selection > confirm the action > display deleted plant and affected selection counts
 
 ## Flowers selection management
 
@@ -59,25 +60,34 @@ Select the selection > click on deletion button > confirm the action > the selec
 
 # Back up Flow
 
-## List of plants management
+## Catalog of plants management
 
-### Issue during plant list replacement
+### Issue during plant catalog replacement
 
-Click on button to replace plant list > uplaod the new list > display the list of error > Aknowledge the issue > Cancel the replacement > List remains as before the replacement
+Click on button to replace plant catalog > upload the new catalog > display all blocking errors > acknowledge the issue > cancel the replacement > catalog and selection warnings remain as before the replacement
+
+### Issue when add a pool of plant via CSV
+
+Upload a CSV > message with all errors > acknowledge the issue > catalog and selections remain unchanged
+
+### Issue when modify a pool of plant via CSV
+
+Upload a CSV > message with all errors > acknowledge the issue > catalog and selections remain unchanged
 
 ### Cancel a plant deletion
 
-- Several at the time:  
-  Click on button to delete plants by batch > upload the .csv file with the plants to delete > Cancel the action > No change in the plants list
-- One by one:  
-  Click on button to delete only 1 plant > cancel the action > No change in the plants list
+Check plants in the catalog > click on the delete button > review affected plants and selections > cancel the action > no change in the plant catalog, selection links or pending warnings
 
 ### Changes on plants used in a selection
 
 - Modify plants used in a selection:
-  Modify one or several plants > display the list of affected selections > confirm the action > plants modified in mist and selections
+  Modify one or several plants > display the list of affected selections > confirm the action > plants modified in catalog and selections
+- Modify the same plant several times before review:
+  Keep the first old state and compare it with the latest catalog state > count the plant once > remove the warning automatically if the plant returns exactly to the retained baseline
 - Delete plants used in a selection:  
-  Select one or several plants > click on delete button > display the list of affected selections > confirm the deletion > plants removed from list and selection
+  Select one or several plants > click on delete button > display affected selections in the confirmation > confirm the deletion > remove plants from the catalog and selections > display deleted-plants status in every affected selections
+- Review selection changes:
+  Open the selection detail > review all plants modified > acknowledge or close the panel > the selection status is updated
 
 ### 2 photos for the same plant
 
