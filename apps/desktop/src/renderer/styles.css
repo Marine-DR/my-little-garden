@@ -1402,10 +1402,11 @@ abbr {
   font-weight: 500;
 }
 .flowerbed-canvas-viewport {
+  position: relative;
   width: 100%;
   min-width: 0;
   height: clamp(360px, calc(100vh - 260px), 680px);
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   contain: layout paint;
   background: #f8faf7;
@@ -1474,8 +1475,12 @@ abbr {
   user-select: none;
 }
 .flowerbed-canvas-stage {
-  position: relative;
-  margin: 0 auto;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  margin: 0;
+  transform-origin: center;
   transition: width 120ms ease-out;
 }
 .flowerbed-canvas {

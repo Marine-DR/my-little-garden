@@ -1040,6 +1040,12 @@ describe('App catalog', () => {
     const drawing = screen.getByRole('img', {
       name: 'Plan de la propriété 400 par 250 centimètres',
     });
+    const canvasStage = drawing.parentElement;
+    expect(canvasStage).toHaveStyle({
+      padding: '48px',
+      transform: 'translate(calc(-50% + 0px), calc(-50% + 0px))',
+    });
+    expect(drawing.querySelector('#flowerbed-grid')).not.toBeInTheDocument();
     vi.spyOn(drawing, 'getBoundingClientRect').mockReturnValue({
       x: 0,
       y: 0,
@@ -1065,8 +1071,8 @@ describe('App catalog', () => {
     });
     const cornerMove = new MouseEvent('pointermove', {
       bubbles: true,
-      clientX: 40,
-      clientY: 30,
+      clientX: -20,
+      clientY: -15,
     });
     const cornerUp = new MouseEvent('pointerup', { bubbles: true });
     for (const event of [cornerDown, cornerMove, cornerUp]) {
@@ -1075,8 +1081,8 @@ describe('App catalog', () => {
     fireEvent(firstCorner, cornerDown);
     fireEvent(drawing, cornerMove);
     fireEvent(drawing, cornerUp);
-    expect(firstCorner).toHaveAttribute('cx', '40');
-    expect(firstCorner).toHaveAttribute('cy', '30');
+    expect(firstCorner).toHaveAttribute('cx', '-20');
+    expect(firstCorner).toHaveAttribute('cy', '-15');
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Options de l’arête 2 de la propriété',
@@ -1109,7 +1115,7 @@ describe('App catalog', () => {
     fireEvent(menuDragHandle, menuDragMove);
     fireEvent(menuDragHandle, menuDragUp);
     expect(propertyEdgeMenu).toHaveStyle({
-      left: 'calc(100% + 35px)',
+      left: 'calc(100% - 13px)',
       top: 'calc(50% + 20px)',
     });
     expect(screen.getByLabelText('Nature de l’arête')).toHaveValue('line');
@@ -1117,7 +1123,7 @@ describe('App catalog', () => {
       target: { value: 'circular-arc' },
     });
     expect(propertyEdgeMenu).toHaveStyle({
-      left: 'calc(100% + 35px)',
+      left: 'calc(100% - 13px)',
       top: 'calc(50% + 20px)',
     });
     expect(screen.getByLabelText('Courbure de l’arête')).toHaveValue('0.2');
@@ -1167,6 +1173,24 @@ describe('App catalog', () => {
     expect(zoomValue).toHaveTextContent('110 %');
     fireEvent.wheel(drawingArea, { ctrlKey: true, deltaY: 100 });
     expect(zoomValue).toHaveTextContent('100 %');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Déplacer la vue vers la gauche' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Déplacer la vue vers le haut' }),
+    );
+    expect(canvasStage).toHaveStyle({
+      transform: 'translate(calc(-50% + 80px), calc(-50% + 80px))',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Déplacer la vue vers la droite' }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Déplacer la vue vers le bas' }),
+    );
+    expect(canvasStage).toHaveStyle({
+      transform: 'translate(calc(-50% + 0px), calc(-50% + 0px))',
+    });
     const middleDown = new MouseEvent('pointerdown', {
       bubbles: true,
       button: 1,
@@ -1185,8 +1209,9 @@ describe('App catalog', () => {
     fireEvent(drawingArea, middleDown);
     fireEvent(drawingArea, panMove);
     expect(drawingArea).toHaveClass('is-panning');
-    expect(drawingArea.scrollLeft).toBe(30);
-    expect(drawingArea.scrollTop).toBe(20);
+    expect(canvasStage).toHaveStyle({
+      transform: 'translate(calc(-50% - 30px), calc(-50% - 20px))',
+    });
     fireEvent(drawingArea, panEnd);
     expect(drawingArea).not.toHaveClass('is-panning');
     fireEvent.click(
@@ -1195,8 +1220,15 @@ describe('App catalog', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Déplacer la vue vers le bas' }),
     );
-    expect(drawingArea.scrollLeft).toBe(110);
-    expect(drawingArea.scrollTop).toBe(100);
+    expect(canvasStage).toHaveStyle({
+      transform: 'translate(calc(-50% - 110px), calc(-50% - 100px))',
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Centrer la vue sur le plan' }),
+    );
+    expect(canvasStage).toHaveStyle({
+      transform: 'translate(calc(-50% + 10px), calc(-50% + 7.5px))',
+    });
     expect(screen.getByRole('button', { name: 'Déplacer' })).toHaveClass(
       'active',
     );
@@ -1266,7 +1298,7 @@ describe('App catalog', () => {
         expect.objectContaining({
           name: 'Plan maison',
           propertyBoundaryPoints: [
-            { xCm: 40, yCm: 30 },
+            { xCm: -20, yCm: -15 },
             {
               xCm: 400,
               yCm: 0,

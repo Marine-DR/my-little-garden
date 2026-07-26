@@ -28,6 +28,7 @@ const PAN_STEP_PX = 80;
 const CORNER_HANDLE_RADIUS_CM = 6;
 const FLOWERBED_CORNER_HANDLE_RADIUS_CM = 4;
 const CURVE_SAMPLE_COUNT = 24;
+const CANVAS_MARGIN_PX = 48;
 
 const defaultEdgeCurvature: Record<
   Exclude<BoundaryEdgeKind, 'line'>,
@@ -105,8 +106,7 @@ interface PanningMap {
   readonly pointerId: number;
   readonly startX: number;
   readonly startY: number;
-  readonly scrollLeft: number;
-  readonly scrollTop: number;
+  readonly startPan: Point;
 }
 
 let draftSequence = 0;
@@ -126,6 +126,24 @@ function adjustedZoom(current: number, change: number): number {
     Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, current + change)) * 100) /
     100
   );
+}
+
+function positionInPaddedCanvas(ratio: number, offsetPx: number): string {
+  const marginAdjustment = CANVAS_MARGIN_PX * (1 - 2 * ratio);
+  const pixelAdjustment = marginAdjustment + offsetPx;
+  const operator = pixelAdjustment < 0 ? '-' : '+';
+  return `calc(${ratio * 100}% ${operator} ${Math.abs(pixelAdjustment)}px)`;
+}
+
+function translatedFromCenter(offsetPx: number): string {
+  const operator = offsetPx < 0 ? '-' : '+';
+  return `calc(-50% ${operator} ${Math.abs(offsetPx)}px)`;
+}
+
+function zoomedCanvasWidth(zoom: number): string {
+  const marginAdjustment = 2 * CANVAS_MARGIN_PX * (1 - zoom);
+  const operator = marginAdjustment < 0 ? '-' : '+';
+  return `calc(${zoom * 100}% ${operator} ${Math.abs(marginAdjustment)}px)`;
 }
 
 function circleInsideFlowerbed(
@@ -584,6 +602,7 @@ export function PropertyPlanEditorPage({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<Point>({ x: 0, y: 0 });
   const [panning, setPanning] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -732,7 +751,7 @@ export function PropertyPlanEditorPage({
     setDraggingEdgeMenu(null);
     setDraggingEdgeControl(null);
     const ratio = closestEdgeRatio(
-      pointFromClientPosition(event.clientX, event.clientY),
+      unboundedPointFromClientPosition(event.clientX, event.clientY),
       start,
       end,
     );
@@ -883,9 +902,10 @@ export function PropertyPlanEditorPage({
   const handleCanvasPointerMove = (
     event: ReactPointerEvent<SVGSVGElement>,
   ): void => {
-    const point = draggingEdgeControl
-      ? unboundedPointFromClientPosition(event.clientX, event.clientY)
-      : eventPoint(event);
+    const point =
+      draggingEdgeControl || draggingCorner !== null
+        ? unboundedPointFromClientPosition(event.clientX, event.clientY)
+        : eventPoint(event);
     if (
       draggingEdgeControl &&
       draggingEdgeControl.pointerId === event.pointerId &&
@@ -1096,8 +1116,7 @@ export function PropertyPlanEditorPage({
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
-      scrollLeft: event.currentTarget.scrollLeft,
-      scrollTop: event.currentTarget.scrollTop,
+      startPan: pan,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setPanning(true);
@@ -1109,10 +1128,10 @@ export function PropertyPlanEditorPage({
       return;
     }
     event.preventDefault();
-    event.currentTarget.scrollLeft =
-      pan.scrollLeft - (event.clientX - pan.startX);
-    event.currentTarget.scrollTop =
-      pan.scrollTop - (event.clientY - pan.startY);
+    setPan({
+      x: pan.startPan.x + event.clientX - pan.startX,
+      y: pan.startPan.y + event.clientY - pan.startY,
+    });
   };
 
   const stopPanning = (event: ReactPointerEvent<HTMLDivElement>): void => {
@@ -1196,12 +1215,27 @@ export function PropertyPlanEditorPage({
   };
 
   const panMap = (horizontal: number, vertical: number): void => {
-    const viewport = viewportRef.current;
-    if (!viewport) {
+    setPan((current) => ({
+      x: current.x - horizontal,
+      y: current.y - vertical,
+    }));
+  };
+
+  const centerViewOnPlan = (): void => {
+    const svgBounds = svgRef.current?.getBoundingClientRect();
+    if (!svgBounds || svgBounds.width === 0 || svgBounds.height === 0) {
+      setPan({ x: 0, y: 0 });
       return;
     }
-    viewport.scrollLeft += horizontal;
-    viewport.scrollTop += vertical;
+    const planBounds = boundsFromPoints(boundaryPoints);
+    const planCenter = {
+      x: planBounds.xCm + planBounds.widthCm / 2,
+      y: planBounds.yCm + planBounds.heightCm / 2,
+    };
+    setPan({
+      x: -(planCenter.x - widthCm / 2) * (svgBounds.width / widthCm),
+      y: -(planCenter.y - heightCm / 2) * (svgBounds.height / heightCm),
+    });
   };
 
   return (
@@ -1381,7 +1415,13 @@ export function PropertyPlanEditorPage({
             >
               <div
                 className="flowerbed-canvas-stage"
-                style={{ width: `${zoom * 100}%` }}
+                style={{
+                  width: zoomedCanvasWidth(zoom),
+                  padding: `${CANVAS_MARGIN_PX}px`,
+                  transform: `translate(${translatedFromCenter(
+                    pan.x,
+                  )}, ${translatedFromCenter(pan.y)})`,
+                }}
               >
                 <svg
                   ref={svgRef}
@@ -1401,36 +1441,9 @@ export function PropertyPlanEditorPage({
                     }
                   }}
                 >
-                  <defs>
-                    <pattern
-                      id="flowerbed-grid"
-                      width="20"
-                      height="20"
-                      patternUnits="userSpaceOnUse"
-                    >
-                      <path
-                        d="M 20 0 L 0 0 0 20"
-                        fill="none"
-                        stroke="#dfe8dc"
-                        strokeWidth="1"
-                      />
-                    </pattern>
-                    <clipPath id="property-boundary-clip">
-                      <path d={propertyBoundaryPath} />
-                    </clipPath>
-                  </defs>
                   <path
                     className="property-boundary"
                     d={propertyBoundaryPath}
-                  />
-                  <rect
-                    x="0"
-                    y="0"
-                    width={widthCm}
-                    height={heightCm}
-                    fill="url(#flowerbed-grid)"
-                    clipPath="url(#property-boundary-clip)"
-                    pointerEvents="none"
                   />
                   {flowerbeds.map((flowerbed, index) => (
                     <g key={flowerbed.id}>
@@ -1733,14 +1746,8 @@ export function PropertyPlanEditorPage({
                     <circle
                       key={`corner-${index}`}
                       className={`property-corner-handle ${draggingCorner === index ? 'dragging' : ''}`}
-                      cx={Math.max(
-                        CORNER_HANDLE_RADIUS_CM,
-                        Math.min(widthCm - CORNER_HANDLE_RADIUS_CM, point.x),
-                      )}
-                      cy={Math.max(
-                        CORNER_HANDLE_RADIUS_CM,
-                        Math.min(heightCm - CORNER_HANDLE_RADIUS_CM, point.y),
-                      )}
+                      cx={point.x}
+                      cy={point.y}
                       r={CORNER_HANDLE_RADIUS_CM}
                       role="button"
                       aria-label={`Déplacer le coin ${index + 1} de la propriété`}
@@ -1786,8 +1793,14 @@ export function PropertyPlanEditorPage({
                         : `Arête ${selectedEdge.edgeIndex + 1} du parterre ${selectedEdge.owner.flowerbedIndex + 1}`
                     }
                     style={{
-                      left: `calc(${(selectedEdge.anchor.x / widthCm) * 100}% + ${edgeMenuOffset.x}px)`,
-                      top: `calc(${(selectedEdge.anchor.y / heightCm) * 100}% + ${edgeMenuOffset.y}px)`,
+                      left: positionInPaddedCanvas(
+                        selectedEdge.anchor.x / widthCm,
+                        edgeMenuOffset.x,
+                      ),
+                      top: positionInPaddedCanvas(
+                        selectedEdge.anchor.y / heightCm,
+                        edgeMenuOffset.y,
+                      ),
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                   >
@@ -1890,7 +1903,14 @@ export function PropertyPlanEditorPage({
               >
                 ←
               </button>
-              <span className="pan-center" aria-hidden="true" />
+              <button
+                type="button"
+                className="pan-center"
+                aria-label="Centrer la vue sur le plan"
+                onClick={centerViewOnPlan}
+              >
+                ◎
+              </button>
               <button
                 type="button"
                 className="pan-right"
