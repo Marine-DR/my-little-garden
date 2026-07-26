@@ -1,6 +1,11 @@
+export type BoundaryEdgeKind =
+  'line' | 'circular-arc' | 'elliptical-arc' | 'bezier';
+
 export interface PropertyBoundaryPoint {
   readonly xCm: number;
   readonly yCm: number;
+  readonly edgeKind?: BoundaryEdgeKind;
+  readonly edgeCurvature?: number;
 }
 
 export interface Flowerbed {

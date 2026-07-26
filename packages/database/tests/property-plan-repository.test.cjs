@@ -59,7 +59,12 @@ test('saves and reads a centimetre-based property plan', async (t) => {
     widthCm: 400.5,
     heightCm: 180,
     propertyBoundaryPoints: [
-      { xCm: 15, yCm: 5 },
+      {
+        xCm: 15,
+        yCm: 5,
+        edgeKind: 'circular-arc',
+        edgeCurvature: 0.25,
+      },
       { xCm: 390, yCm: 20 },
       { xCm: 400, yCm: 95 },
       { xCm: 370, yCm: 170 },
@@ -73,7 +78,12 @@ test('saves and reads a centimetre-based property plan', async (t) => {
         widthCm: 360,
         heightCm: 140,
         boundaryPoints: [
-          { xCm: 15, yCm: 20 },
+          {
+            xCm: 15,
+            yCm: 20,
+            edgeKind: 'elliptical-arc',
+            edgeCurvature: -0.3,
+          },
           { xCm: 365, yCm: 15 },
           { xCm: 375, yCm: 80 },
           { xCm: 350, yCm: 150 },
@@ -101,7 +111,12 @@ test('saves and reads a centimetre-based property plan', async (t) => {
   assert.equal(saved.flowerbedCount, 1);
   assert.equal(saved.placementCount, 1);
   assert.deepEqual(saved.propertyBoundaryPoints, [
-    { xCm: 15, yCm: 5 },
+    {
+      xCm: 15,
+      yCm: 5,
+      edgeKind: 'circular-arc',
+      edgeCurvature: 0.25,
+    },
     { xCm: 390, yCm: 20 },
     { xCm: 400, yCm: 95 },
     { xCm: 370, yCm: 170 },
@@ -117,7 +132,12 @@ test('saves and reads a centimetre-based property plan', async (t) => {
       widthCm: 360,
       heightCm: 140,
       boundaryPoints: [
-        { xCm: 15, yCm: 20 },
+        {
+          xCm: 15,
+          yCm: 20,
+          edgeKind: 'elliptical-arc',
+          edgeCurvature: -0.3,
+        },
         { xCm: 365, yCm: 15 },
         { xCm: 375, yCm: 80 },
         { xCm: 350, yCm: 150 },

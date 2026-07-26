@@ -5,6 +5,9 @@ CREATE TABLE property_boundary_points (
     position         INTEGER NOT NULL CHECK (position >= 0),
     x_cm             REAL NOT NULL,
     y_cm             REAL NOT NULL,
+    edge_kind        TEXT NOT NULL DEFAULT 'line'
+        CHECK (edge_kind IN ('line', 'circular-arc', 'elliptical-arc', 'bezier')),
+    edge_curvature   REAL NOT NULL DEFAULT 0,
     PRIMARY KEY (property_plan_id, position),
     FOREIGN KEY (property_plan_id)
         REFERENCES property_plans (id) ON DELETE CASCADE

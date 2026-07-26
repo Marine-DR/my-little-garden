@@ -1481,6 +1481,7 @@ abbr {
 .flowerbed-canvas {
   width: 100%;
   display: block;
+  overflow: visible;
   background: #fafbfa;
   border-radius: 4px;
   touch-action: none;
@@ -1515,17 +1516,87 @@ abbr {
   stroke: rgb(13 71 161 / 55%);
   stroke-width: 6;
 }
+.edge-construction-circle,
+.edge-control-guide {
+  fill: none;
+  stroke: #c05621;
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+.edge-construction-circle {
+  opacity: 0.45;
+}
+.edge-curve-control-handle {
+  fill: #fff7ed;
+  stroke: #c05621;
+  stroke-width: 3;
+  cursor: grab;
+  vector-effect: non-scaling-stroke;
+}
+.edge-curve-control-handle:hover,
+.edge-curve-control-handle.dragging {
+  fill: #f97316;
+  stroke: #fff;
+  cursor: grabbing;
+}
 .edge-context-menu {
   position: absolute;
   z-index: 10;
-  min-width: 145px;
-  padding: 5px 29px 5px 5px;
+  min-width: 205px;
+  padding: 9px 33px 9px 9px;
   display: flex;
+  flex-direction: column;
+  gap: 5px;
   background: #fff;
   border: 1px solid #2f7d32;
   border-radius: 5px;
   box-shadow: 0 3px 10px rgb(0 0 0 / 22%);
   transform: translate(-50%, 10px);
+}
+.edge-context-menu label {
+  display: grid;
+  gap: 3px;
+  color: #335c34;
+  font-size: 11px;
+  font-weight: 700;
+}
+.edge-context-menu select {
+  min-height: 30px;
+  padding: 3px 6px;
+  color: #173e18;
+  background: #fff;
+  border: 1px solid #a9c8a8;
+  border-radius: 3px;
+}
+.edge-context-menu input[type='range'] {
+  width: 100%;
+  accent-color: #2f7d32;
+}
+.edge-context-menu-drag-handle {
+  min-height: 26px;
+  margin: -4px 0 2px;
+  padding-right: 4px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #335c34;
+  border-bottom: 1px solid #dcebd9;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.edge-context-menu-drag-handle:hover,
+.edge-context-menu-drag-handle:focus-visible {
+  color: #173e18;
+  background: #f3f8f1;
+  outline: none;
+}
+.edge-context-menu-drag-handle.dragging {
+  cursor: grabbing;
 }
 .edge-context-menu.align-left {
   transform: translate(10px, 10px);
@@ -1543,6 +1614,7 @@ abbr {
   transform: translate(calc(-100% - 10px), calc(-100% - 10px));
 }
 .edge-context-menu button {
+  width: 100%;
   min-height: 29px;
   padding: 4px 8px;
   color: #2f7d32;

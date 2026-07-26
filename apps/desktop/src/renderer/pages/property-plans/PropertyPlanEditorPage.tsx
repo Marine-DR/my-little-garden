@@ -3,10 +3,12 @@ import {
   useMemo,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import type {
+  BoundaryEdgeKind,
   CatalogPlant,
   PropertyPlanDesign,
   PropertyPlanPlantPlacementInput,
@@ -25,12 +27,24 @@ const WHEEL_ZOOM_STEP = 0.1;
 const PAN_STEP_PX = 80;
 const CORNER_HANDLE_RADIUS_CM = 6;
 const FLOWERBED_CORNER_HANDLE_RADIUS_CM = 4;
+const CURVE_SAMPLE_COUNT = 24;
+
+const defaultEdgeCurvature: Record<
+  Exclude<BoundaryEdgeKind, 'line'>,
+  number
+> = {
+  'circular-arc': 0.2,
+  'elliptical-arc': 0.3,
+  bezier: 0.22,
+};
 
 type EditorMode = 'select' | 'flowerbed' | 'plant';
 
 interface Point {
   readonly x: number;
   readonly y: number;
+  readonly edgeKind?: BoundaryEdgeKind;
+  readonly edgeCurvature?: number;
 }
 
 interface FlowerbedDraft {
@@ -72,7 +86,19 @@ type EdgeOwner =
 interface SelectedEdge {
   readonly owner: EdgeOwner;
   readonly edgeIndex: number;
-  readonly point: Point;
+  readonly ratio: number;
+  readonly anchor: Point;
+}
+
+interface DraggingEdgeMenu {
+  readonly pointerId: number;
+  readonly startClientX: number;
+  readonly startClientY: number;
+  readonly startOffset: Point;
+}
+
+interface DraggingEdgeControl {
+  readonly pointerId: number;
 }
 
 interface PanningMap {
@@ -158,34 +184,24 @@ function pointInsidePolygon(point: Point, polygon: readonly Point[]): boolean {
 }
 
 function distanceToSegment(point: Point, start: Point, end: Point): number {
-  const segmentX = end.x - start.x;
-  const segmentY = end.y - start.y;
-  const lengthSquared = segmentX * segmentX + segmentY * segmentY;
-  if (lengthSquared === 0) {
-    return Math.hypot(point.x - start.x, point.y - start.y);
-  }
-  const projection = Math.max(
-    0,
-    Math.min(
-      1,
-      ((point.x - start.x) * segmentX + (point.y - start.y) * segmentY) /
-        lengthSquared,
-    ),
-  );
-  return Math.hypot(
-    point.x - (start.x + projection * segmentX),
-    point.y - (start.y + projection * segmentY),
-  );
+  return segmentProjection(point, start, end).distance;
 }
 
-function closestPointOnSegment(point: Point, start: Point, end: Point): Point {
+function segmentProjection(
+  point: Point,
+  start: Point,
+  end: Point,
+): { readonly ratio: number; readonly distance: number } {
   const segmentX = end.x - start.x;
   const segmentY = end.y - start.y;
   const lengthSquared = segmentX * segmentX + segmentY * segmentY;
   if (lengthSquared === 0) {
-    return start;
+    return {
+      ratio: 0,
+      distance: Math.hypot(point.x - start.x, point.y - start.y),
+    };
   }
-  const projection = Math.max(
+  const ratio = Math.max(
     0,
     Math.min(
       1,
@@ -194,9 +210,206 @@ function closestPointOnSegment(point: Point, start: Point, end: Point): Point {
     ),
   );
   return {
-    x: start.x + projection * segmentX,
-    y: start.y + projection * segmentY,
+    ratio,
+    distance: Math.hypot(
+      point.x - (start.x + ratio * segmentX),
+      point.y - (start.y + ratio * segmentY),
+    ),
   };
+}
+
+function edgeKindOf(point: Point): BoundaryEdgeKind {
+  return point.edgeKind ?? 'line';
+}
+
+function edgeCurvatureOf(point: Point): number {
+  const kind = edgeKindOf(point);
+  return kind === 'line'
+    ? 0
+    : (point.edgeCurvature ?? defaultEdgeCurvature[kind]);
+}
+
+function edgeMidpoint(start: Point, end: Point): Point {
+  return {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2,
+  };
+}
+
+function edgePerpendicular(start: Point, end: Point): Point {
+  const xDistance = end.x - start.x;
+  const yDistance = end.y - start.y;
+  const length = Math.hypot(xDistance, yDistance);
+  return length === 0
+    ? { x: 0, y: 0 }
+    : { x: -yDistance / length, y: xDistance / length };
+}
+
+function circularArcCenter(start: Point, end: Point): Point {
+  const midpoint = edgeMidpoint(start, end);
+  const perpendicular = edgePerpendicular(start, end);
+  const chordLength = Math.hypot(end.x - start.x, end.y - start.y);
+  const sagitta = edgeCurvatureOf(start) * chordLength;
+  if (chordLength === 0 || Math.abs(sagitta) < 0.001) {
+    return midpoint;
+  }
+  const halfChord = chordLength / 2;
+  const centerOffset =
+    (sagitta * sagitta - halfChord * halfChord) / (2 * sagitta);
+  return {
+    x: midpoint.x + perpendicular.x * centerOffset,
+    y: midpoint.y + perpendicular.y * centerOffset,
+  };
+}
+
+function edgeControlPoint(start: Point, end: Point): Point {
+  const kind = edgeKindOf(start);
+  if (kind === 'circular-arc') {
+    return circularArcCenter(start, end);
+  }
+  const midpoint = edgeMidpoint(start, end);
+  if (kind === 'elliptical-arc') {
+    return edgePointAt(start, end, 0.5);
+  }
+  if (kind === 'bezier') {
+    const perpendicular = edgePerpendicular(start, end);
+    const chordLength = Math.hypot(end.x - start.x, end.y - start.y);
+    const controlOffset = 2 * edgeCurvatureOf(start) * chordLength;
+    return {
+      x: midpoint.x + perpendicular.x * controlOffset,
+      y: midpoint.y + perpendicular.y * controlOffset,
+    };
+  }
+  return midpoint;
+}
+
+function curvatureFromControlPoint(
+  kind: Exclude<BoundaryEdgeKind, 'line'>,
+  start: Point,
+  end: Point,
+  control: Point,
+): number {
+  const midpoint = edgeMidpoint(start, end);
+  const perpendicular = edgePerpendicular(start, end);
+  const chordLength = Math.hypot(end.x - start.x, end.y - start.y);
+  if (chordLength === 0) {
+    return edgeCurvatureOf(start);
+  }
+  const projectedOffset =
+    (control.x - midpoint.x) * perpendicular.x +
+    (control.y - midpoint.y) * perpendicular.y;
+  let curvature: number;
+  if (kind === 'circular-arc') {
+    const halfChord = chordLength / 2;
+    const sagitta =
+      projectedOffset === 0
+        ? Math.sign(edgeCurvatureOf(start) || 1) * halfChord
+        : projectedOffset -
+          Math.sign(projectedOffset) * Math.hypot(projectedOffset, halfChord);
+    curvature = sagitta / chordLength;
+  } else {
+    curvature = projectedOffset / chordLength / (kind === 'bezier' ? 2 : 1);
+  }
+  const sign = Math.sign(curvature || edgeCurvatureOf(start) || 1);
+  return sign * Math.min(0.5, Math.max(0.05, Math.abs(curvature)));
+}
+
+function edgePointAt(start: Point, end: Point, ratio: number): Point {
+  const xDistance = end.x - start.x;
+  const yDistance = end.y - start.y;
+  const chordLength = Math.hypot(xDistance, yDistance);
+  const linear = {
+    x: start.x + xDistance * ratio,
+    y: start.y + yDistance * ratio,
+  };
+  const kind = edgeKindOf(start);
+  const curvature = edgeCurvatureOf(start);
+  if (kind === 'line' || chordLength === 0 || Math.abs(curvature) < 0.001) {
+    return linear;
+  }
+
+  const perpendicularX = -yDistance / chordLength;
+  const perpendicularY = xDistance / chordLength;
+  const sagitta = curvature * chordLength;
+  const offset = (() => {
+    if (kind === 'bezier') {
+      return 4 * sagitta * ratio * (1 - ratio);
+    }
+    const halfChord = chordLength / 2;
+    const localX = -halfChord + chordLength * ratio;
+    if (kind === 'elliptical-arc') {
+      return (
+        Math.sign(sagitta) *
+        Math.abs(sagitta) *
+        Math.sqrt(Math.max(0, 1 - (localX * localX) / (halfChord * halfChord)))
+      );
+    }
+    const centerOffset =
+      (sagitta * sagitta - halfChord * halfChord) / (2 * sagitta);
+    const radius = Math.hypot(halfChord, centerOffset);
+    return (
+      centerOffset +
+      Math.sign(sagitta) *
+        Math.sqrt(Math.max(0, radius * radius - localX * localX))
+    );
+  })();
+  return {
+    x: linear.x + perpendicularX * offset,
+    y: linear.y + perpendicularY * offset,
+  };
+}
+
+function sampleEdge(
+  start: Point,
+  end: Point,
+  sampleCount = CURVE_SAMPLE_COUNT,
+): readonly Point[] {
+  return Array.from({ length: sampleCount + 1 }, (_, index) =>
+    edgePointAt(start, end, index / sampleCount),
+  );
+}
+
+function closestEdgeRatio(point: Point, start: Point, end: Point): number {
+  const samples = sampleEdge(start, end, CURVE_SAMPLE_COUNT * 2);
+  let closest = { ratio: 0, distance: Number.POSITIVE_INFINITY };
+  for (let index = 0; index < samples.length - 1; index += 1) {
+    const segmentStart = samples[index];
+    const segmentEnd = samples[index + 1];
+    if (!segmentStart || !segmentEnd) {
+      continue;
+    }
+    const projection = segmentProjection(point, segmentStart, segmentEnd);
+    if (projection.distance < closest.distance) {
+      closest = {
+        distance: projection.distance,
+        ratio: (index + projection.ratio) / (samples.length - 1),
+      };
+    }
+  }
+  return closest.ratio;
+}
+
+function sampleBoundary(points: readonly Point[]): readonly Point[] {
+  return points.flatMap((start, index) => {
+    const end = points[(index + 1) % points.length];
+    return end ? sampleEdge(start, end).slice(0, -1) : [];
+  });
+}
+
+function edgePathData(start: Point, end: Point): string {
+  return sampleEdge(start, end)
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ');
+}
+
+function boundaryPathData(points: readonly Point[]): string {
+  const samples = sampleBoundary(points);
+  if (samples.length === 0) {
+    return '';
+  }
+  return `${samples
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .join(' ')} Z`;
 }
 
 function insertPointAfter(
@@ -204,9 +417,17 @@ function insertPointAfter(
   edgeIndex: number,
   point: Point,
 ): readonly Point[] {
+  const edgeStart = points[edgeIndex];
+  const insertedPoint = edgeStart
+    ? {
+        ...point,
+        edgeKind: edgeStart.edgeKind,
+        edgeCurvature: edgeStart.edgeCurvature,
+      }
+    : point;
   return [
     ...points.slice(0, edgeIndex + 1),
-    point,
+    insertedPoint,
     ...points.slice(edgeIndex + 1),
   ];
 }
@@ -216,12 +437,13 @@ function circleInsideBoundary(
   boundary: readonly Point[],
 ): boolean {
   const center = { x: placement.xCm, y: placement.yCm };
-  if (!pointInsidePolygon(center, boundary)) {
+  const sampledBoundary = sampleBoundary(boundary);
+  if (!pointInsidePolygon(center, sampledBoundary)) {
     return false;
   }
   const radius = placement.spacingCmSnapshot / 2;
-  return boundary.every((start, index) => {
-    const end = boundary[(index + 1) % boundary.length];
+  return sampledBoundary.every((start, index) => {
+    const end = sampledBoundary[(index + 1) % sampledBoundary.length];
     return end ? distanceToSegment(center, start, end) >= radius : false;
   });
 }
@@ -255,8 +477,9 @@ function flowerbedBoundaryFromRectangle(
 function boundsFromPoints(
   points: readonly Point[],
 ): Pick<FlowerbedDraft, 'xCm' | 'yCm' | 'widthCm' | 'heightCm'> {
-  const xValues = points.map(({ x }) => x);
-  const yValues = points.map(({ y }) => y);
+  const sampledPoints = sampleBoundary(points);
+  const xValues = sampledPoints.map(({ x }) => x);
+  const yValues = sampledPoints.map(({ y }) => y);
   const minimumX = Math.min(...xValues);
   const minimumY = Math.min(...yValues);
   return {
@@ -323,6 +546,8 @@ export function PropertyPlanEditorPage({
         boundaryPoints: flowerbed.boundaryPoints.map((point) => ({
           x: point.xCm,
           y: point.yCm,
+          edgeKind: point.edgeKind,
+          edgeCurvature: point.edgeCurvature,
         })),
       })) ?? [],
   );
@@ -334,6 +559,8 @@ export function PropertyPlanEditorPage({
       ? propertyPlan.propertyBoundaryPoints.map((point) => ({
           x: point.xCm,
           y: point.yCm,
+          edgeKind: point.edgeKind,
+          edgeCurvature: point.edgeCurvature,
         }))
       : rectangularBoundary(DEFAULT_WIDTH_CM, DEFAULT_HEIGHT_CM),
   );
@@ -349,6 +576,11 @@ export function PropertyPlanEditorPage({
   const [draggingFlowerbedCorner, setDraggingFlowerbedCorner] =
     useState<DraggingFlowerbedCorner | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<SelectedEdge | null>(null);
+  const [edgeMenuOffset, setEdgeMenuOffset] = useState<Point>({ x: 0, y: 0 });
+  const [draggingEdgeMenu, setDraggingEdgeMenu] =
+    useState<DraggingEdgeMenu | null>(null);
+  const [draggingEdgeControl, setDraggingEdgeControl] =
+    useState<DraggingEdgeControl | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -428,31 +660,61 @@ export function PropertyPlanEditorPage({
     return invalid;
   }, [boundaryPoints, placements, flowerbeds]);
 
-  const pointFromClientPosition = (clientX: number, clientY: number): Point => {
+  const unboundedPointFromClientPosition = (
+    clientX: number,
+    clientY: number,
+  ): Point => {
     const bounds = svgRef.current?.getBoundingClientRect();
     if (!bounds || bounds.width === 0 || bounds.height === 0) {
       return { x: 0, y: 0 };
     }
     return {
-      x: Math.max(
-        0,
-        Math.min(widthCm, ((clientX - bounds.left) / bounds.width) * widthCm),
-      ),
-      y: Math.max(
-        0,
-        Math.min(heightCm, ((clientY - bounds.top) / bounds.height) * heightCm),
-      ),
+      x: ((clientX - bounds.left) / bounds.width) * widthCm,
+      y: ((clientY - bounds.top) / bounds.height) * heightCm,
+    };
+  };
+
+  const pointFromClientPosition = (clientX: number, clientY: number): Point => {
+    const point = unboundedPointFromClientPosition(clientX, clientY);
+    return {
+      x: Math.max(0, Math.min(widthCm, point.x)),
+      y: Math.max(0, Math.min(heightCm, point.y)),
     };
   };
 
   const eventPoint = (event: ReactPointerEvent<SVGSVGElement>): Point =>
     pointFromClientPosition(event.clientX, event.clientY);
 
+  const selectedFlowerbedId =
+    selectedEdge?.owner.kind === 'flowerbed'
+      ? selectedEdge.owner.flowerbedId
+      : null;
+  const selectedEdgeBoundary = selectedEdge
+    ? selectedEdge.owner.kind === 'property'
+      ? boundaryPoints
+      : flowerbeds.find((flowerbed) => flowerbed.id === selectedFlowerbedId)
+          ?.boundaryPoints
+    : undefined;
+  const selectedEdgeStart =
+    selectedEdgeBoundary?.[selectedEdge?.edgeIndex ?? -1];
+  const selectedEdgeEnd =
+    selectedEdge && selectedEdgeBoundary
+      ? selectedEdgeBoundary[
+          (selectedEdge.edgeIndex + 1) % selectedEdgeBoundary.length
+        ]
+      : undefined;
+  const selectedEdgeControl =
+    selectedEdgeStart &&
+    selectedEdgeEnd &&
+    edgeKindOf(selectedEdgeStart) !== 'line'
+      ? edgeControlPoint(selectedEdgeStart, selectedEdgeEnd)
+      : null;
+
   const selectEdge = (
     owner: EdgeOwner,
     edgeIndex: number,
     points: readonly Point[],
-    event: ReactMouseEvent<SVGLineElement>,
+    event: ReactMouseEvent<SVGPathElement>,
   ): void => {
     event.preventDefault();
     event.stopPropagation();
@@ -466,14 +728,19 @@ export function PropertyPlanEditorPage({
     setSelectedObject(
       owner.kind === 'flowerbed' ? `flowerbed:${owner.flowerbedId}` : null,
     );
+    setEdgeMenuOffset({ x: 0, y: 0 });
+    setDraggingEdgeMenu(null);
+    setDraggingEdgeControl(null);
+    const ratio = closestEdgeRatio(
+      pointFromClientPosition(event.clientX, event.clientY),
+      start,
+      end,
+    );
     setSelectedEdge({
       owner,
       edgeIndex,
-      point: closestPointOnSegment(
-        pointFromClientPosition(event.clientX, event.clientY),
-        start,
-        end,
-      ),
+      ratio,
+      anchor: edgePointAt(start, end, ratio),
     });
   };
 
@@ -482,9 +749,17 @@ export function PropertyPlanEditorPage({
       return;
     }
     if (selectedEdge.owner.kind === 'property') {
-      setBoundaryPoints((current) =>
-        insertPointAfter(current, selectedEdge.edgeIndex, selectedEdge.point),
-      );
+      setBoundaryPoints((current) => {
+        const start = current[selectedEdge.edgeIndex];
+        const end = current[(selectedEdge.edgeIndex + 1) % current.length];
+        return start && end
+          ? insertPointAfter(
+              current,
+              selectedEdge.edgeIndex,
+              edgePointAt(start, end, selectedEdge.ratio),
+            )
+          : current;
+      });
     } else {
       const flowerbedId = selectedEdge.owner.flowerbedId;
       setFlowerbeds((current) =>
@@ -492,10 +767,18 @@ export function PropertyPlanEditorPage({
           if (flowerbed.id !== flowerbedId) {
             return flowerbed;
           }
+          const start = flowerbed.boundaryPoints[selectedEdge.edgeIndex];
+          const end =
+            flowerbed.boundaryPoints[
+              (selectedEdge.edgeIndex + 1) % flowerbed.boundaryPoints.length
+            ];
+          if (!start || !end) {
+            return flowerbed;
+          }
           const nextBoundary = insertPointAfter(
             flowerbed.boundaryPoints,
             selectedEdge.edgeIndex,
-            selectedEdge.point,
+            edgePointAt(start, end, selectedEdge.ratio),
           );
           return {
             ...flowerbed,
@@ -505,12 +788,61 @@ export function PropertyPlanEditorPage({
         }),
       );
     }
+    setDraggingEdgeMenu(null);
     setSelectedEdge(null);
+  };
+
+  const updateSelectedEdge = (
+    edgeKind: BoundaryEdgeKind,
+    edgeCurvature?: number,
+  ): void => {
+    if (!selectedEdge || !selectedEdgeStart) {
+      return;
+    }
+    const currentKind = edgeKindOf(selectedEdgeStart);
+    const currentCurvature = edgeCurvatureOf(selectedEdgeStart);
+    const curvature =
+      edgeKind === 'line'
+        ? 0
+        : (edgeCurvature ??
+          (currentKind === 'line'
+            ? defaultEdgeCurvature[edgeKind]
+            : Math.sign(currentCurvature || 1) *
+              (Math.abs(currentCurvature) || defaultEdgeCurvature[edgeKind])));
+    const updateBoundary = (points: readonly Point[]): readonly Point[] =>
+      points.map((point, index) =>
+        index === selectedEdge.edgeIndex
+          ? {
+              ...point,
+              edgeKind,
+              edgeCurvature: curvature,
+            }
+          : point,
+      );
+
+    if (selectedEdge.owner.kind === 'property') {
+      setBoundaryPoints(updateBoundary);
+      return;
+    }
+    const flowerbedId = selectedEdge.owner.flowerbedId;
+    setFlowerbeds((current) =>
+      current.map((flowerbed) => {
+        if (flowerbed.id !== flowerbedId) {
+          return flowerbed;
+        }
+        const nextBoundary = updateBoundary(flowerbed.boundaryPoints);
+        return {
+          ...flowerbed,
+          ...boundsFromPoints(nextBoundary),
+          boundaryPoints: nextBoundary,
+        };
+      }),
+    );
   };
 
   const flowerbedContainingPoint = (point: Point): string | null =>
     flowerbeds.find((flowerbed) =>
-      pointInsidePolygon(point, flowerbed.boundaryPoints),
+      pointInsidePolygon(point, sampleBoundary(flowerbed.boundaryPoints)),
     )?.id ?? null;
 
   const handleCanvasPointerDown = (
@@ -551,7 +883,28 @@ export function PropertyPlanEditorPage({
   const handleCanvasPointerMove = (
     event: ReactPointerEvent<SVGSVGElement>,
   ): void => {
-    const point = eventPoint(event);
+    const point = draggingEdgeControl
+      ? unboundedPointFromClientPosition(event.clientX, event.clientY)
+      : eventPoint(event);
+    if (
+      draggingEdgeControl &&
+      draggingEdgeControl.pointerId === event.pointerId &&
+      selectedEdgeStart &&
+      selectedEdgeEnd
+    ) {
+      const kind = edgeKindOf(selectedEdgeStart);
+      if (kind !== 'line') {
+        updateSelectedEdge(
+          kind,
+          curvatureFromControlPoint(
+            kind,
+            selectedEdgeStart,
+            selectedEdgeEnd,
+            point,
+          ),
+        );
+      }
+    }
     if (drawingFlowerbed) {
       setDrawingFlowerbed({ ...drawingFlowerbed, current: point });
     }
@@ -559,7 +912,7 @@ export function PropertyPlanEditorPage({
       setSelectedEdge(null);
       setBoundaryPoints((current) =>
         current.map((corner, index) =>
-          index === draggingCorner ? point : corner,
+          index === draggingCorner ? { ...corner, ...point } : corner,
         ),
       );
     }
@@ -571,7 +924,9 @@ export function PropertyPlanEditorPage({
             return flowerbed;
           }
           const nextBoundary = flowerbed.boundaryPoints.map((corner, index) =>
-            index === draggingFlowerbedCorner.cornerIndex ? point : corner,
+            index === draggingFlowerbedCorner.cornerIndex
+              ? { ...corner, ...point }
+              : corner,
           );
           return {
             ...flowerbed,
@@ -624,6 +979,7 @@ export function PropertyPlanEditorPage({
     setDraggingPlant(null);
     setDraggingCorner(null);
     setDraggingFlowerbedCorner(null);
+    setDraggingEdgeControl(null);
   };
 
   const deleteSelected = (): void => {
@@ -690,6 +1046,12 @@ export function PropertyPlanEditorPage({
       propertyBoundaryPoints: boundaryPoints.map((point) => ({
         xCm: point.x,
         yCm: point.y,
+        ...(edgeKindOf(point) === 'line'
+          ? {}
+          : {
+              edgeKind: edgeKindOf(point),
+              edgeCurvature: edgeCurvatureOf(point),
+            }),
       })),
       flowerbeds: flowerbeds.map((flowerbed) => ({
         id: flowerbed.id,
@@ -700,6 +1062,12 @@ export function PropertyPlanEditorPage({
         boundaryPoints: flowerbed.boundaryPoints.map((point) => ({
           xCm: point.x,
           yCm: point.y,
+          ...(edgeKindOf(point) === 'line'
+            ? {}
+            : {
+                edgeKind: edgeKindOf(point),
+                edgeCurvature: edgeCurvatureOf(point),
+              }),
         })),
       })),
       placements,
@@ -717,9 +1085,7 @@ export function PropertyPlanEditorPage({
   const drawingRectangle = drawingFlowerbed
     ? flowerbedFromPoints(drawingFlowerbed.start, drawingFlowerbed.current)
     : null;
-  const boundaryPolygonPoints = boundaryPoints
-    .map((point) => `${point.x},${point.y}`)
-    .join(' ');
+  const propertyBoundaryPath = boundaryPathData(boundaryPoints);
 
   const startPanning = (event: ReactPointerEvent<HTMLDivElement>): void => {
     if (event.button !== 1) {
@@ -758,6 +1124,75 @@ export function PropertyPlanEditorPage({
       event.currentTarget.releasePointerCapture?.(event.pointerId);
     }
     setPanning(false);
+  };
+
+  const startMovingEdgeMenu = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ): void => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setDraggingEdgeMenu({
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startOffset: edgeMenuOffset,
+    });
+  };
+
+  const moveEdgeMenu = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (!draggingEdgeMenu || draggingEdgeMenu.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    setEdgeMenuOffset({
+      x:
+        draggingEdgeMenu.startOffset.x +
+        event.clientX -
+        draggingEdgeMenu.startClientX,
+      y:
+        draggingEdgeMenu.startOffset.y +
+        event.clientY -
+        draggingEdgeMenu.startClientY,
+    });
+  };
+
+  const stopMovingEdgeMenu = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ): void => {
+    if (draggingEdgeMenu?.pointerId !== event.pointerId) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
+    setDraggingEdgeMenu(null);
+  };
+
+  const moveEdgeMenuWithKeyboard = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ): void => {
+    const movementByKey: Partial<Record<string, Point>> = {
+      ArrowUp: { x: 0, y: -10 },
+      ArrowDown: { x: 0, y: 10 },
+      ArrowLeft: { x: -10, y: 0 },
+      ArrowRight: { x: 10, y: 0 },
+    };
+    const movement = movementByKey[event.key];
+    if (!movement) {
+      return;
+    }
+    event.preventDefault();
+    setEdgeMenuOffset((current) => ({
+      x: current.x + movement.x,
+      y: current.y + movement.y,
+    }));
   };
 
   const panMap = (horizontal: number, vertical: number): void => {
@@ -981,12 +1416,12 @@ export function PropertyPlanEditorPage({
                       />
                     </pattern>
                     <clipPath id="property-boundary-clip">
-                      <polygon points={boundaryPolygonPoints} />
+                      <path d={propertyBoundaryPath} />
                     </clipPath>
                   </defs>
-                  <polygon
+                  <path
                     className="property-boundary"
-                    points={boundaryPolygonPoints}
+                    d={propertyBoundaryPath}
                   />
                   <rect
                     x="0"
@@ -999,11 +1434,9 @@ export function PropertyPlanEditorPage({
                   />
                   {flowerbeds.map((flowerbed, index) => (
                     <g key={flowerbed.id}>
-                      <polygon
+                      <path
                         className={`plan-flowerbed ${selectedObject === `flowerbed:${flowerbed.id}` ? 'selected' : ''}`}
-                        points={flowerbed.boundaryPoints
-                          .map((point) => `${point.x},${point.y}`)
-                          .join(' ')}
+                        d={boundaryPathData(flowerbed.boundaryPoints)}
                         role="button"
                         aria-label={`Sélectionner le parterre ${index + 1}`}
                         onPointerDown={(event) => {
@@ -1041,13 +1474,10 @@ export function PropertyPlanEditorPage({
                           selectedEdge.owner.flowerbedId === flowerbed.id &&
                           selectedEdge.edgeIndex === edgeIndex;
                         return (
-                          <line
+                          <path
                             key={`${flowerbed.id}-edge-${edgeIndex}`}
                             className={`polygon-edge-hit-area flowerbed-edge ${isSelected ? 'selected' : ''}`}
-                            x1={point.x}
-                            y1={point.y}
-                            x2={end.x}
-                            y2={end.y}
+                            d={edgePathData(point, end)}
                             role="button"
                             aria-label={`Options de l’arête ${edgeIndex + 1} du parterre ${index + 1}`}
                             onPointerDown={(event) => {
@@ -1193,13 +1623,10 @@ export function PropertyPlanEditorPage({
                       selectedEdge?.owner.kind === 'property' &&
                       selectedEdge.edgeIndex === edgeIndex;
                     return (
-                      <line
+                      <path
                         key={`property-edge-${edgeIndex}`}
                         className={`polygon-edge-hit-area property-edge ${isSelected ? 'selected' : ''}`}
-                        x1={point.x}
-                        y1={point.y}
-                        x2={end.x}
-                        y2={end.y}
+                        d={edgePathData(point, end)}
                         role="button"
                         aria-label={`Options de l’arête ${edgeIndex + 1} de la propriété`}
                         onPointerDown={(event) => {
@@ -1218,6 +1645,90 @@ export function PropertyPlanEditorPage({
                       />
                     );
                   })}
+                  {selectedEdge &&
+                  selectedEdgeStart &&
+                  selectedEdgeEnd &&
+                  selectedEdgeControl ? (
+                    <g className="edge-geometry-controls">
+                      {edgeKindOf(selectedEdgeStart) === 'circular-arc' ? (
+                        <>
+                          <circle
+                            className="edge-construction-circle"
+                            cx={selectedEdgeControl.x}
+                            cy={selectedEdgeControl.y}
+                            r={Math.hypot(
+                              selectedEdgeStart.x - selectedEdgeControl.x,
+                              selectedEdgeStart.y - selectedEdgeControl.y,
+                            )}
+                          />
+                          <line
+                            className="edge-control-guide"
+                            x1={selectedEdgeStart.x}
+                            y1={selectedEdgeStart.y}
+                            x2={selectedEdgeControl.x}
+                            y2={selectedEdgeControl.y}
+                          />
+                          <line
+                            className="edge-control-guide"
+                            x1={selectedEdgeEnd.x}
+                            y1={selectedEdgeEnd.y}
+                            x2={selectedEdgeControl.x}
+                            y2={selectedEdgeControl.y}
+                          />
+                        </>
+                      ) : edgeKindOf(selectedEdgeStart) === 'bezier' ? (
+                        <polyline
+                          className="edge-control-guide"
+                          points={`${selectedEdgeStart.x},${selectedEdgeStart.y} ${selectedEdgeControl.x},${selectedEdgeControl.y} ${selectedEdgeEnd.x},${selectedEdgeEnd.y}`}
+                        />
+                      ) : (
+                        <line
+                          className="edge-control-guide"
+                          x1={
+                            edgeMidpoint(selectedEdgeStart, selectedEdgeEnd).x
+                          }
+                          y1={
+                            edgeMidpoint(selectedEdgeStart, selectedEdgeEnd).y
+                          }
+                          x2={selectedEdgeControl.x}
+                          y2={selectedEdgeControl.y}
+                        />
+                      )}
+                      <circle
+                        className={`edge-curve-control-handle ${
+                          draggingEdgeControl ? 'dragging' : ''
+                        }`}
+                        cx={selectedEdgeControl.x}
+                        cy={selectedEdgeControl.y}
+                        r={5}
+                        role="button"
+                        aria-label={
+                          edgeKindOf(selectedEdgeStart) === 'circular-arc'
+                            ? 'Déplacer le centre de l’arc de cercle'
+                            : edgeKindOf(selectedEdgeStart) === 'elliptical-arc'
+                              ? 'Modifier le rayon de l’arc elliptique'
+                              : 'Déplacer le contrôle de la courbe de Bézier'
+                        }
+                        onPointerDown={(event) => {
+                          if (event.button !== 0) {
+                            return;
+                          }
+                          event.preventDefault();
+                          event.stopPropagation();
+                          event.currentTarget.ownerSVGElement?.setPointerCapture?.(
+                            event.pointerId,
+                          );
+                          setDraggingEdgeControl({
+                            pointerId: event.pointerId,
+                          });
+                        }}
+                      >
+                        <title>
+                          Glissez ce point pour modifier la courbure
+                        </title>
+                      </circle>
+                    </g>
+                  ) : null}
                   {boundaryPoints.map((point, index) => (
                     <circle
                       key={`corner-${index}`}
@@ -1255,16 +1766,16 @@ export function PropertyPlanEditorPage({
                     </circle>
                   ))}
                 </svg>
-                {selectedEdge ? (
+                {selectedEdge && selectedEdgeStart ? (
                   <div
                     className={`edge-context-menu ${
-                      selectedEdge.point.x / widthCm < 0.2
+                      selectedEdge.anchor.x / widthCm < 0.2
                         ? 'align-left'
-                        : selectedEdge.point.x / widthCm > 0.8
+                        : selectedEdge.anchor.x / widthCm > 0.8
                           ? 'align-right'
                           : ''
                     } ${
-                      selectedEdge.point.y / heightCm > 0.75
+                      selectedEdge.anchor.y / heightCm > 0.75
                         ? 'align-above'
                         : ''
                     }`}
@@ -1275,11 +1786,78 @@ export function PropertyPlanEditorPage({
                         : `Arête ${selectedEdge.edgeIndex + 1} du parterre ${selectedEdge.owner.flowerbedIndex + 1}`
                     }
                     style={{
-                      left: `${(selectedEdge.point.x / widthCm) * 100}%`,
-                      top: `${(selectedEdge.point.y / heightCm) * 100}%`,
+                      left: `calc(${(selectedEdge.anchor.x / widthCm) * 100}% + ${edgeMenuOffset.x}px)`,
+                      top: `calc(${(selectedEdge.anchor.y / heightCm) * 100}% + ${edgeMenuOffset.y}px)`,
                     }}
                     onPointerDown={(event) => event.stopPropagation()}
                   >
+                    <div
+                      className={`edge-context-menu-drag-handle ${
+                        draggingEdgeMenu ? 'dragging' : ''
+                      }`}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Déplacer le menu de l’arête"
+                      onPointerDown={startMovingEdgeMenu}
+                      onPointerMove={moveEdgeMenu}
+                      onPointerUp={stopMovingEdgeMenu}
+                      onPointerCancel={stopMovingEdgeMenu}
+                      onKeyDown={moveEdgeMenuWithKeyboard}
+                    >
+                      <span aria-hidden="true">⠿</span>
+                      Déplacer
+                    </div>
+                    <label>
+                      Nature
+                      <select
+                        aria-label="Nature de l’arête"
+                        value={edgeKindOf(selectedEdgeStart)}
+                        onChange={(event) =>
+                          updateSelectedEdge(
+                            event.target.value as BoundaryEdgeKind,
+                          )
+                        }
+                      >
+                        <option value="line">Ligne droite</option>
+                        <option value="circular-arc">Arc de cercle</option>
+                        <option value="elliptical-arc">Arc elliptique</option>
+                        <option value="bezier">Courbe de Bézier</option>
+                      </select>
+                    </label>
+                    {edgeKindOf(selectedEdgeStart) !== 'line' ? (
+                      <>
+                        <label>
+                          Courbure
+                          <input
+                            type="range"
+                            aria-label="Courbure de l’arête"
+                            min="0.05"
+                            max="0.5"
+                            step="0.01"
+                            value={Math.abs(edgeCurvatureOf(selectedEdgeStart))}
+                            onChange={(event) =>
+                              updateSelectedEdge(
+                                edgeKindOf(selectedEdgeStart),
+                                Math.sign(
+                                  edgeCurvatureOf(selectedEdgeStart) || 1,
+                                ) * Number(event.target.value),
+                              )
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSelectedEdge(
+                              edgeKindOf(selectedEdgeStart),
+                              -edgeCurvatureOf(selectedEdgeStart),
+                            )
+                          }
+                        >
+                          Inverser la courbure
+                        </button>
+                      </>
+                    ) : null}
                     <button type="button" onClick={splitSelectedEdge}>
                       Scinder l’arête
                     </button>

@@ -1,4 +1,5 @@
 import type {
+  BoundaryEdgeKind,
   Flowerbed,
   PropertyBoundaryPoint,
   PropertyPlanDesign,
@@ -16,6 +17,13 @@ import {
   type SqliteRow,
 } from './typed-query';
 import { runInTransaction } from './transaction';
+
+const boundaryEdgeKinds = new Set<BoundaryEdgeKind>([
+  'line',
+  'circular-arc',
+  'elliptical-arc',
+  'bezier',
+]);
 
 function decodeSummary(row: SqliteRow): PropertyPlanSummary {
   return {
@@ -42,10 +50,13 @@ function decodeFlowerbed(row: SqliteRow): Omit<Flowerbed, 'boundaryPoints'> {
 }
 
 function decodeBoundaryPoint(row: SqliteRow): PropertyBoundaryPoint {
-  return {
-    xCm: numberColumn(row, 'x_cm'),
-    yCm: numberColumn(row, 'y_cm'),
-  };
+  const xCm = numberColumn(row, 'x_cm');
+  const yCm = numberColumn(row, 'y_cm');
+  const edgeKind = stringColumn(row, 'edge_kind') as BoundaryEdgeKind;
+  const edgeCurvature = numberColumn(row, 'edge_curvature');
+  return edgeKind === 'line' && edgeCurvature === 0
+    ? { xCm, yCm }
+    : { xCm, yCm, edgeKind, edgeCurvature };
 }
 
 function rectangularBoundary(
@@ -102,6 +113,19 @@ function requireFinite(value: number, field: string): void {
   }
 }
 
+function validateBoundaryPoint(
+  point: PropertyBoundaryPoint,
+  field: string,
+): void {
+  requireFinite(point.xCm, `${field}.xCm`);
+  requireFinite(point.yCm, `${field}.yCm`);
+  const edgeKind = point.edgeKind ?? 'line';
+  if (!boundaryEdgeKinds.has(edgeKind)) {
+    throw new TypeError(`${field}.edgeKind is not supported.`);
+  }
+  requireFinite(point.edgeCurvature ?? 0, `${field}.edgeCurvature`);
+}
+
 function validateInput(input: PropertyPlanSaveInput): string {
   const name = input.name.trim();
   if (!name) {
@@ -121,8 +145,7 @@ function validateInput(input: PropertyPlanSaveInput): string {
     );
   }
   for (const point of boundaryPoints) {
-    requireFinite(point.xCm, 'boundaryPoint.xCm');
-    requireFinite(point.yCm, 'boundaryPoint.yCm');
+    validateBoundaryPoint(point, 'boundaryPoint');
   }
   for (const flowerbed of input.flowerbeds) {
     requireFinite(flowerbed.xCm, 'flowerbed.xCm');
@@ -140,8 +163,7 @@ function validateInput(input: PropertyPlanSaveInput): string {
       );
     }
     for (const point of flowerbedBoundary) {
-      requireFinite(point.xCm, 'flowerbed.boundaryPoint.xCm');
-      requireFinite(point.yCm, 'flowerbed.boundaryPoint.yCm');
+      validateBoundaryPoint(point, 'flowerbed.boundaryPoint');
     }
   }
   for (const placement of input.placements) {
@@ -180,7 +202,8 @@ export class SqlitePropertyPlanRepository implements PropertyPlanRepository {
     const summary = decodeSummary(row);
     const propertyBoundaryPoints = this.database
       .prepare(
-        `SELECT x_cm, y_cm FROM property_boundary_points
+        `SELECT x_cm, y_cm, edge_kind, edge_curvature
+         FROM property_boundary_points
          WHERE property_plan_id = ? ORDER BY position`,
       )
       .all(propertyPlanId)
@@ -196,7 +219,8 @@ export class SqlitePropertyPlanRepository implements PropertyPlanRepository {
         ...flowerbed,
         boundaryPoints: this.database
           .prepare(
-            `SELECT x_cm, y_cm FROM flowerbed_boundary_points
+            `SELECT x_cm, y_cm, edge_kind, edge_curvature
+             FROM flowerbed_boundary_points
              WHERE flowerbed_id = ? ORDER BY position`,
           )
           .all(flowerbed.id)
@@ -335,11 +359,19 @@ export class SqlitePropertyPlanRepository implements PropertyPlanRepository {
 
       const insertBoundaryPoint = this.database.prepare(
         `INSERT INTO property_boundary_points (
-          property_plan_id, position, x_cm, y_cm
-        ) VALUES (?, ?, ?, ?)`,
+          property_plan_id, position, x_cm, y_cm, edge_kind, edge_curvature
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
       );
       propertyBoundaryPoints.forEach((point, position) => {
-        insertBoundaryPoint.run(propertyPlanId, position, point.xCm, point.yCm);
+        const edgeKind = point.edgeKind ?? 'line';
+        insertBoundaryPoint.run(
+          propertyPlanId,
+          position,
+          point.xCm,
+          point.yCm,
+          edgeKind,
+          edgeKind === 'line' ? 0 : (point.edgeCurvature ?? 0.2),
+        );
       });
 
       const insertFlowerbed = this.database.prepare(
@@ -360,18 +392,21 @@ export class SqlitePropertyPlanRepository implements PropertyPlanRepository {
 
       const insertFlowerbedBoundaryPoint = this.database.prepare(
         `INSERT INTO flowerbed_boundary_points (
-          flowerbed_id, position, x_cm, y_cm
-        ) VALUES (?, ?, ?, ?)`,
+          flowerbed_id, position, x_cm, y_cm, edge_kind, edge_curvature
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
       );
       input.flowerbeds.forEach((flowerbed, flowerbedIndex) => {
         const flowerbedBoundary =
           flowerbed.boundaryPoints ?? rectangularFlowerbedBoundary(flowerbed);
         flowerbedBoundary.forEach((point, position) => {
+          const edgeKind = point.edgeKind ?? 'line';
           insertFlowerbedBoundaryPoint.run(
             flowerbedIds[flowerbedIndex]!,
             position,
             point.xCm,
             point.yCm,
+            edgeKind,
+            edgeKind === 'line' ? 0 : (point.edgeCurvature ?? 0.2),
           );
         });
       });

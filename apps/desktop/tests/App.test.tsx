@@ -1083,9 +1083,69 @@ describe('App catalog', () => {
       }),
       { clientX: 400, clientY: 125 },
     );
-    expect(
-      screen.getByRole('menu', { name: 'Arête 2 de la propriété' }),
-    ).toBeInTheDocument();
+    const propertyEdgeMenu = screen.getByRole('menu', {
+      name: 'Arête 2 de la propriété',
+    });
+    expect(propertyEdgeMenu).toBeInTheDocument();
+    const menuDragHandle = screen.getByRole('button', {
+      name: 'Déplacer le menu de l’arête',
+    });
+    const menuDragDown = new MouseEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      clientX: 400,
+      clientY: 125,
+    });
+    const menuDragMove = new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 435,
+      clientY: 145,
+    });
+    const menuDragUp = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [menuDragDown, menuDragMove, menuDragUp]) {
+      Object.defineProperty(event, 'pointerId', { value: 6 });
+    }
+    fireEvent(menuDragHandle, menuDragDown);
+    fireEvent(menuDragHandle, menuDragMove);
+    fireEvent(menuDragHandle, menuDragUp);
+    expect(propertyEdgeMenu).toHaveStyle({
+      left: 'calc(100% + 35px)',
+      top: 'calc(50% + 20px)',
+    });
+    expect(screen.getByLabelText('Nature de l’arête')).toHaveValue('line');
+    fireEvent.change(screen.getByLabelText('Nature de l’arête'), {
+      target: { value: 'circular-arc' },
+    });
+    expect(propertyEdgeMenu).toHaveStyle({
+      left: 'calc(100% + 35px)',
+      top: 'calc(50% + 20px)',
+    });
+    expect(screen.getByLabelText('Courbure de l’arête')).toHaveValue('0.2');
+    const circleCenter = screen.getByRole('button', {
+      name: 'Déplacer le centre de l’arc de cercle',
+    });
+    expect(circleCenter).toHaveAttribute('cx', '531.25');
+    expect(circleCenter).toHaveAttribute('cy', '125');
+    const centerDragDown = new MouseEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      clientX: 531.25,
+      clientY: 125,
+    });
+    const centerDragMove = new MouseEvent('pointermove', {
+      bubbles: true,
+      clientX: 493.75,
+      clientY: 125,
+    });
+    const centerDragUp = new MouseEvent('pointerup', { bubbles: true });
+    for (const event of [centerDragDown, centerDragMove, centerDragUp]) {
+      Object.defineProperty(event, 'pointerId', { value: 8 });
+    }
+    fireEvent(circleCenter, centerDragDown);
+    fireEvent(drawing, centerDragMove);
+    fireEvent(drawing, centerDragUp);
+    expect(screen.getByLabelText('Courbure de l’arête')).toHaveValue('0.25');
+    expect(circleCenter).toHaveAttribute('cx', '493.75');
     fireEvent.click(screen.getByRole('button', { name: 'Scinder l’arête' }));
     expect(
       screen.getAllByRole('button', {
@@ -1190,6 +1250,9 @@ describe('App catalog', () => {
     expect(
       screen.getByRole('menu', { name: 'Arête 1 du parterre 1' }),
     ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Nature de l’arête'), {
+      target: { value: 'elliptical-arc' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Scinder l’arête' }));
     expect(
       screen.getAllByRole('button', {
@@ -1204,20 +1267,40 @@ describe('App catalog', () => {
           name: 'Plan maison',
           propertyBoundaryPoints: [
             { xCm: 40, yCm: 30 },
-            { xCm: 400, yCm: 0 },
-            { xCm: 400, yCm: 125 },
+            {
+              xCm: 400,
+              yCm: 0,
+              edgeKind: 'circular-arc',
+              edgeCurvature: 0.25,
+            },
+            {
+              xCm: 337.5,
+              yCm: 125,
+              edgeKind: 'circular-arc',
+              edgeCurvature: 0.25,
+            },
             { xCm: 400, yCm: 250 },
             { xCm: 0, yCm: 250 },
           ],
           flowerbeds: [
             expect.objectContaining({
-              xCm: 80,
+              xCm: expect.closeTo(78.18375162901856, 8),
               yCm: 60,
-              widthCm: 120,
+              widthCm: expect.closeTo(123.63249674196288, 8),
               heightCm: 90,
               boundaryPoints: [
-                { xCm: 80, yCm: 60 },
-                { xCm: 140, yCm: 60 },
+                {
+                  xCm: 80,
+                  yCm: 60,
+                  edgeKind: 'elliptical-arc',
+                  edgeCurvature: 0.3,
+                },
+                {
+                  xCm: 140,
+                  yCm: 96,
+                  edgeKind: 'elliptical-arc',
+                  edgeCurvature: 0.3,
+                },
                 { xCm: 200, yCm: 60 },
                 { xCm: 200, yCm: 150 },
                 { xCm: 80, yCm: 150 },
