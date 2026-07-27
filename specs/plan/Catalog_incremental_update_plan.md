@@ -52,19 +52,18 @@ plant is checked.
 
 ### 3.1 Supported headers
 
-The importer accepts both formats:
-
-1. The legacy 15-column format beginning with `Nom`.
-2. The 16-column format beginning with the optional `plant_id` column,
-   followed by the same 15 horticultural columns.
-
-The new exported header is:
+The 16-column layout is the canonical V1 CSV format. The downloadable V1
+template uses this header, with an empty `plant_id` cell for a new plant:
 
 ```text
 plant_id,Nom,Taille min,Taille Max,Type,Fleur/autre,Sol,Exposition,Floraison début,Floraison fin,Couleurs fleurs,Couleurs feuilles,T° min (°C),Feuillage persistant,Espace(cm),Plantation
 ```
 
-Existing CSV files without `plant_id` remain valid.
+The V2 current-catalog export uses the same header and fills every
+`plant_id`, so an exported file can be modified and imported again without a
+format conversion. The importer also continues to accept the former
+15-column layout beginning with `Nom`, for existing user files; it is not
+emitted by the application.
 
 ### 3.2 Complete-record semantics
 
@@ -285,7 +284,16 @@ without restoring already committed catalog data and can be retried safely.
 
 ## 6. Selection-change tracking
 
-### 6.1 Planned migration
+### 6.1 Why pending changes are persisted
+
+Catalog maintenance and selection review are separate user actions. A person
+may change the catalog, close the application, then open an affected selection
+later; the warning must still identify what changed or was deleted until that
+person acknowledges it. Therefore this table stores only unacknowledged
+selection impacts, not a permanent change history and not a second copy of a
+selection. Clearing the displayed warning removes the corresponding record.
+
+### 6.2 Planned migration
 
 Add a versioned migration containing a pending-change table equivalent to:
 
@@ -334,7 +342,7 @@ warnings must survive deletion of the live plant.
 record before its first unreviewed change. The core package owns its shape and
 comparison rules.
 
-### 6.2 Modified plants
+### 6.3 Modified plants
 
 When a material plant change affects a selection:
 
@@ -348,7 +356,7 @@ When a material plant change affects a selection:
 If later changes return the plant exactly to its retained baseline, remove the
 pending modification record.
 
-### 6.3 Deleted plants
+### 6.4 Deleted plants
 
 Before deleting a selected plant:
 
@@ -360,7 +368,7 @@ Before deleting a selected plant:
 All pending deleted plants for a selection are displayed in one merged warning,
 regardless of how many delete operations created them.
 
-### 6.4 Catalog replacement
+### 6.5 Catalog replacement
 
 Full-catalog replacement uses the same matching and warning rules:
 
@@ -377,7 +385,7 @@ Before file selection, show the replacement explanation specified in
 [Garden_Planner_UX_UI _main_screen_spec.md](Garden_Planner_UX_UI%20_main_screen_spec.md).
 After validation, show actual match-kind and impact counts before confirmation.
 
-### 6.5 Derived selection status
+### 6.6 Derived selection status
 
 Status is derived from pending changes rather than stored on `selections`.
 
@@ -406,7 +414,7 @@ acknowledgement:
 | Clear modifications while deletions remain                  | `contains_deleted_plants`  |
 | Clear the last pending warning                              | `up_to_date`               |
 
-### 6.6 Review and clearing
+### 6.7 Review and clearing
 
 The selection detail contains two independent panels when required:
 
@@ -427,7 +435,7 @@ clears every change currently displayed in that panel:
 
 Photo cleanup runs after clearing deleted warnings according to section 5.3.
 
-### 6.7 Flowerbed catalog impacts
+### 6.8 Flowerbed catalog impacts
 
 Catalog replacement and incremental modification/deletion use the same flowerbed-impact rules for placed plants.
 
@@ -611,6 +619,7 @@ catalog data unchanged.
 - In Modify mode, create all or ignore all missing conflicts.
 - Rename a plant by stable UUID.
 - Reject UUID/name identity conflicts and duplicate file identities.
+- Use the canonical 16-column V1 template and current-catalog export format.
 - Accept legacy CSV files without `plant_id`.
 - Export and re-import the current catalog without changing UUIDs or data.
 - Reject the complete import when any non-conflict row is invalid.
