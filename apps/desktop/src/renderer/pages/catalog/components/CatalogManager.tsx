@@ -3,6 +3,9 @@ import collapseIcon from '@renderer/assets/collapse.svg';
 import expandIcon from '@renderer/assets/expand.svg';
 import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
 
+const CATALOG_ADDITION_ERROR =
+  "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.";
+
 export function CatalogManager({
   onReplaced,
   onSuccess,
@@ -74,9 +77,7 @@ export function CatalogManager({
           policy,
         );
       if (!result.ok) {
-        setErrors([
-          "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-        ]);
+        setErrors([CATALOG_ADDITION_ERROR]);
         return;
       }
       onReplaced();
@@ -94,9 +95,7 @@ export function CatalogManager({
       ].filter(Boolean);
       onSuccess(details.join(' '));
     } catch {
-      setErrors([
-        "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-      ]);
+      setErrors([CATALOG_ADDITION_ERROR]);
     } finally {
       setAdditionToken(null);
       setConflicts([]);
@@ -122,9 +121,7 @@ export function CatalogManager({
           await file.text(),
         );
       if (!preview.ok) {
-        setErrors([
-          "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-        ]);
+        setErrors([CATALOG_ADDITION_ERROR]);
         return;
       }
       if (preview.conflicts.length === 0) {
@@ -134,9 +131,7 @@ export function CatalogManager({
       setAdditionToken(preview.token);
       setConflicts(preview.conflicts);
     } catch {
-      setErrors([
-        "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-      ]);
+      setErrors([CATALOG_ADDITION_ERROR]);
     } finally {
       setImporting(false);
     }
