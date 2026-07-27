@@ -87,11 +87,11 @@ test('migration creates the expected tables', (t) => {
       'selections',
       'selection_plants',
       'selection_plant_changes',
-      'flowerbeds',
-      'planting_zones',
-      'flowerbed_plant_placements',
+      'property_plans',
+      'property_plan_plant_placements',
+      'property_boundary_points',
       'flowerbed_boundary_points',
-      'planting_zone_boundary_points',
+      'flowerbeds',
     ]),
   );
 });

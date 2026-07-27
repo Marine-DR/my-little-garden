@@ -3,7 +3,7 @@ import { AppHeader, type AppScreen } from './components/AppHeader';
 import { SuccessBanner } from './components/SuccessBanner';
 import { CatalogPage } from './pages/catalog/CatalogPage';
 import { SelectionsPage } from './pages/selections/SelectionsPage';
-import { FlowerbedsPage } from './pages/flowerbeds/FlowerbedsPage';
+import { PropertyPlansPage } from './pages/property-plans/PropertyPlansPage';
 
 export function App() {
   const [screen, setScreen] = useState<AppScreen>('catalog');
@@ -29,7 +29,7 @@ export function App() {
         ) : screen === 'selections' ? (
           <SelectionsPage onBackToCatalog={() => setScreen('catalog')} />
         ) : (
-          <FlowerbedsPage />
+          <PropertyPlansPage />
         )}
       </main>
     </div>

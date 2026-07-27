@@ -5,7 +5,7 @@ const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 const {
   databaseMigrationFilenames,
-  SqliteFlowerbedRepository,
+  SqlitePropertyPlanRepository,
 } = require('../dist');
 
 const migration = databaseMigrationFilenames
@@ -44,32 +44,44 @@ function insertSelectionAndPlant(database) {
     .run();
 }
 
-test('saves and reads a centimetre-based flowerbed design', async (t) => {
+test('saves and reads a centimetre-based property plan', async (t) => {
   const database = createDatabase(t);
   insertSelectionAndPlant(database);
-  const repository = new SqliteFlowerbedRepository(database);
+  const repository = new SqlitePropertyPlanRepository(database);
 
   const saved = await repository.save({
     name: '  Terrasse sud  ',
     selectionId: 'selection-1',
     widthCm: 400.5,
     heightCm: 180,
-    boundaryPoints: [
-      { xCm: 15, yCm: 5 },
+    propertyBoundaryPoints: [
+      {
+        xCm: 15,
+        yCm: 5,
+        edgeKind: 'circular-arc',
+        edgeCurvature: 0.25,
+      },
       { xCm: 390, yCm: 20 },
+      { xCm: 400, yCm: 95 },
       { xCm: 370, yCm: 170 },
       { xCm: 25, yCm: 160 },
     ],
-    zones: [
+    flowerbeds: [
       {
-        id: 'zone-1',
+        id: 'flowerbed-1',
         xCm: 10,
         yCm: 15,
         widthCm: 360,
         heightCm: 140,
         boundaryPoints: [
-          { xCm: 15, yCm: 20 },
+          {
+            xCm: 15,
+            yCm: 20,
+            edgeKind: 'elliptical-arc',
+            edgeCurvature: -0.3,
+          },
           { xCm: 365, yCm: 15 },
+          { xCm: 375, yCm: 80 },
           { xCm: 350, yCm: 150 },
           { xCm: 25, yCm: 155 },
         ],
@@ -78,7 +90,7 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
     placements: [
       {
         id: 'placement-1',
-        zoneId: 'zone-1',
+        flowerbedId: 'flowerbed-1',
         plantId: 'plant-1',
         plantNameSnapshot: 'Lavande',
         spacingCmSnapshot: 45,
@@ -92,17 +104,23 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
   assert.match(saved.id, /^[0-9a-f-]{36}$/);
   assert.equal(saved.name, 'Terrasse sud');
   assert.equal(saved.widthCm, 400.5);
-  assert.equal(saved.zoneCount, 1);
+  assert.equal(saved.flowerbedCount, 1);
   assert.equal(saved.placementCount, 1);
-  assert.deepEqual(saved.boundaryPoints, [
-    { xCm: 15, yCm: 5 },
+  assert.deepEqual(saved.propertyBoundaryPoints, [
+    {
+      xCm: 15,
+      yCm: 5,
+      edgeKind: 'circular-arc',
+      edgeCurvature: 0.25,
+    },
     { xCm: 390, yCm: 20 },
+    { xCm: 400, yCm: 95 },
     { xCm: 370, yCm: 170 },
     { xCm: 25, yCm: 160 },
   ]);
-  assert.match(saved.zones[0].id, /^[0-9a-f-]{36}$/);
+  assert.match(saved.flowerbeds[0].id, /^[0-9a-f-]{36}$/);
   assert.deepEqual(
-    { ...saved.zones[0], id: undefined },
+    { ...saved.flowerbeds[0], id: undefined },
     {
       id: undefined,
       xCm: 10,
@@ -110,8 +128,14 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
       widthCm: 360,
       heightCm: 140,
       boundaryPoints: [
-        { xCm: 15, yCm: 20 },
+        {
+          xCm: 15,
+          yCm: 20,
+          edgeKind: 'elliptical-arc',
+          edgeCurvature: -0.3,
+        },
         { xCm: 365, yCm: 15 },
+        { xCm: 375, yCm: 80 },
         { xCm: 350, yCm: 150 },
         { xCm: 25, yCm: 155 },
       ],
@@ -122,11 +146,11 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
     {
       ...saved.placements[0],
       id: undefined,
-      zoneId: undefined,
+      flowerbedId: undefined,
     },
     {
       id: undefined,
-      zoneId: undefined,
+      flowerbedId: undefined,
       plantId: 'plant-1',
       plantNameSnapshot: 'Lavande',
       spacingCmSnapshot: 45,
@@ -135,23 +159,25 @@ test('saves and reads a centimetre-based flowerbed design', async (t) => {
       yCm: 72.5,
     },
   );
-  assert.equal(saved.placements[0].zoneId, saved.zones[0].id);
+  assert.equal(saved.placements[0].flowerbedId, saved.flowerbeds[0].id);
   assert.equal((await repository.list())[0].id, saved.id);
 });
 
 test('updates atomically and deletes removed child geometry', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteFlowerbedRepository(database);
+  const repository = new SqlitePropertyPlanRepository(database);
   const created = await repository.save({
     name: 'Premier plan',
     selectionId: null,
     widthCm: 200,
     heightCm: 100,
-    zones: [{ id: 'old-zone', xCm: 0, yCm: 0, widthCm: 100, heightCm: 100 }],
+    flowerbeds: [
+      { id: 'old-flowerbed', xCm: 0, yCm: 0, widthCm: 100, heightCm: 100 },
+    ],
     placements: [
       {
         id: 'old-placement',
-        zoneId: 'old-zone',
+        flowerbedId: 'old-flowerbed',
         plantId: null,
         plantNameSnapshot: 'Plante libre',
         spacingCmSnapshot: 30,
@@ -168,29 +194,28 @@ test('updates atomically and deletes removed child geometry', async (t) => {
     selectionId: null,
     widthCm: 250,
     heightCm: 120,
-    zones: [],
+    flowerbeds: [],
     placements: [],
   });
 
   assert.equal(updated.id, created.id);
   assert.equal(updated.createdAt, created.createdAt);
   assert.equal(updated.name, 'Plan final');
-  assert.deepEqual(updated.zones, []);
+  assert.deepEqual(updated.flowerbeds, []);
   assert.deepEqual(updated.placements, []);
-  assert.deepEqual(updated.boundaryPoints, [
+  assert.deepEqual(updated.propertyBoundaryPoints, [
     { xCm: 0, yCm: 0 },
     { xCm: 250, yCm: 0 },
     { xCm: 250, yCm: 120 },
     { xCm: 0, yCm: 120 },
   ]);
   assert.equal(
-    database.prepare('SELECT count(*) AS count FROM planting_zones').get()
-      .count,
+    database.prepare('SELECT count(*) AS count FROM flowerbeds').get().count,
     0,
   );
   assert.equal(
     database
-      .prepare('SELECT count(*) AS count FROM flowerbed_boundary_points')
+      .prepare('SELECT count(*) AS count FROM property_boundary_points')
       .get().count,
     4,
   );
@@ -199,16 +224,16 @@ test('updates atomically and deletes removed child geometry', async (t) => {
 test('keeps snapshots when linked catalog and selection records disappear', async (t) => {
   const database = createDatabase(t);
   insertSelectionAndPlant(database);
-  const repository = new SqliteFlowerbedRepository(database);
+  const repository = new SqlitePropertyPlanRepository(database);
   const saved = await repository.save({
     name: 'Plan durable',
     selectionId: 'selection-1',
     widthCm: 200,
     heightCm: 100,
-    zones: [],
+    flowerbeds: [],
     placements: [
       {
-        zoneId: null,
+        flowerbedId: null,
         plantId: 'plant-1',
         plantNameSnapshot: 'Lavande au moment du dessin',
         spacingCmSnapshot: 45,
@@ -234,15 +259,15 @@ test('keeps snapshots when linked catalog and selection records disappear', asyn
   assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
 });
 
-test('deletes a flowerbed and its children', async (t) => {
+test('deletes a property plan and its children', async (t) => {
   const database = createDatabase(t);
-  const repository = new SqliteFlowerbedRepository(database);
+  const repository = new SqlitePropertyPlanRepository(database);
   const saved = await repository.save({
     name: 'À supprimer',
     selectionId: null,
     widthCm: 100,
     heightCm: 100,
-    zones: [{ xCm: 0, yCm: 0, widthCm: 100, heightCm: 100 }],
+    flowerbeds: [{ xCm: 0, yCm: 0, widthCm: 100, heightCm: 100 }],
     placements: [],
   });
 
@@ -250,19 +275,18 @@ test('deletes a flowerbed and its children', async (t) => {
   assert.equal(await repository.delete(saved.id), false);
   assert.equal(await repository.get(saved.id), null);
   assert.equal(
-    database.prepare('SELECT count(*) AS count FROM planting_zones').get()
-      .count,
+    database.prepare('SELECT count(*) AS count FROM flowerbeds').get().count,
     0,
   );
   assert.equal(
     database
-      .prepare('SELECT count(*) AS count FROM flowerbed_boundary_points')
+      .prepare('SELECT count(*) AS count FROM property_boundary_points')
       .get().count,
     0,
   );
   assert.equal(
     database
-      .prepare('SELECT count(*) AS count FROM planting_zone_boundary_points')
+      .prepare('SELECT count(*) AS count FROM flowerbed_boundary_points')
       .get().count,
     0,
   );
