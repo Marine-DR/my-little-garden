@@ -73,12 +73,19 @@ describe('preload services', () => {
     const photos = createPhotoService(photoRenderer);
 
     await catalogManagement.replaceCatalog('catalog.csv', 'name\nRose');
+    await catalogManagement.previewCatalogAddition('catalog.csv', 'name\nRose');
+    await catalogManagement.commitCatalogAddition(
+      'preview-1',
+      'ignore_existing',
+    );
     await catalogManagement.getTemplate();
     await photos.importPhotos([{ name: 'rose.png', bytes: new Uint8Array() }]);
     await photos.deletePhoto('plant-1');
 
     expect(catalogRenderer.invoke.mock.calls).toEqual([
       [CATALOG_MANAGEMENT_CHANNELS.replace, 'catalog.csv', 'name\nRose'],
+      [CATALOG_MANAGEMENT_CHANNELS.addPreview, 'catalog.csv', 'name\nRose'],
+      [CATALOG_MANAGEMENT_CHANNELS.addCommit, 'preview-1', 'ignore_existing'],
       [CATALOG_MANAGEMENT_CHANNELS.template],
     ]);
     expect(photoRenderer.invoke.mock.calls).toEqual([

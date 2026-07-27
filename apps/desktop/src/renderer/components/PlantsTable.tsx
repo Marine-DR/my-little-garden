@@ -25,6 +25,15 @@ function VerticalList({ values }: { readonly values: readonly string[] }) {
   );
 }
 
+function splitMultiValue(value: string | null): readonly string[] {
+  return value
+    ? value
+        .split('|')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
 function ColorList({ colors }: { readonly colors: readonly string[] }) {
   if (colors.length === 0) {
     return EMPTY_VALUE;
@@ -85,7 +94,9 @@ function PlantRow({
         {plant.name}
       </th>
       <td>{formatRange(plant.heightMinCm, plant.heightMaxCm)}</td>
-      <td>{plant.type ?? EMPTY_VALUE}</td>
+      <td>
+        <VerticalList values={splitMultiValue(plant.type)} />
+      </td>
       <td>{formatKind(plant.kind)}</td>
       <td>
         <VerticalList values={plant.soils} />

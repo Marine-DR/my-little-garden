@@ -6,6 +6,7 @@ import type {
   PLANT_KINDS,
 } from './constants';
 import type { NonEmptyArray } from './types';
+import { normalizeDatabaseKey } from './normalization';
 
 export type ExposureCode = (typeof EXPOSURE_CODES)[number];
 export type PlantingSeasonCode = (typeof PLANTING_SEASON_CODES)[number];
@@ -76,4 +77,77 @@ export interface PlantWriteInput {
   readonly spacingCm: number | null;
   readonly plantingSeasons: readonly PlantingSeasonCode[];
   readonly photo: PlantPhoto | null;
+}
+
+type MaterialPlantFields = Pick<
+  PlantWriteInput,
+  | 'name'
+  | 'heightCm'
+  | 'kind'
+  | 'exposures'
+  | 'bloom'
+  | 'minimumTemperatureCelsius'
+  | 'foliagePersistence'
+  | 'spacingCm'
+  | 'plantingSeasons'
+>;
+
+function normalizeLabels(
+  labels: readonly string[] | readonly VocabularyValue[],
+): string[] {
+  return labels
+    .map((label) =>
+      normalizeDatabaseKey(typeof label === 'string' ? label : label.label),
+    )
+    .sort();
+}
+
+function materialRecord(
+  input: MaterialPlantFields,
+  typeLabel: string | null,
+  soilLabels: readonly string[] | readonly VocabularyValue[],
+  flowerColorLabels: readonly string[] | readonly VocabularyValue[],
+  leafColorLabels: readonly string[] | readonly VocabularyValue[],
+): string {
+  return JSON.stringify({
+    name: normalizeDatabaseKey(input.name),
+    height: input.heightCm,
+    type: typeLabel ? normalizeDatabaseKey(typeLabel) : null,
+    kind: input.kind,
+    soils: normalizeLabels(soilLabels),
+    exposures: [...input.exposures].sort(),
+    bloom: input.bloom,
+    flowers: normalizeLabels(flowerColorLabels),
+    leaves: normalizeLabels(leafColorLabels),
+    temperature: input.minimumTemperatureCelsius,
+    foliage: input.foliagePersistence,
+    spacing: input.spacingCm,
+    seasons: [...input.plantingSeasons].sort(),
+  });
+}
+
+/**
+ * Compares catalog records using their material fields only. Technical fields
+ * and managed photos are deliberately excluded from CSV catalog maintenance.
+ */
+export function hasSameMaterialPlantRecord(
+  existing: Plant,
+  imported: PlantWriteInput,
+): boolean {
+  return (
+    materialRecord(
+      existing,
+      existing.type?.label ?? null,
+      existing.soils,
+      existing.flowerColors,
+      existing.leafColors,
+    ) ===
+    materialRecord(
+      imported,
+      imported.typeLabel,
+      imported.soilLabels,
+      imported.flowerColorLabels,
+      imported.leafColorLabels,
+    )
+  );
 }

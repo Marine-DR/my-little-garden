@@ -11,6 +11,8 @@ import type {
   CatalogFilterOptions,
   CatalogFilters,
   CatalogImportResult,
+  CatalogAddPreviewResult,
+  CatalogAddResult,
   CatalogPage,
   CatalogPlant,
   PhotoDeleteResult,
@@ -30,7 +32,7 @@ const rose: CatalogPlant = {
   photoUrl: null,
   heightMinCm: 50,
   heightMaxCm: 80,
-  type: 'Vivace',
+  type: 'Vivace|Grimpante',
   kind: 'flower',
   soils: ['Drainé'],
   exposures: ['sun'],
@@ -75,6 +77,17 @@ describe('App catalog', () => {
     vi.fn<(filters?: CatalogFilters) => Promise<readonly string[]>>();
   const replaceCatalog =
     vi.fn<(filename: string, csv: string) => Promise<CatalogImportResult>>();
+  const previewCatalogAddition =
+    vi.fn<
+      (filename: string, csv: string) => Promise<CatalogAddPreviewResult>
+    >();
+  const commitCatalogAddition =
+    vi.fn<
+      (
+        token: string,
+        policy: 'update_existing' | 'ignore_existing',
+      ) => Promise<CatalogAddResult>
+    >();
   const importPhotos =
     vi.fn<
       (
@@ -113,6 +126,21 @@ describe('App catalog', () => {
     });
     listPlantIds.mockResolvedValue(['rose-1', 'rose-2', 'rose-3']);
     replaceCatalog.mockResolvedValue({ ok: true, imported: 1 });
+    previewCatalogAddition.mockResolvedValue({
+      ok: true,
+      token: 'addition-preview',
+      created: 1,
+      unchanged: 0,
+      conflicts: [],
+    });
+    commitCatalogAddition.mockResolvedValue({
+      ok: true,
+      created: 1,
+      updated: 0,
+      ignored: 0,
+      alreadyExisted: 0,
+      notAdded: 0,
+    });
     importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
     deletePhoto.mockResolvedValue({ ok: true });
     listSelections.mockResolvedValue([sunnyBorder]);
@@ -156,6 +184,8 @@ describe('App catalog', () => {
     };
     window.catalogManagementService = {
       replaceCatalog,
+      previewCatalogAddition,
+      commitCatalogAddition,
       getTemplate: vi.fn(async () => 'Nom,Sol,Exposition\nRose,Drainé,Soleil'),
     };
     window.photoService = {
@@ -174,6 +204,8 @@ describe('App catalog', () => {
   it('shows every requested column and uses placeholders on a single plant row', async () => {
     render(<App />);
     const row = await screen.findByRole('row', { name: /Rose page 1/ });
+    expect(within(row).getByText('Vivace')).toBeInTheDocument();
+    expect(within(row).getByText('Grimpante')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Mon Catalogue' }),
     ).toBeInTheDocument();
@@ -640,6 +672,83 @@ describe('App catalog', () => {
     expect(
       screen.queryByText(/catalogue a été remplacé avec succès/u),
     ).not.toBeInTheDocument();
+  });
+
+  it('adds new CSV plants without replacing the catalog', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Ajouter des plantes depuis un CSV/u,
+      }),
+    );
+    const input = document.querySelector<HTMLInputElement>(
+      'input[accept=".csv,text/csv"]',
+    );
+    const file = new File(['Nom,Sol,Exposition'], 'ajout.csv', {
+      type: 'text/csv',
+    });
+    Object.defineProperty(file, 'text', { value: async () => 'contenu csv' });
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(previewCatalogAddition).toHaveBeenCalledWith(
+        'ajout.csv',
+        'contenu csv',
+      ),
+    );
+    await waitFor(() =>
+      expect(commitCatalogAddition).toHaveBeenCalledWith(
+        'addition-preview',
+        'ignore_existing',
+      ),
+    );
+    expect(replaceCatalog).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(/1 plante a été ajoutée/u),
+    ).toBeInTheDocument();
+  });
+
+  it('asks whether conflicting plants should be updated', async () => {
+    previewCatalogAddition.mockResolvedValueOnce({
+      ok: true,
+      token: 'conflict-preview',
+      created: 1,
+      unchanged: 0,
+      conflicts: ['Rose ancienne'],
+    });
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Ajouter des plantes depuis un CSV/u,
+      }),
+    );
+    const input = document.querySelector<HTMLInputElement>(
+      'input[accept=".csv,text/csv"]',
+    );
+    const file = new File(['csv'], 'ajout.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'text', { value: async () => 'contenu csv' });
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    expect(await screen.findByText('Rose ancienne')).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Mettre à jour',
+      }),
+    );
+    await waitFor(() =>
+      expect(commitCatalogAddition).toHaveBeenCalledWith(
+        'conflict-preview',
+        'update_existing',
+      ),
+    );
   });
 
   it('displays all import errors in one closable dialog', async () => {

@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { readCatalogCsvTemplate } from '@my-little-garden/communication';
+import {
+  CsvPlantCatalogImporter,
+  readCatalogCsvTemplate,
+} from '@my-little-garden/communication';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -10,6 +13,7 @@ import {
   seedDemoCatalog,
   validateCatalogCsvStructure,
 } from '../src/main/catalog-import';
+import { CatalogAdditionService } from '../src/main/catalog-addition';
 
 const initialMigration = readFileSync(
   resolve('packages/database/migrations/001_initial_schema.sql'),
@@ -28,6 +32,61 @@ afterEach(() => {
 });
 
 describe('demo catalog', () => {
+  it('adds new plants, ignores identical plants, and updates conflicts on request', async () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const lines = demoCsv.split(/\r?\n/u);
+    const csv = `${lines[0]}\n${lines[1]}\nAster,10,20,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,printemps\n`;
+    const service = new CatalogAdditionService(
+      new SqlitePlantCatalogRepository(database),
+      new CsvPlantCatalogImporter(),
+    );
+    const preview = await service.preview('ajout.csv', csv);
+    expect(preview).toMatchObject({
+      ok: true,
+      created: 1,
+      unchanged: 1,
+      conflicts: [],
+    });
+    if (!preview.ok) {
+      throw new Error('Preview should succeed');
+    }
+    expect(await service.commit(preview.token, 'ignore_existing')).toEqual({
+      ok: true,
+      created: 1,
+      updated: 0,
+      ignored: 1,
+      alreadyExisted: 1,
+      notAdded: 0,
+    });
+
+    const updateCsv = csv.replace('Aster,10,20', 'Aster,20,30');
+    const updatePreview = await service.preview('ajout.csv', updateCsv);
+    expect(updatePreview).toMatchObject({ ok: true, conflicts: ['Aster'] });
+    if (!updatePreview.ok) {
+      throw new Error('Preview should succeed');
+    }
+    expect(
+      await service.commit(updatePreview.token, 'update_existing'),
+    ).toEqual({
+      ok: true,
+      created: 0,
+      updated: 1,
+      ignored: 1,
+      alreadyExisted: 1,
+      notAdded: 0,
+    });
+    const catalog = await new SqlitePlantCatalogRepository(database).list({
+      offset: 0,
+      limit: 25,
+    });
+    expect(
+      catalog.items.find(({ name }) => name === 'Aster')?.heightCm,
+    ).toEqual({ min: 20, max: 30 });
+  });
+
   it('keeps the downloadable template compatible with catalog replacement', () => {
     database = new DatabaseSync(':memory:');
     database.exec(initialMigration);
