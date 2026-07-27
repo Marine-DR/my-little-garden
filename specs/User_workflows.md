@@ -1,31 +1,37 @@
 # Happy Flow
 
-## List of plants management
+## Catalog of plants management
 
-### Replace the current plants list
+### Replace the current plants catalog
 
-Click on button to replace > upload the .csv file with the new list > Confirm the action > The list of plants contains only the plants from the .csv
+Click on button to replace > review the identity and consequence warning > select a CSB > upload the CSV > preview impacts on catalog, selections and flowerbeds > confirm the
+replacement > the catalog is replaced and impact are automatically applyed to selection and flowerbed
 
-### Add new plants in the list
+### Add new plants in the catalog
 
 - Several at the time:  
-  Click on button to add plants by batch > upload the .csv file with the new plants > The plants from the .csv file are added to the list
+  Click on button to add plants by batch > upload the .csv file with the new plants > The plants from the .csv file are added to the catalog
 - One by one:
-  Click on button to add only 1 plant > complete the plant information > save the new plant > plant is added to the list
+  Click on button to add only 1 plant > complete the plant information > save the new plant > plant is added to the catalog
 
-### Modify plants in the list
+### Modify plants in the catalog
 
-- Several at the time:  
-  Click on button to modify plants by batch > upload the .csv file with the information to modify > The plants from the .csv file are modified in the list
-- One by one:  
-  Click on button to modify only 1 plant > modify the plant information > save the change > information are updated in the list
+Click on button to modify plants by batch > upload a CSV file with all the information about plants to modify > preview modified, missing, unchanged, warning, and error rows > if plants are missing, choose to create missing plant or ignore them > confirm the complete batch > modify existing plants and apply the conflict choice in one transaction > display modified, created, ignored, and unchanged counts
 
-### Delete plants from the list
+Blank optional cells clear existing optional values. Current photos are preserved.
 
-- Several at the time:  
-  Click on button to delete plants by batch > upload the .csv file with the plants to delete > Confirm the action > The plants from the .csv file are deleted from the list
-- One by one:  
-  Click on button to delete only 1 plant > confirm the action > plant is removed from the list
+### Export the current plants catalog
+
+Click on button to download the catalog > download a complete CSV
+containing all plants and related informations > edit the file for a later modification or replacement
+
+### Delete plants from the catalog
+
+Check one or more plants in the catalog > click on the delete button > display the plant names and every affected selection > confirm the action > display deleted plant and affected selection counts
+
+### Filter the catalog
+
+Open the filter drawer > select one or more exposures, soils, flowering months, plant kinds, flower colors, or leaf colors > apply the filters > return to the first results page and display plants matching any selected value within each category and every active category together
 
 ## Flowers selection management
 
@@ -42,7 +48,11 @@ Select plants in the catalog > click on button to create a new selection > name 
 
 ### Delete a selection
 
-Select the selection > click on deletion button > confirm the action > the selection is deleted
+Check one or more selections in the selection list > click on the deletion button > preview the selected selections and affected flowerbeds > confirm the action > the selections are deleted, their unused flowerbeds are deleted and flowerbed that contain placed plants are permanently lock > display deleted selection, deleted-flowerbed and locked-flowerbed counts
+
+### Change the selections presentation
+
+Open **Présentation** in the selections list > choose **Cartes** or **Tableau** > same selections are displayed in the chosen view without clearing search, filters, sorting, pagination, or checked selections
 
 ## Flowerbed design
 
@@ -59,25 +69,40 @@ Select the selection > click on deletion button > confirm the action > the selec
 
 # Back up Flow
 
-## List of plants management
+## Catalog of plants management
 
-### Issue during plant list replacement
+### Issue during plant catalog replacement
 
-Click on button to replace plant list > uplaod the new list > display the list of error > Aknowledge the issue > Cancel the replacement > List remains as before the replacement
+Click on button to replace plant catalog > upload the new catalog > display all blocking errors > acknowledge the issue > cancel the replacement > catalog,selection warnings, flowerbed placements, and flowerbed issues remain as before the replacement
+
+### Issue when add a pool of plant via CSV
+
+Upload a CSV > message with all errors > acknowledge the issue > catalog and selections remain unchanged
+
+### Issue when modify a pool of plant via CSV
+
+Upload a CSV > message with all errors > acknowledge the issue > catalog and selections remain unchanged
 
 ### Cancel a plant deletion
 
-- Several at the time:  
-  Click on button to delete plants by batch > upload the .csv file with the plants to delete > Cancel the action > No change in the plants list
-- One by one:  
-  Click on button to delete only 1 plant > cancel the action > No change in the plants list
+Check plants in the catalog > click on the delete button > review affected plants and selections > cancel the action > no change in the plant catalog, selection links or pending warnings
 
 ### Changes on plants used in a selection
 
 - Modify plants used in a selection:
-  Modify one or several plants > display the list of affected selections > confirm the action > plants modified in mist and selections
+  Modify one or several plants > display the list of affected selections > confirm the action > plants modified in catalog and selections
+- Modify the same plant several times before review:
+  Keep the first old state and compare it with the latest catalog state > count the plant once > remove the warning automatically if the plant returns exactly to the retained baseline
 - Delete plants used in a selection:  
-  Select one or several plants > click on delete button > display the list of affected selections > confirm the deletion > plants removed from list and selection
+  Select one or several plants > click on delete button > display affected selections in the confirmation > confirm the deletion > remove plants from the catalog and selections > display deleted-plants status in every affected selections
+- Review modified plants in a selection:
+  Open the selection detail > review all modified plants > acknowledge or close the modified-plants panel > clear the displayed modification warnings > Update the selection status
+- Review deleted plants in a selection:
+  Open the selection detail > review all deleted plants > acknowledge or close the deleted-plants warning > Update the selection status
+
+### Acknowledge flowerbed catalog impacts
+
+Open an affected flowerbed > review catalog-impact errors and warnings > acknowledge the displayed issues > continue editing the flowerbed
 
 ### 2 photos for the same plant
 
@@ -87,14 +112,14 @@ Upload a photo > a photo already exist for this plant > display a message to sel
 
 ### Cancel a selection deletion
 
-Select the selection > click on deletion button > cancel the action > the selection is not deleted
+Check one or more selections in the selection list > click on the deletion button > review selected selections and affected flowerbeds > cancel the action > no selection or flowerbed is changed
 
 ### Delete a selection used in a design
 
-- Buying list and planting plan generated:  
-  Select the selection > click on the deletion button > display the list of design impacted > confirm the action > the selection is deleted and the design remains but cannot be edited anymore
-- Buying list and planting plan not generated:  
-  Select the selection > click on the deletion button > display the list of design impacted > confirm the action > the selection and the design are deleted
+- Flowerbed buying list empty:
+  Select the selection > click on the deletion button > display the list of design impacted > Confirm deletion of the source selection > delete the flowerbed because it contains no placed plant
+- Flowerbed buying list not empty:
+  Select the selection > click on the deletion button > display the list of design impacted > Confirm deletion of the source selection > keep its flowerbed plan and buying list > click on the flowerbed to view and download the plan and buying list but cannot edit it anymore
 
 ### Cancel the removing of a plant in a selection
 

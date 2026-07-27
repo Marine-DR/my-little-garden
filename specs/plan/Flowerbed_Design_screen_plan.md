@@ -114,10 +114,11 @@ Display a persistent summary:
 - Number of placed plants
 - Number of overlaps
 - Number of plants outside the flowerbed
+- Number of unacknowledged catalog-impact errors and warnings
 
 Example:
 
-`24 plants · 2 overlaps · 1 outside`
+`24 plants · 2 overlaps · 1 outside · 1 catalog error`
 
 Use status colors only for the warning values:
 
@@ -670,6 +671,70 @@ Example:
 
 Selecting an item focuses and selects the corresponding plant on the canvas.
 
+### 14.3 Catalog-impact issues
+
+Catalog replacement, plant deletion, or plant modification can create persistent issues for an existing flowerbed.
+
+Show a non-dismissible summary above the live layout-warning banner when unacknowledged catalog-impact issues exist:
+
+```text
+Mise à jour du catalogue
+
+❌ 2 plantes placées ont été supprimées automatiquement.
+⚠️ 1 plante a changé d’espacement.
+
+[Examiner les impacts]
+```
+
+Severity:
+
+- **Error** when placed instances were removed because the catalog plant was deleted or because their selected flower color is no longer available.
+- **Warning** when a placed plant's name, soil requirements, spacing, or available flower colors changed without requiring that placed instance to be removed.
+
+**Examiner les impacts** opens a panel grouped by catalog operation.
+
+Error examples:
+
+```text
+Achillée a été supprimée du catalogue.
+3 plantes placées ont été retirées de ce parterre.
+
+La couleur Rose n’est plus disponible pour Cosmos.
+2 plantes placées utilisant cette couleur ont été retirées.
+```
+
+Warning examples:
+
+```text
+L’espacement de Lavande est passé de 30 cm à 45 cm.
+Les zones nécessaires et les alertes de chevauchement ont été recalculées.
+
+Le nom « Cosmos ancien » est devenu « Cosmos ».
+Le parterre et la liste d’achat utilisent maintenant le nouveau nom.
+
+Les sols requis par Astilbe sont passés de « Humide » à « Humide, Argileux ».
+Vérifiez que la plante reste adaptée au sol de ce parterre.
+
+Les couleurs disponibles pour Echinacea ont été modifiées.
+```
+
+When the flowerbed has a stored soil type, compare it with the plant's latest soil requirements and display either:
+
+- **Toujours compatible avec le sol du parterre**; or
+- **Peut ne plus être compatible avec le sol du parterre**.
+
+Until flowerbed soil type is implemented, show the old and new plant soil requirements with the generic review instruction from the example.
+
+Panel actions:
+
+- **J’ai compris** acknowledges every issue currently displayed;
+- close returns to the editor without acknowledging.
+
+Acknowledging removes the catalog-impact messages only. It does not restore automatically removed plants or revert catalog values. The flowerbed remains editable before and after acknowledgement.
+
+Catalog-impact issues remain separate from live overlap/outside warnings.
+After spacing changes, the recalculated live warnings continue to display even after the catalog-impact warning is acknowledged.
+
 ---
 
 ## 15. Save behavior
@@ -769,6 +834,36 @@ Actions:
 
 - Try again
 - Return to flowerbeds
+
+### 16.5 Permanently locked after source-selection deletion
+
+When the source selection is deleted and this flowerbed contains at least one placed plant, preserve the saved flowerbed and mark it permanently locked.
+
+Display a persistent, non-dismissible message:
+
+> The related selection was deleted. This flowerbed cannot be edited anymore.
+
+The user can:
+
+- view the complete flowerbed plan;
+- inspect the saved placed plants;
+- view and download the buying list;
+- view and download the flowerbed plan;
+- delete the flowerbed after confirmation;
+- return to the flowerbeds list.
+
+The user cannot:
+
+- change shape or dimensions;
+- add, move, duplicate, recolor, or remove plants;
+- save changes;
+- restore or replace the source selection;
+- unlock the flowerbed.
+
+Hide or disable every editing control consistently. Keep the flowerbed Delete action available and explain the locked reason in accessible text.
+
+If the source selection is deleted while the flowerbed contains zero placed plant instances, delete the flowerbed instead of creating this locked state.
+Generated or downloaded document history does not affect this rule.
 
 ---
 
@@ -913,6 +1008,23 @@ The canvas should retain enough room to:
 - Warning colors remain visible
 - Warning banner remains available
 
+### State L — Permanently locked
+
+- Source selection no longer exists
+- Existing canvas, placed plants, buying list, and flowerbed plan remain visible
+- Persistent read-only explanation displayed
+- All editing and saving actions unavailable
+- View, download, navigation, and flowerbed deletion actions remain available
+
+### State M — Editable with catalog impacts
+
+- Flowerbed remains editable
+- Persistent catalog-impact summary displayed
+- Automatically removed instances are absent from canvas and buying list
+- Errors and warnings remain until explicitly acknowledged
+- Live overlap and outside-boundary validation reflects current catalog spacing
+- Saving remains available
+
 ---
 
 ## 20. Suggested screen hierarchy
@@ -962,6 +1074,7 @@ Buying-list summary
 ### Bottom or overlay elements
 
 Status notifications  
+Catalog-impact review panel
 Unsaved warning dialog  
 Detailed buying-list drawer  
 Dimension dialog

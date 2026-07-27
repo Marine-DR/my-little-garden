@@ -8,6 +8,9 @@ Implementation artifacts:
 
 - [Initial SQLite migration](../../packages/database/migrations/001_initial_schema.sql)
 - [Selection identity migration](../../packages/database/migrations/002_remove_selection_normalized_name.sql)
+- Planned post-MVP migration:
+  `003_selection_plant_changes.sql`, specified in section 5.7 and
+  [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md)
 - [Framework-independent plant types](../../packages/core/src/plant.ts)
 - [Shared constants](../../packages/core/src/constants.ts)
 - [Shared normalization](../../packages/core/src/normalization.ts)
@@ -39,6 +42,10 @@ PRAGMA foreign_keys = ON;
 
 - Schema changes are delivered through ordered, versioned migrations.
 - Import and application writes use a transaction. No plant is committed without its mandatory relationships.
+- Incremental catalog mutations also write affected selection-change records
+  inside the same transaction.
+- A selection change may retain a plant UUID after the live plant is deleted;
+  such historical UUID fields deliberately do not reference `plants`.
 
 ## 3. Name and vocabulary normalization
 
@@ -157,6 +164,7 @@ CREATE TABLE plants (
 );
 
 CREATE INDEX idx_plants_type_id ON plants (type_id);
+CREATE INDEX idx_plants_kind ON plants (plant_kind);
 CREATE INDEX idx_plants_bloom_period
     ON plants (bloom_start_month, bloom_end_month);
 ```
@@ -288,6 +296,151 @@ CREATE INDEX idx_selection_plants_plant_selection
     ON selection_plants (plant_id, selection_id);
 ```
 
+### 5.7 Pending selection plant changes
+
+Incremental catalog maintenance and full replacement record material plant
+changes that have not yet been reviewed in each affected selection.
+
+The planned `003_selection_plant_changes.sql` migration adds:
+
+```sql
+CREATE TABLE selection_plant_changes (
+    id                     TEXT PRIMARY KEY,
+    selection_id           TEXT NOT NULL,
+    plant_id               TEXT NOT NULL,
+    change_kind            TEXT NOT NULL CHECK (
+        change_kind IN ('modified', 'deleted')
+    ),
+    plant_name             TEXT NOT NULL,
+    photo_managed_filename TEXT,
+    baseline_version       INTEGER,
+    baseline_json          TEXT,
+    created_at             TEXT NOT NULL,
+    updated_at             TEXT NOT NULL,
+    CONSTRAINT uq_selection_plant_changes
+        UNIQUE (selection_id, plant_id),
+    FOREIGN KEY (selection_id) REFERENCES selections (id) ON DELETE CASCADE,
+    CONSTRAINT ck_selection_plant_change_baseline CHECK (
+        (
+            change_kind = 'modified'
+            AND baseline_version IS NOT NULL
+            AND baseline_json IS NOT NULL
+        )
+        OR (
+            change_kind = 'deleted'
+            AND baseline_version IS NULL
+            AND baseline_json IS NULL
+        )
+    )
+);
+
+CREATE INDEX idx_selection_plant_changes_selection_kind
+    ON selection_plant_changes (selection_id, change_kind);
+
+CREATE INDEX idx_selection_plant_changes_photo
+    ON selection_plant_changes (photo_managed_filename);
+```
+
+There is no foreign key from `selection_plant_changes.plant_id` to `plants`.
+Deleted-plant warnings must survive deletion of the live plant and the cascade
+from `selection_plants`.
+
+Rules:
+
+- only one unreviewed change exists for a selection/plant pair;
+- `modified` retains a versioned complete material snapshot from before the
+  first unreviewed modification;
+- later modifications keep that first baseline and compare it with the latest
+  live plant;
+- returning exactly to the baseline removes the pending modification;
+- deletion replaces a pending modification with `deleted`;
+- `deleted` retains only the last plant name, UUID, and managed photo filename;
+- clearing a warning deletes its pending rows;
+- deleting a selection cascades its pending change rows.
+
+Managed image files referenced by deleted changes remain on disk until neither
+a live `plant_photos` row nor another pending change references the filename.
+
+Selection status is not a column of `selections`. It is derived when selections are queried and exposes exactly `up_to_date`, `contains_modified_plants`, or `contains_deleted_plants`. A pending deletion takes priority over a pending modification, while both counts remain available to the caller.
+
+Batch selection deletion is atomic. Deleting a selection cascades its
+`selection_plants` and `selection_plant_changes` rows. Before deletion, the
+application classifies each flowerbed using its current placed-plant count:
+
+- zero placed plants: delete the flowerbed;
+- one or more placed plants: preserve the design, sever its source-selection
+  association, and persist an irreversible `source_selection_deleted` lock.
+
+A locked flowerbed retains the saved data required to render and download its
+flowerbed plan and buying list without the deleted selection. Repository writes
+must reject every flowerbed edit while this lock is present; flowerbed deletion
+remains allowed.
+
+The future flowerbed schema must therefore support a nullable source selection
+reference using `ON DELETE SET NULL` or an equivalent transactional detach, plus
+a persisted lock reason. It must not cascade non-empty flowerbeds from
+`selections`.
+
+### 5.8 Pending flowerbed catalog-impact issues
+
+The future flowerbed migration must add persistent catalog-impact issues
+alongside the flowerbed tables. A structure equivalent to this is required:
+
+```sql
+CREATE TABLE flowerbed_catalog_issues (
+    id                     TEXT PRIMARY KEY,
+    flowerbed_id           TEXT NOT NULL,
+    catalog_operation_id   TEXT NOT NULL,
+    plant_id               TEXT NOT NULL,
+    plant_name             TEXT NOT NULL,
+    severity               TEXT NOT NULL CHECK (
+        severity IN ('error', 'warning')
+    ),
+    issue_kind             TEXT NOT NULL CHECK (
+        issue_kind IN (
+            'plant_deleted',
+            'used_flower_color_deleted',
+            'spacing_changed',
+            'plant_name_changed',
+            'soil_requirements_changed',
+            'available_flower_colors_changed'
+        )
+    ),
+    flower_color_label     TEXT,
+    removed_instance_count INTEGER CHECK (
+        removed_instance_count IS NULL
+        OR removed_instance_count > 0
+    ),
+    details_version        INTEGER NOT NULL,
+    details_json           TEXT NOT NULL,
+    created_at             TEXT NOT NULL,
+    FOREIGN KEY (flowerbed_id)
+        REFERENCES flowerbeds (id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_flowerbed_catalog_issues_flowerbed_operation
+    ON flowerbed_catalog_issues (flowerbed_id, catalog_operation_id);
+```
+
+This SQL is integrated when the authoritative flowerbed schema is added; it
+must not be migrated before `flowerbeds` exists.
+
+`plant_id` and the removed color label are historical data and deliberately
+have no foreign keys to live catalog rows. Issues must survive deletion of the
+plant or color relationship.
+
+Rules:
+
+- `plant_deleted` and `used_flower_color_deleted` are errors and retain the
+  number of automatically removed placed instances;
+- name, soil-requirement, spacing, and available-color changes are warnings;
+- `details_json` is a versioned snapshot of the relevant before/after values;
+- all issues created by one confirmed catalog mutation share one operation ID;
+- acknowledging displayed issues deletes only those issue rows;
+- closing the issue panel without acknowledgement retains them;
+- deleting a flowerbed cascades its issue rows;
+- issue creation and placed-instance removal occur in the catalog transaction.
+
 ## 6. Relationships
 
 ```mermaid
@@ -310,9 +463,15 @@ erDiagram
 
     PLANTS ||--o{ SELECTION_PLANTS : included_in
     SELECTIONS ||--o{ SELECTION_PLANTS : contains
+
+    SELECTIONS ||--o{ SELECTION_PLANT_CHANGES : reviews
 ```
 
 The diagram shows the domain requirement of at least one soil and exposure. SQLite cannot defer a cross-table “at least one child” constraint until transaction commit, so the application service enforces this invariant before committing the plant graph.
+
+`SELECTION_PLANT_CHANGES.plant_id` is historical data rather than a live
+relationship, so the diagram intentionally has no relationship between
+`PLANTS` and `SELECTION_PLANT_CHANGES`.
 
 ## 7. Domain contract
 
@@ -355,6 +514,22 @@ export interface Plant {
 }
 ```
 
+Post-MVP selection contracts derive status from pending changes:
+
+```ts
+export type SelectionStatus =
+  'up_to_date' | 'contains_modified_plants' | 'contains_deleted_plants';
+
+export interface DeletedSelectionPlant {
+  id: string;
+  name: string;
+  managedPhotoFilename: string | null;
+}
+```
+
+Modified selection plants expose their retained versioned baseline and their
+current live plant through a comparison DTO owned by `core`.
+
 The plant write service must:
 
 1. Normalize and validate the plant name.
@@ -367,11 +542,25 @@ The plant write service must:
 ## 8. Import rules
 
 - CSV multi-value cells are parsed before persistence; list separators never enter relational columns.
+- Accept both the legacy 15-column catalog CSV and the 16-column format with
+  optional `plant_id` first.
+- Match by `plant_id` first and by normalized name only when the ID is absent.
+- A UUID/name pair resolving to different plants is a blocking identity error.
+- Each Add or Modify row is a complete plant record; blank optional cells clear
+  existing optional values.
 - Duplicate normalized plant names within the uploaded file are blocking errors.
+- Duplicate plant UUIDs within the uploaded file are blocking errors.
 - Names conflicting with another database plant ID are blocking errors.
 - Unknown exposure and planting-season values are blocking errors.
 - Unknown type, soil, and color values are displayed in the preview and created only after confirmation.
 - Missing name, soil, or exposure values are blocking errors. Bloom may be absent; when supplied, both months are required.
+- Add mode resolves every existing-plant conflict with one import-wide
+  `update_existing` or `ignore_existing` policy.
+- Modify mode resolves every missing-plant conflict with one import-wide
+  `create_missing` or `ignore_missing` policy.
+- Identical records do not update timestamps or create selection changes.
+- Add, Modify, Delete, and Replace record selection impacts using the same
+  material comparison rules.
 - All catalog, vocabulary, relationship, selection-impact, and photo-metadata changes occur in one transaction.
 - A failed import leaves the previous database state unchanged.
 
@@ -389,6 +578,49 @@ The plant write service must:
 | Measurement integrity             | Range and non-negative `CHECK` constraints                                                | Reject negative height/spacing and an inverted height range                                                        |
 | Relationship integrity            | Foreign keys, cascades, and restricted vocabulary deletion                                | Reject orphan associations; verify plant deletion removes dependent rows                                           |
 | Atomic import                     | Single write transaction                                                                  | Force a failure after staging relationships and verify that no partial data remains                                |
+| Stable incremental identity       | Optional UUID matched before normalized name                                              | Rename by UUID; reject a UUID/name pair resolving to different plants                                              |
+| Pending modification baseline     | One versioned baseline per selection/plant                                                | Modify repeatedly and compare the first old state with the latest live state                                       |
+| Deleted-plant warning             | Historical UUID/name/photo record without a plant foreign key                             | Delete a selected plant, retain its warning, then clear the warning and clean up its unreferenced photo            |
+| Derived selection status          | Pending-change query with deleted above modified                                          | Verify deleted, modified, mixed, and cleared selection states                                                      |
+
+Catalog filter validation additionally verifies:
+
+- `plant_kind` filtering uses `idx_plants_kind`;
+- flower-color filtering uses `idx_plant_flower_colors_color_plant`;
+- leaf-color filtering uses `idx_plant_leaf_colors_color_plant`;
+- multiple values within one category use OR;
+- plant kind, flower color, leaf color, soil, exposure, and flowering
+  categories combine with AND;
+- color joins return each matching plant only once;
+- empty scalar and range attributes use `IS NULL`;
+- empty multi-valued attributes use `NOT EXISTS`;
+- the empty-filter choice is a typed query instruction and is never stored as a
+  vocabulary or plant value.
+
+Selection deletion validation additionally verifies:
+
+- several checked selections and their dependent rows are deleted atomically;
+- a partial failure rolls back the complete batch;
+- empty flowerbeds are deleted;
+- non-empty flowerbeds are detached and permanently locked;
+- locked flowerbeds retain their outputs, reject edits, and can still be
+  deleted.
+
+Flowerbed catalog-impact validation additionally verifies:
+
+- deleting a catalog plant removes all its placed instances and creates an
+  error in every affected flowerbed;
+- deleting a used flower color removes only instances using that color and
+  creates errors with accurate counts;
+- name, soil-requirement, spacing, and available-color changes create warnings;
+- soil-change warnings retain previous and current soil requirements and, when
+  available, the flowerbed soil compatibility result;
+- spacing changes update required-space geometry and live layout warnings;
+- issues persist across reloads until acknowledged;
+- acknowledgement removes issue rows without restoring placements or reverting
+  catalog values;
+- a forced failure rolls back catalog, selection, flowerbed-placement, and issue
+  writes together.
 
 ## 10. Deferred decisions
 

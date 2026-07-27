@@ -1,5 +1,11 @@
 # Mes Sélections — MVP Management Screen
 
+> Sections explicitly labeled MVP remain the historical strict-MVP scope.
+> Post-MVP modified/deleted plant status and review behavior follow
+> [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md).
+> The final screen sections also define post-MVP batch selection deletion.
+> They define card view and table/card presentation switching for V2.
+
 ## Screen objective
 
 The **Mes Sélections** screen lets the user review and update saved plant selections created from the catalog.
@@ -230,6 +236,19 @@ Catalog replacement behavior:
 - keep selections that become empty;
 - do not persist modified/deleted plant status in the MVP.
 
+In V2, removing a plant link through replacement also removes that plant's placed instances from flowerbeds and creates persistent flowerbed errors. The selection remains present even when it becomes empty. Flowerbed issue behavior follows
+[Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md#67-flowerbed-catalog-impacts).
+
+Post-MVP catalog maintenance adds `selection_plant_changes` without changing
+the historical MVP schema:
+
+- Add conflict updates, Modify, Delete, and Replace record affected selections;
+- a modified plant retains its state before the first unreviewed material
+  change;
+- a deleted plant is removed from the live selection, while its UUID, last name, and photo remain in a pending warning;
+- status is derived from pending changes rather than stored on `selections`;
+- closing or acknowledging a warning clears every change displayed in that warning.
+
 ## Validation and tests
 
 Test scenarios:
@@ -244,6 +263,48 @@ Test scenarios:
 - open a selection detail and display current linked plants;
 - remove selected plants from a selection after confirmation;
 - verify catalog replacement preserves links for matched plants and removes links for absent plants.
+
+Post-MVP catalog change scenarios are specified in
+[Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md) and
+must additionally verify:
+
+- modified, deleted, mixed, and up-to-date derived statuses;
+- deleted status priority while still exposing both counts;
+- first-old versus latest comparison after repeated modifications;
+- automatic removal when a plant returns to its baseline;
+- deletion removing the live link while retaining UUID, name, and photo warning data;
+- deletion removing placed flowerbed instances and creating persistent flowerbed errors;
+- used flower-color deletion removing only affected placed instances;
+- impacting name, soil-requirement, spacing, and available-color changes creating flowerbed warnings;
+- merging all pending deleted plants;
+- close and acknowledgement clearing only the displayed warning kind;
+- photo cleanup after the last deleted warning reference is cleared.
+
+Post-MVP selection deletion scenarios must additionally verify:
+
+- Delete is available only after checking selections in the selections list.
+- Delete is absent from selection cards and the selection detail.
+- Several checked selections are deleted in one atomic transaction.
+- Cancelling the confirmation changes no selection or flowerbed.
+- Memberships, pending changes, and unreferenced retained photos are cleaned up.
+- A flowerbed with zero placed plants is deleted with its source selection.
+- A flowerbed with at least one placed plant is detached and permanently locked.
+- A locked flowerbed preserves its canvas, buying list, and flowerbed plan.
+- View, download, navigation, and flowerbed deletion remain available when
+  locked.
+- Every edit and unlock attempt is rejected for a locked flowerbed.
+- A failure during any deletion effect rolls back the complete batch.
+
+V2 presentation scenarios must additionally verify:
+
+- the first visit uses card view;
+- switching to table view displays the same result set;
+- switching views preserves search, filters, sorting, current page, page size, and checked selection IDs;
+- the last chosen view is restored after closing and reopening the application;
+- card and table modes support the same detail and bulk-deletion workflows;
+- the Columns action is available only in table view;
+- loading, empty, error, and pagination states work in both views;
+- card previews handle zero plants, missing photos, and more plants than the preview limit.
 
 # Mes Sélections — Final screen structure
 
@@ -276,6 +337,42 @@ Right side:
 
 Screen name: Main page title style  
 Buttons: secondary buttons style
+
+### Presentation switcher
+
+**Présentation** is a secondary button that opens a two-choice menu:
+
+```text
+Présentation
+
+● Cartes
+○ Tableau
+```
+
+Behavior:
+
+- **Cartes** is the default when no preference has been stored.
+- Choosing an option updates the results area immediately and closes the menu.
+- Store the last choice locally as `cards` or `table`; this is interface preference, not selection domain data.
+- Restore the stored choice when **Mes Sélections** is opened again, including after an application restart.
+- Keep the same query and UI state when switching: search, filters, sorting, page number, page size, and checked selection IDs.
+- Do not refetch unrelated detail data merely because presentation changes.
+- Keep **Colonnes** visible and enabled only in table mode. Hide it in card mode.
+- Expose the current choice through `aria-pressed`, `aria-checked`, or equivalent accessible menu semantics.
+- Support keyboard opening, arrow navigation, selection, Escape, and focus return to the **Présentation** button.
+
+Both modes use the same paginated `SelectionSummary` result. Presentation switching must not change result ordering, total count, or page boundaries.
+
+For each visible selection, the summary contract supplies:
+
+- selection ID and name;
+- current plant count;
+- up to three preview plants with ID, name, and resolved photo URL;
+- creation and last-modification dates;
+- derived status plus modified-plant and deleted-plant counts;
+- flowerbed usage count and the names required by the usage popover.
+
+Choose preview plants deterministically by `selection_plants.added_at`, then plant ID as the tie-breaker. Return only the preview subset in the summary; do not load the complete plant collection for every card. No database migration is required solely for presentation switching.
 
 ### Search
 
@@ -334,9 +431,65 @@ Recommended actions:
 - **Duplicate**
 - **Delete**
 
-Deletion should be handled carefully if a selection is used in a flowerbed.
+Delete is available only in this administration row on the selections list.
+It is not available in the selection detail screen or as an individual card action.
 
-The deletion workflow is define in User_workflows.md
+### Delete checked selections
+
+The action deletes every checked selection in one atomic operation.
+
+Before confirmation, classify every flowerbed sourced from those selections:
+
+- **Delete flowerbed** when its buying list is empty, meaning it contains zero placed plant instances.
+- **Permanently lock flowerbed** when its buying list is not empty, meaning the user placed at least one plant.
+
+The confirmation dialog lists:
+
+- every checked selection name;
+- every empty flowerbed that will be deleted, grouped by selection;
+- every non-empty flowerbed that will be permanently locked, grouped by selection;
+- totals for selections, deleted flowerbeds, and locked flowerbeds.
+
+Example:
+
+```text
+Supprimer 3 sélections ?
+
+Les sélections et leurs données associées seront supprimées définitivement.
+
+2 parterres vides seront supprimés.
+1 parterre contenant des plantes sera verrouillé définitivement.
+
+Parterres supprimés
+- Bordure vide
+- Essai terrasse
+
+Parterres verrouillés
+- Entrée principale
+
+[Annuler] [Supprimer]
+```
+
+Confirmation rules:
+
+- use the destructive confirmation style;
+- disable confirmation while the impact preview is loading;
+- cancelling changes nothing;
+- a failure rolls back the complete batch;
+- after success, clear checked rows and show deleted-selection,
+  deleted-flowerbed, and locked-flowerbed counts.
+
+Deletion effects:
+
+- delete each selected `selections` row;
+- cascade its `selection_plants` and pending `selection_plant_changes` rows;
+- clean up retained managed photos that no live plant or remaining pending warning references;
+- delete affected flowerbeds whose buying list is empty;
+- retain affected flowerbeds whose buying list is not empty, sever their source selection association, and persist an irreversible
+  `source_selection_deleted` lock;
+- preserve the locked flowerbed canvas, buying list, and flowerbed plan;
+- allow the user to view, download, or delete a locked flowerbed;
+- reject all edits to a locked flowerbed.
 
 # Card view — recommended default
 
@@ -371,6 +524,20 @@ A card should contain:
 6. **Status**
 7. **Usage**
 8. **Primary and secondary actions**
+
+Required card behavior:
+
+- place the checkbox at the top-left and keep it independent from the details action;
+- checking a card participates in the same bulk-selection state as table-row checkboxes;
+- show the selection name without truncation when it fits and use an accessible tooltip when it is ellipsized;
+- show current plant count and last modification date;
+- show up to three current plant photos, using the catalog photo placeholder when a plant has no photo;
+- show `+N` when more than three current plants exist;
+- show the standard empty preview when the selection contains zero plants;
+- display the derived status and both underlying counts according to the status rules below;
+- display flowerbed usage using the same data and interaction as table view;
+- open the detail screen only through **Détails** or an explicitly accessible equivalent, so clicking the checkbox or overflow menu never navigates;
+- keep selection deletion out of the card menu because deletion is a checked bulk action from the administration row.
 
 ---
 
@@ -446,13 +613,32 @@ Use a responsive grid.
 
 - 1 card per row
 
+Use CSS grid with `minmax(300px, 340px)`-equivalent sizing and consistent gaps.
+Cards in the same row may stretch to the same height, but content must not be clipped. The results footer and pagination remain below the complete grid.
+
+Card mode uses the same 25/50/100 page-size choices as table mode. Changing the page size returns to page 1; switching presentation does not.
+
 ---
 
 # Status system
 
 The status is the most important information after the selection name.
 
-It tells the user whether the selection can still be trusted.
+It tells the user whether catalog changes still need to be reviewed. Status is
+derived from pending selection plant changes.
+
+Every selection has exactly one displayed status:
+
+| Status                   | Display condition                                               |
+| ------------------------ | --------------------------------------------------------------- |
+| Contains deleted plants  | At least one pending deletion exists                            |
+| Contains modified plants | No deletion exists and at least one pending modification exists |
+| Up to date               | No pending modified or deleted plant warning remains            |
+
+This order is also the priority: a selection that contains both deleted and modified plants displays **Contains deleted plants**.
+
+The selections list exposes modified and deleted counts even when deleted
+plants determine the displayed status.
 
 ## 1. Up to date
 
@@ -464,13 +650,13 @@ Display:
 
 Meaning:
 
-All flowers in the selection still exist in the catalog, and no important data has changed since the selection was last reviewed.
+No pending modified or deleted plant warning remains for the selection.
 
 Use green text.
 
 ---
 
-## 2. Needs review
+## 2. Contains modified plants
 
 Display example:
 
@@ -480,25 +666,28 @@ Display example:
 
 Meaning:
 
-One or more flowers still exist in the catalog, but their data has changed.
+One or more live plants have materially changed since their first unreviewed change.
 
 Examples of possible changes:
 
+- name changed;
 - height changed;
+- type or Fleur/autre changed;
 - blooming period changed;
 - soil requirements changed;
 - sun exposure changed;
 - persistence changed;
-- color changed;
+- flower or leaf color changed;
+- minimum temperature or spacing changed;
 - planting period changed.
 
-Clicking the status should open a comparison panel.
+Clicking the status opens one comparison panel containing every pending modified plant. Each comparison uses the state before the first unreviewed change and the latest live catalog state. Repeated modifications count the plant once. Returning exactly to the baseline removes the warning.
 
 Use Warning styling.
 
 ---
 
-## 3. Contains error
+## 3. Contains deleted plants
 
 Display example:
 
@@ -508,13 +697,20 @@ Display example:
 
 Meaning:
 
-At least one flower in the selection was deleted from the catalog.
+At least one plant was removed from the catalog and from the live selection, but its one-time warning has not yet been cleared.
 
-This is more severe than a modified flower because the selection can no longer be used cleanly in a flowerbed without review.
+All pending deleted plants are merged into one warning. It contains only each deleted plant UUID, last name, and retained photo. No deleted plant appears in the live plant table.
 
 Use Error styling.
 
 ---
+
+## Status transitions after review
+
+- Clearing deleted-plant warnings changes the status to **Contains modified plants** when modification warnings remain.
+- Clearing modified-plant warnings leaves **Contains deleted plants** when deletion warnings remain.
+- Clearing the final pending warning changes the status to **Up to date**.
+- Closing one review panel clears only the changes displayed by that panel and never clears the other warning kind.
 
 # Usage indicator
 
@@ -567,6 +763,8 @@ See details action:
 View details
 ```
 
+Deletion is intentionally absent from card actions. The user must check one or more selections and use the administration-row Delete action.
+
 ---
 
 # Suggested card layout
@@ -609,6 +807,8 @@ It is useful for:
 - sorting by status, usage, number of flowers, or modification date;
 - performing bulk actions;
 - managing large catalogs.
+
+Table rows and cards are two renderings of the same `SelectionSummary`. A selection checked in one mode remains checked in the other. Sorting, filtering, pagination, status, usage, dates, preview photos, and actions must have equivalent meaning in both modes.
 
 ---
 
@@ -681,6 +881,8 @@ Actions:
 - Add plants
 - Delete plants
 
+There is no selection Delete action in the detail view. **Delete plants** removes checked plant memberships from this selection; it does not delete the selection or catalog plants.
+
 Metadata:
 
 ```text
@@ -699,11 +901,13 @@ Only show this section when needed.
 ⚠️ 3 flowers have been modified in the catalog
 ```
 
-Button:
+Action:
 
 ```text
-✗
+[Details]
 ```
+
+Opening the action displays one comparison panel for all pending modified plants.
 
 ### Deleted flowers
 
@@ -711,11 +915,20 @@ Button:
 ❌ 1 flower no longer exists in the catalog
 ```
 
-Button:
+Action:
 
 ```text
-✗
+[Details]
 ```
+
+The merged warning lists the retained identity:
+
+```text
+[Photo] Achillée
+UUID: 1438d2d2-…
+```
+
+All pending deletions are displayed together, even when they came from different catalog operations.
 
 ---
 
@@ -738,41 +951,45 @@ For changed plants, show in Statut column:
 ⚠️
 ```
 
-For deleted plants, show in Statut column:
-
-```text
-❌
-```
+Deleted plants do not appear in this table. They appear only in the deleted plants warning above it.
 
 ---
 
 # Review changes flow
 
-When a flower has changed, the user needs to understand what changed before accepting or dismissing the warning.
+When plants have changed, the user needs to understand what changed before clearing the warning.
 
-Use a side panel or modal.
+Use one side panel or modal containing every pending modified plant.
 
 ## Title
 
 ```text
-Changes for Echinacea
+Modifications du catalogue
 ```
 
 ## Comparison table
 
-| Field    | Previous value      | New value                        |
+```text
+Echinacea
+```
+
+| Field    | Previous value      | Current value                    |
 | -------- | ------------------- | -------------------------------- |
 | Blooming | June → August       | July → August                    |
 | Soil     | light, well-drained | light, well-drained, dry to cool |
 | Height   | 80 cm               | 100 cm                           |
 
+Omit fields that did not change. Repeat the plant heading and comparison table
+for every pending modified plant.
+
 ## Bottom actions
 
-- **Accept changes**
+- **Acknowledge changes**
+- close control
 
-Recommended default behavior:
+Both actions clear every modified change currently displayed. Closing is an acknowledgement, not a “review later” action. Current live values become the implicit new baseline.
 
-Selections should reference the latest catalog flower data, but the user should be able to mark a selection as reviewed after checking the changes.
+The deleted-plants warning follows the same clearing rule: its acknowledgement action or close control clears every displayed deleted change. Clearing one warning kind does not clear the other. The selection status is recalculated after each clear.
 
 ---
 
@@ -811,8 +1028,7 @@ Is it used somewhere?
 What should I do next?
 ```
 
-Table will be used as MVP.  
-The table should remain available as a secondary compact mode for advanced users, large catalogs, sorting, and bulk operations.
+The historical strict MVP used only the table. V2 defaults to cards and keeps the table available through **Présentation** as a compact mode for advanced users, large catalogs, sorting, and bulk operations.
 
 The most important information to prioritize is:
 

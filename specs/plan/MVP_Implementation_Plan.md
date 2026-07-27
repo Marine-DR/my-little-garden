@@ -1,5 +1,10 @@
 # MyLittleGarden — Strict MVP Implementation Plan
 
+> This document remains the historical scope authority for the strict MVP.
+> Incremental CSV add/modify, checked-plant deletion, catalog export, and
+> selection change tracking are specified as a post-MVP increment in
+> [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md).
+
 ## Summary
 
 Build an offline Windows/Linux desktop application for one gardener using Electron, React, TypeScript, and SQLite. The MVP covers:
@@ -38,7 +43,7 @@ Core interfaces:
 
 - Model all defined plant attributes: identity, name, photo, optional minimum/maximum height, type, flower/other category, soils, exposures, minimum temperature, optional flowering interval, flower and foliage colors, foliage persistence, spacing, and planting seasons.
 - Require a unique name, one or more soils, and one or more exposures. Treat other fields, flowering dates, and photos as optional, showing placeholders where absent.
-- Provide a downloadable UTF-8 CSV template. Use semicolon as the exported separator, accept semicolon or comma on import, and use `|` inside multi-value cells.
+- Provide a downloadable UTF-8 CSV template using the canonical 16-column layout with `plant_id` first; new-plant rows leave that cell empty. Use semicolon as the exported separator, accept semicolon or comma on import, and use `|` inside multi-value cells. Continue accepting the former 15-column layout for existing files.
 - Support an optional `plant_id` UUID:
   - Match existing plants by UUID first.
   - If absent, match by trimmed, case- and accent-insensitive unique name.
@@ -72,7 +77,9 @@ Core interfaces:
 - The catalog selection action bar supports creating a new selection and adding checked plants to one or more existing selections. Existing plant-selection links are ignored without producing an error.
 - “Mes Sélections” displays saved selections and their current plants in a table-based management screen. Users can open a selection detail and remove plants from a selection after confirmation.
 - Selection rename, selection deletion, selection reliability status, modified/deleted plant review, flowerbed usage indicators, selection search, selection filters, and card/table view switching are deferred.
-- Confirm catalog replacement after preview, especially when saved selections will lose plants.
+- Before choosing a replacement CSV, warn that the complete catalog will be replaced and explain UUID-first, unique-normalized-name fallback matching.
+- Confirm catalog replacement after preview, especially when saved selections will lose plants. The post-MVP flowerbed consequences are defined in
+  [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md#67-flowerbed-catalog-impacts).
 - Keep layouts usable across ordinary desktop sizes; mobile navigation and touch-specific behavior are deferred.
 
 ## Test Plan
@@ -84,6 +91,7 @@ Core interfaces:
 - Verify adding catalog plants to existing selections ignores duplicate links and reports added versus ignored associations.
 - Verify removing plants from a selection requires confirmation and updates the selection detail.
 - Test image matching, missing images, duplicate filenames, unsupported formats, path traversal, copying, and cleanup after commit or rollback.
+- Verify cancelling the initial replacement warning opens no file picker and changes no state.
 - Component-test empty, loading, populated, filtered, paginated, validation, preview, and selection states.
 - Electron integration-test:
   - Fresh installation and template download.
@@ -98,6 +106,9 @@ Core interfaces:
 ## Deferred Features and Assumptions
 
 - Exclude individual plant CRUD, additive/update/delete CSV modes, ZIP image import, search, sorting, configurable columns, selection rename, selection deletion, selection reliability status, selection card view, flowerbed design, generated documents, accounts, synchronization, and hosted services.
+- The deferred incremental catalog-maintenance behavior is now defined in
+  [Catalog_incremental_update_plan.md](Catalog_incremental_update_plan.md)
+  without changing what belonged to the strict MVP.
 - The application works entirely offline and has one local data owner.
 - Imported horticultural values use the controlled vocabulary defined by the existing catalog specification; internal enum keys remain language-neutral.
 - No starter plant dataset or licensed imagery is bundled.

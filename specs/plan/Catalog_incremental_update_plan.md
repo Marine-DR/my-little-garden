@@ -1,0 +1,768 @@
+# Incremental Catalog Maintenance
+
+## 1. Purpose and authority
+
+This document is the authoritative post-MVP specification for maintaining the
+plant catalog without replacing it.
+
+It adds four catalog-management capabilities:
+
+- add a batch of plants from CSV;
+- modify a batch of plants from CSV;
+- delete checked plants from the catalog after confirmation;
+- export the current catalog with stable plant identifiers.
+
+The existing full-catalog replacement remains available. Add, modify, delete,
+and replacement all use the same plant identity rules and selection-change
+tracking rules.
+
+This plan does not add an individual plant creation or editing form. Photos
+remain managed through the separate photo-import workflow.
+
+It also defines the V2 extension of catalog filtering with plant kind, flower color, and leaf color while preserving the historical strict-MVP filter scope.
+
+## 2. Catalog management actions
+
+The **Gérer le catalogue** menu contains:
+
+```text
+Gérer le catalogue
+
+Ajouter des plantes depuis un CSV
+Modifier des plantes depuis un CSV
+Remplacer tout le catalogue
+Télécharger le catalogue actuel
+```
+
+The blank catalog template remains available from the Help menu.
+
+Deletion is not a CSV operation. It is available in the checked-plant action
+row beside the selection actions:
+
+```text
+3 plantes sélectionnées
+
+[Ajouter à une sélection] [Créer une sélection] [Supprimer]
+```
+
+The delete button uses the global delete-button style and is disabled when no
+plant is checked.
+
+## 3. CSV formats
+
+### 3.1 Supported headers
+
+The 16-column layout is the canonical V1 CSV format. The downloadable V1
+template uses this header, with an empty `plant_id` cell for a new plant:
+
+```text
+plant_id,Nom,Taille min,Taille Max,Type,Fleur/autre,Sol,Exposition,Floraison début,Floraison fin,Couleurs fleurs,Couleurs feuilles,T° min (°C),Feuillage persistant,Espace(cm),Plantation
+```
+
+The V2 current-catalog export uses the same header and fills every
+`plant_id`, so an exported file can be modified and imported again without a
+format conversion. The importer also continues to accept the former
+15-column layout beginning with `Nom`, for existing user files; it is not
+emitted by the application.
+
+### 3.2 Complete-record semantics
+
+Each CSV row represents the complete desired plant record:
+
+- blank optional cells clear the corresponding existing values;
+- `Nom`, at least one `Sol`, and at least one `Exposition` remain mandatory;
+- missing mandatory values are blocking validation errors;
+- multi-value cells continue to use `|`;
+- all existing enumeration, range, normalization, and duplicate rules remain
+  applicable.
+
+CSV add and modify operations do not import photos:
+
+- modifying a plant preserves its current managed photo;
+- creating a plant creates it without a photo;
+- photos can then be added or changed through the existing photo-import
+  workflow.
+
+### 3.3 Plant identity
+
+Rows are matched in this order:
+
+1. When `plant_id` is present, it is authoritative and is matched first.
+2. When `plant_id` is absent, match by normalized plant name.
+3. Generate a UUID only when a row is committed as a new plant and has no
+   supplied UUID.
+
+The normalized-name rules remain trim, whitespace collapse, accent removal,
+and case folding.
+
+Renaming an existing plant through CSV is reliable only when the row contains
+its existing `plant_id`.
+
+The following are blocking identity errors:
+
+- an invalid UUID;
+- duplicate UUIDs or normalized names inside the uploaded file;
+- a UUID that identifies one plant while the normalized name identifies a
+  different plant;
+- a new or renamed plant whose normalized name conflicts with another catalog
+  plant.
+
+A supplied, valid, unknown UUID is retained when its row is committed as a new
+plant.
+
+### 3.4 Current-catalog export
+
+**Télécharger le catalogue actuel** exports every current plant with
+`plant_id` as its first column.
+
+The export:
+
+- uses the same horticultural headings and values accepted by the importer;
+- contains one complete row per plant;
+- preserves stable UUIDs so users can modify or rename plants safely;
+- excludes managed-photo metadata because photos use a separate workflow;
+- is UTF-8 and follows the existing CSV separator and escaping conventions.
+
+The export must be accepted without data loss by both Modify and Replace.
+
+## 4. Add and modify workflow
+
+### 4.1 Shared steps
+
+Both actions follow the same five steps:
+
+1. Select a CSV file.
+2. Parse and validate the whole file.
+3. Display a preview.
+4. Resolve the mode-specific conflict group and confirm.
+5. Commit atomically and display feedback.
+
+The preview is mandatory even when the file has no conflicts.
+
+It displays counts and row details for:
+
+- plants to create;
+- plants to modify;
+- unchanged plants;
+- mode-specific conflicts;
+- ignored plants after a conflict choice;
+- new vocabulary values;
+- warnings;
+- blocking errors.
+
+Blocking errors disable confirmation. The error view lists all actionable
+errors found during validation.
+
+### 4.2 Add mode
+
+Rows that do not match a catalog plant are ready to create.
+
+Rows that match an existing plant form one conflict group. Before confirmation,
+the user must choose one policy for the complete group:
+
+- **Mettre à jour les plantes existantes**: apply every conflicting row
+  as a complete-record modification.
+- **Ignorer toutes les plantes existantes**: leave every matching catalog plant
+  unchanged.
+
+The choice does not affect non-conflicting new rows.
+
+### 4.3 Modify mode
+
+Rows that match an existing catalog plant are ready to modify.
+
+Rows that do not match an existing plant form one conflict group. Before
+confirmation, the user must choose one policy for the complete group:
+
+- **Créer toutes les plantes absentes**: create every missing row.
+- **Ignorer toutes les plantes absentes**: do not add any missing row.
+
+The choice does not affect rows that match existing plants.
+
+### 4.4 Unchanged plants
+
+Compare the complete material plant record, excluding technical timestamps.
+
+When the imported row produces no material change:
+
+- do not rewrite `updated_at`;
+- count the row as unchanged;
+- do not create a selection-change warning.
+
+Material fields are name, height, type, plant kind, soils, exposures, flowering
+period, flower colors, leaf colors, minimum temperature, foliage persistence,
+spacing, and planting seasons.
+
+### 4.5 Preview token and commit safety
+
+A valid preview returns an opaque, short-lived preview token owned by the
+Electron main process. The renderer never submits transformed plant records
+for persistence.
+
+Commit receives the preview token and the selected conflict policy. Before
+writing, it re-evaluates identities and conflicts against the current
+database. If the catalog changed after preview in a way that changes the
+result, commit fails and requires a new preview.
+
+The commit transaction includes:
+
+- plant scalar fields;
+- plant relationships;
+- newly introduced vocabulary values;
+- selection modification records.
+
+Any failure rolls back the complete operation.
+
+## 5. Delete checked plants
+
+### 5.1 Preview and confirmation
+
+Clicking **Supprimer** first loads a deletion preview for the checked plant IDs.
+
+The confirmation dialog shows:
+
+- the number and names of plants to delete;
+- every affected selection;
+- the affected plant names grouped under each selection.
+
+Example:
+
+```text
+Supprimer 3 plantes du catalogue ?
+
+Achillée
+Cosmos
+Pavot
+
+Sélections concernées
+
+Massif plein soleil
+- Achillée
+- Cosmos
+
+Prairie fleurie
+- Cosmos
+- Pavot
+
+[Annuler] [Supprimer]
+```
+
+Cancel closes the dialog and performs no mutation.
+
+### 5.2 Commit behavior
+
+Confirmation performs one database transaction:
+
+1. Revalidate that the requested plants still exist.
+2. Record one pending deleted-plant change for every affected
+   selection/plant pair.
+3. Remove the live `selection_plants` links through plant deletion.
+4. Delete the selected plants and dependent catalog relationships.
+
+Deleted plants no longer appear in the live selection plant table.
+
+After commit:
+
+- refresh the catalog and filter options;
+- return to the first valid page if deletion emptied the current page;
+- clear checked plant IDs;
+- display success feedback.
+
+### 5.3 Deleted photo lifetime
+
+Pending deletion warnings retain the deleted plant UUID, last display name, and
+managed photo filename.
+
+The managed image file remains available while at least one pending selection
+change references it. After a warning is cleared, remove the file only when:
+
+- no live `plant_photos` row references it; and
+- no other pending selection change references it.
+
+Database commit occurs before physical cleanup. A cleanup failure is reported
+without restoring already committed catalog data and can be retried safely.
+
+## 6. Selection-change tracking
+
+### 6.1 Why pending changes are persisted
+
+Catalog maintenance and selection review are separate user actions. A person
+may change the catalog, close the application, then open an affected selection
+later; the warning must still identify what changed or was deleted until that
+person acknowledges it. Therefore this table stores only unacknowledged
+selection impacts, not a permanent change history and not a second copy of a
+selection. Clearing the displayed warning removes the corresponding record.
+
+### 6.2 Planned migration
+
+Add a versioned migration containing a pending-change table equivalent to:
+
+```sql
+CREATE TABLE selection_plant_changes (
+    id                     TEXT PRIMARY KEY,
+    selection_id           TEXT NOT NULL,
+    plant_id               TEXT NOT NULL,
+    change_kind            TEXT NOT NULL CHECK (
+        change_kind IN ('modified', 'deleted')
+    ),
+    plant_name             TEXT NOT NULL,
+    photo_managed_filename TEXT,
+    baseline_version       INTEGER,
+    baseline_json          TEXT,
+    created_at             TEXT NOT NULL,
+    updated_at             TEXT NOT NULL,
+    CONSTRAINT uq_selection_plant_changes
+        UNIQUE (selection_id, plant_id),
+    FOREIGN KEY (selection_id) REFERENCES selections (id) ON DELETE CASCADE,
+    CONSTRAINT ck_selection_plant_change_baseline CHECK (
+        (
+            change_kind = 'modified'
+            AND baseline_version IS NOT NULL
+            AND baseline_json IS NOT NULL
+        )
+        OR (
+            change_kind = 'deleted'
+            AND baseline_version IS NULL
+            AND baseline_json IS NULL
+        )
+    )
+);
+
+CREATE INDEX idx_selection_plant_changes_selection_kind
+    ON selection_plant_changes (selection_id, change_kind);
+
+CREATE INDEX idx_selection_plant_changes_photo
+    ON selection_plant_changes (photo_managed_filename);
+```
+
+`plant_id` deliberately has no foreign key to `plants`, because deleted-plant
+warnings must survive deletion of the live plant.
+
+`baseline_json` is a versioned serialization of the complete material plant
+record before its first unreviewed change. The core package owns its shape and
+comparison rules.
+
+### 6.3 Modified plants
+
+When a material plant change affects a selection:
+
+- create a `modified` record containing the state before the first unreviewed
+  modification;
+- do not replace that baseline on later modifications;
+- compare the retained baseline with the latest live plant when displaying the
+  warning;
+- count a plant only once per selection.
+
+If later changes return the plant exactly to its retained baseline, remove the
+pending modification record.
+
+### 6.4 Deleted plants
+
+Before deleting a selected plant:
+
+- replace any pending `modified` record for that selection/plant with a
+  `deleted` record;
+- retain only its UUID, last display name, and managed photo filename;
+- remove its live selection link as part of plant deletion.
+
+All pending deleted plants for a selection are displayed in one merged warning,
+regardless of how many delete operations created them.
+
+### 6.5 Catalog replacement
+
+Full-catalog replacement uses the same matching and warning rules:
+
+- match by UUID first;
+- when UUID is absent, match by unique normalized name;
+- preserve stable UUIDs and selection links for either match kind;
+- allow a UUID-matched plant to be renamed;
+- treat a renamed row without UUID as a new plant and the unmatched old plant as deleted;
+- create modification records for materially changed matched plants;
+- create deletion records before removing plants absent from the replacement;
+- remove live links for deleted plants.
+
+Before file selection, show the replacement explanation specified in
+[Garden_Planner_UX_UI _main_screen_spec.md](Garden_Planner_UX_UI%20_main_screen_spec.md).
+After validation, show actual match-kind and impact counts before confirmation.
+
+### 6.6 Derived selection status
+
+Status is derived from pending changes rather than stored on `selections`.
+
+The domain exposes exactly one of these three values:
+
+| Domain value               | French label                                                   | Derivation rule                                                 |
+| -------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- |
+| `contains_deleted_plants`  | **[Number of deleted plants] plantes supprimées**              | At least one pending deletion exists                            |
+| `contains_modified_plants` | **[Number of modified plants] Contient des plantes modifiées** | No deletion exists and at least one pending modification exists |
+| `up_to_date`               | **À jour**                                                     | No pending modification or deletion exists                      |
+
+The order in the table is the display priority. A selection with both pending
+change kinds therefore has `contains_deleted_plants` status.
+
+Selection summaries expose both modified and deleted counts even when deletion
+has display priority.
+
+The status is recalculated after every catalog mutation and every
+acknowledgement:
+
+| Event                                                       | Resulting status           |
+| ----------------------------------------------------------- | -------------------------- |
+| First material modification                                 | `contains_modified_plants` |
+| Any deletion while either no warning or modifications exist | `contains_deleted_plants`  |
+| Clear deletions while modifications remain                  | `contains_modified_plants` |
+| Clear modifications while deletions remain                  | `contains_deleted_plants`  |
+| Clear the last pending warning                              | `up_to_date`               |
+
+### 6.7 Review and clearing
+
+The selection detail contains two independent panels when required:
+
+- one comparison panel showing all pending modified plants;
+- one merged warning showing all pending deleted plants.
+
+The modification panel compares each baseline field with the current live
+value. Unchanged fields may be omitted.
+
+Closing a panel with its close control or pressing its acknowledgement action
+clears every change currently displayed in that panel:
+
+- clearing modified changes makes current live values the implicit new
+  baseline;
+- clearing deleted changes removes their retained names, UUIDs, and photo
+  references;
+- clearing one change kind does not clear the other.
+
+Photo cleanup runs after clearing deleted warnings according to section 5.3.
+
+### 6.8 Flowerbed catalog impacts
+
+Catalog replacement and incremental modification/deletion use the same flowerbed-impact rules for placed plants.
+
+#### Plant deletion
+
+When a deleted catalog plant has placed instances:
+
+- remove every placed instance of that plant from every flowerbed;
+- update the derived buying list immediately;
+- create one persistent `error` issue per affected flowerbed and plant, including the removed instance count and last plant name;
+- keep the flowerbed editable.
+
+#### Used flower-color deletion
+
+When a plant remains in the catalog but one of its flower colors is removed:
+
+- find placed instances using that removed color;
+- remove only those instances;
+- keep instances of the same plant that use still-available colors;
+- update the derived buying list immediately;
+- create one persistent `error` issue per affected flowerbed, plant, and removed color, including the removed instance count;
+- keep the flowerbed editable.
+
+#### Impacting modifications
+
+Create a persistent `warning` for a flowerbed using the plant when any of these fields changes:
+
+- plant name;
+- soil requirements;
+- spacing;
+- available flower colors.
+
+Apply the latest catalog value immediately:
+
+- update displayed names and buying-list labels after a name change;
+- compare the latest plant soil requirements with the flowerbed soil type when that attribute is available;
+- update required-space geometry after a spacing change and recalculate overlap and outside-boundary indicators;
+- refresh available flower colors after a color-list change.
+
+A soil-requirement change always creates a warning for flowerbeds using the plant. When the flowerbed soil type is known, the warning states whether the plant is still compatible. Until flowerbed soil is modeled, show the previous and current plant soil requirements and explain that compatibility must be reviewed.
+
+A used-color deletion follows the error/removal rule above rather than producing only a warning. A color-list change that does not remove a used color retains all placed instances and produces a warning.
+
+Other plant-field changes do not create flowerbed catalog-impact issues.
+
+#### Issue review and acknowledgement
+
+- Errors and warnings remain visible across application restarts until acknowledged.
+- Group issues by the catalog operation that created them and show plant, change, and automatic-action details.
+- Acknowledgement clears only the issues currently displayed.
+- Acknowledgement does not undo placement removal or catalog updates.
+- Catalog-impact issues are separate from live layout warnings such as overlap and outside-boundary conditions.
+
+#### Transaction boundary
+
+Catalog writes, selection links/change records, flowerbed placement removals, and flowerbed issue records commit in one transaction. Any failure rolls back the complete replacement or incremental mutation. Managed-file cleanup still runs only after database commit.
+
+## 7. Service contracts
+
+The precise TypeScript names may follow repository naming conventions, but the
+typed contracts must provide these behaviors.
+
+### 7.1 Catalog import
+
+```ts
+type CatalogMutationMode = 'add' | 'modify';
+
+type AddConflictPolicy = 'update_existing' | 'ignore_existing';
+type ModifyConflictPolicy = 'create_missing' | 'ignore_missing';
+
+previewCatalogMutation(
+  mode: CatalogMutationMode,
+  filename: string,
+  csv: string,
+): Promise<CatalogMutationPreview>;
+
+commitCatalogMutation(
+  previewId: string,
+  conflictPolicy: AddConflictPolicy | ModifyConflictPolicy,
+): Promise<CatalogMutationResult>;
+```
+
+The preview DTO contains row details and counts for create, modify, unchanged,
+conflict, warning, error, and new-vocabulary categories.
+
+The result DTO contains created, modified, ignored, and unchanged counts.
+
+Full-replacement preview and result DTOs additionally expose:
+
+- UUID-match and normalized-name-match counts;
+- affected selection IDs and names;
+- affected flowerbed IDs and names;
+- catalog-impact errors and warnings;
+- placed-instance removal counts.
+
+### 7.2 Export
+
+```ts
+exportCurrentCatalog(): Promise<string>;
+```
+
+### 7.3 Deletion
+
+```ts
+previewPlantDeletion(
+  plantIds: readonly string[],
+): Promise<PlantDeletionPreview>;
+
+deletePlants(
+  plantIds: readonly string[],
+): Promise<PlantDeletionResult>;
+```
+
+The preview maps affected selection IDs and names to plant IDs and names. The
+result reports deleted plant and affected selection counts.
+
+### 7.4 Selection changes
+
+Selection summaries add:
+
+- derived status;
+- modified plant count;
+- deleted plant count.
+
+Selection details add:
+
+- modified plant comparisons;
+- deleted plant UUID, name, and photo URL records.
+
+The selection service provides separate acknowledgement actions for all
+currently displayed modified changes and all currently displayed deleted
+changes.
+
+### 7.5 Flowerbed catalog issues
+
+The flowerbed service provides:
+
+- list unacknowledged catalog-impact issues for one flowerbed;
+- acknowledge the currently displayed issue IDs;
+- reject acknowledgement IDs that do not belong to that flowerbed.
+
+## 8. Package responsibilities
+
+- `packages/core` owns mutation modes, conflict policies, identity rules,
+  material comparison, baseline snapshot shape, status derivation, and ports.
+- `packages/communication` parses both CSV formats and exports the
+  current-catalog format.
+- `packages/database` implements atomic catalog mutations, impact queries,
+  pending change persistence, and acknowledgement.
+- Electron main owns preview-token lifetime, operation orchestration, and
+  post-commit photo-file cleanup.
+- `apps/desktop/src/shared` owns service-scoped IPC contracts.
+- Preload exposes one safe method per operation.
+- Renderer displays previews, confirmations, status, comparisons, warnings,
+  feedback, and errors without direct filesystem or database access.
+
+## 9. Feedback
+
+Use the existing success-banner and error-modal patterns.
+
+Success examples:
+
+```text
+Ajout terminé : X plantes ajoutées, Y mises à jour, Z ignorées.
+Modification terminée : X plantes modifiées, Y créées, Z ignorées, W inchangées.
+Suppression terminée : X plantes supprimées. Y sélections ont été mises à jour.
+```
+
+Use correct French singular and plural forms. When a count is zero it may be
+omitted from the sentence, but the operation must always produce visible
+feedback.
+
+Validation and transaction failures display all actionable errors and leave
+catalog data unchanged.
+
+## 10. Acceptance criteria
+
+- Add a CSV containing only new plants.
+- In Add mode, update all or ignore all existing conflicts.
+- Modify existing plants from a full-record CSV.
+- In Modify mode, create all or ignore all missing conflicts.
+- Rename a plant by stable UUID.
+- Reject UUID/name identity conflicts and duplicate file identities.
+- Use the canonical 16-column V1 template and current-catalog export format.
+- Accept legacy CSV files without `plant_id`.
+- Export and re-import the current catalog without changing UUIDs or data.
+- Reject the complete import when any non-conflict row is invalid.
+- Preserve managed photos during CSV modification.
+- Leave identical plants unchanged without warnings.
+- Record only material changes affecting selections.
+- Preserve the first old value through repeated unreviewed modifications.
+- Remove a warning when a plant returns to its baseline.
+- Preview affected selections before deletion.
+- Cancel deletion without changing catalog or selections.
+- Delete checked plants and remove their live selection links.
+- Merge all pending deleted plants into one selection warning.
+- Retain deleted photos until their last warning is cleared.
+- Derive deleted status above modified status.
+- Clear only the displayed warning kind on close or acknowledgement.
+- Apply the same selection tracking during full-catalog replacement.
+- Explain UUID and normalized-name matching before choosing a replacement CSV.
+- Preview actual match kinds and selection/flowerbed impacts before replacement.
+- Preserve links for UUID and unique normalized-name matches.
+- Treat a rename without UUID as deletion plus creation.
+- Remove deleted plants from selections and every flowerbed.
+- Remove only placed instances using a deleted flower color.
+- Create persistent errors for automatic placement removals.
+- Create persistent warnings for impacting name, soil-requirement, spacing, and available-color changes.
+- Keep affected flowerbeds editable.
+- Acknowledge displayed catalog-impact issues without undoing applied changes.
+- Roll back flowerbed placements and issues with the catalog transaction.
+- Roll back plant, relationship, vocabulary, and change-record writes together
+  when commit fails.
+
+## 11. V2 catalog filter extension
+
+Add three filter categories to the existing catalog filter contract:
+
+- `plantKinds`: values from the existing `plant_kind` domain;
+- `flowerColors`: color display labels linked through `plant_flower_colors`;
+- `leafColors`: color display labels linked through `plant_leaf_colors`.
+
+The existing soil, exposure, and flowering-month filters remain unchanged.
+
+### 11.1 Combination rules
+
+- Allow multiple selected values in every category.
+- Use OR between selected values within one category.
+- Use AND between all active categories.
+- A plant with several colors matches when at least one corresponding color is selected.
+- Treat **Non renseigné** as another OR choice inside an optional-attribute category.
+- When **Non renseigné** is not selected, missing values do not match populated values selected in that category.
+- With none of the three new categories selected, results are identical to the existing filter behavior.
+
+Example:
+
+```text
+Fleur / autre: Fleur OR Graminée
+Flower colors: Blanc OR Non renseigné
+Leaf colors: Vert
+Soil: Drainé
+```
+
+A result must match one selected plant kind, either the selected flower color or an empty flower-color value, the selected leaf color, and the selected soil.
+
+### 11.2 Options and labels
+
+`listFilterOptions()` additionally returns:
+
+- every distinct non-empty plant kind currently used by catalog plants;
+- distinct flower colors currently linked to catalog plants;
+- distinct leaf colors currently linked to catalog plants;
+- whether at least one empty value exists for every optional filter category.
+
+Flower and leaf colors use the same normalized vocabulary identities but are queried independently. A color used only for leaves must not appear as a flower-color option.
+
+**Fleur / autre** follows the same option behavior as **Sol**:
+
+- query the current catalog for distinct stored values;
+- sort their translated display labels alphabetically, using the same locale as soil labels;
+- do not hardcode which values are visible in the drawer;
+- refresh the list after catalog add, modify, delete, or replacement.
+
+The currently supported domain values retain their French translations:
+`flower` → **Fleur**, `foliage` → **Feuillage**, `grass` → **Graminée**, and `other` → **Autre**. The visible subset changes over time with the catalog.
+
+Color options use their stored display labels and the existing color-chip presentation.
+
+### 11.3 Empty-value filtering
+
+Every optional attribute must support filtering for an empty value. For the functional V2 filter set this applies to:
+
+- flowering period;
+- `plant_kind` (**Fleur / autre**);
+- flower colors;
+- leaf colors.
+
+Future filters for other optional attributes must follow the same rule when they become functional.
+
+Expose a typed missing-value selection independently from real domain values; do not persist a magic label such as `Non renseigné` in the database. A contract equivalent to this is acceptable:
+
+```ts
+type EmptyCatalogField = 'bloom' | 'plantKind' | 'flowerColors' | 'leafColors';
+
+interface CatalogFilters {
+  readonly emptyFields: readonly EmptyCatalogField[];
+}
+
+interface CatalogFilterOptions {
+  readonly fieldsWithEmptyValues: readonly EmptyCatalogField[];
+}
+```
+
+The UI displays **Non renseigné** only when the field appears in
+`fieldsWithEmptyValues`. Empty means:
+
+- scalar attribute: the column is `NULL`;
+- complete optional range such as flowering: both range columns are `NULL`;
+- multi-valued relationship such as colors: no relationship row exists for the plant.
+
+Selecting **Non renseigné** alone returns only plants missing that attribute.
+Selecting it with populated values returns plants matching either condition.
+The missing-value choice counts as one active filter.
+
+### 11.4 Query and interaction requirements
+
+- Apply the new filters to paginated catalog reads, total counts, and
+  `listPlantIds()` so filtered select-all uses the same result set.
+- Avoid duplicate plants when a plant matches several selected colors.
+- Reset pagination to page 1 after applying or clearing filters.
+- Keep draft selections inside the drawer until the user presses **Appliquer**.
+- **Désactiver les filtres** clears existing and new categories together.
+- Refresh all filter options after catalog add, modify, delete, or replacement.
+- The active-filter count includes every selected plant kind, color, and **Non renseigné** choice.
+
+### 11.5 Validation
+
+- Test each new filter independently.
+- Test multiple values within plant kind, flower color, and leaf color.
+- Test AND combinations between the three new categories.
+- Test combinations with soil, exposure, and flowering month.
+- Test plants with multiple colors and plants with no colors.
+- Test a plant with no `plant_kind`.
+- Test flowering periods that are empty.
+- Test **Non renseigné** alone and combined with populated values in the same category.
+- Verify **Non renseigné** is offered only while at least one matching empty value exists.
+- Verify empty filtering uses `IS NULL` or `NOT EXISTS` semantics rather than a stored placeholder value.
+- Verify paginated items, totals, and filtered IDs return the same set.
+- Verify flower-color and leaf-color option lists remain independent.
+- Verify clearing filters restores the unfiltered catalog.
