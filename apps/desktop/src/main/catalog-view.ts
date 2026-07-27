@@ -58,6 +58,9 @@ export async function getSelectionDetails(
   return {
     id: selection.id,
     name: selection.name,
+    status: selection.status,
+    modifiedPlantCount: selection.modifiedPlantCount,
+    modifiedPlants: selection.modifiedPlants,
     plants: selection.plants.map(toCatalogPlant),
   };
 }
@@ -77,6 +80,28 @@ export async function removePlantsFromSelection(
   return {
     id: selection.id,
     name: selection.name,
+    status: selection.status,
+    modifiedPlantCount: selection.modifiedPlantCount,
+    modifiedPlants: selection.modifiedPlants,
+    plants: selection.plants.map(toCatalogPlant),
+  };
+}
+
+export async function acknowledgeModifiedSelectionPlants(
+  selectionRepository: SelectionRepository,
+  selectionId: string,
+): Promise<SelectionDetails | null> {
+  const selection =
+    await selectionRepository.acknowledgeModifiedPlants(selectionId);
+  if (!selection) {
+    return null;
+  }
+  return {
+    id: selection.id,
+    name: selection.name,
+    status: selection.status,
+    modifiedPlantCount: selection.modifiedPlantCount,
+    modifiedPlants: selection.modifiedPlants,
     plants: selection.plants.map(toCatalogPlant),
   };
 }
@@ -109,6 +134,8 @@ function toSelectionSummary(
   return {
     id: selection.id,
     name: selection.name,
+    status: selection.status,
+    modifiedPlantCount: selection.modifiedPlantCount,
     previewPhotoUrls: selection.previewManagedFilenames.map((filename) =>
       createPhotoUrl(filename),
     ),

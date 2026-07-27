@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   hasSameMaterialPlantRecord,
+  groupSelectionUsages,
   normalizeDatabaseKey,
   type CatalogAddPreviewResult,
   type CatalogAddResult,
@@ -13,6 +14,7 @@ import {
 type Preview = {
   readonly records: readonly PlantWriteInput[];
   readonly existingByName: ReadonlyMap<string, Plant>;
+  readonly modifiedPlants: readonly Plant[];
   readonly expiresAt: number;
 };
 
@@ -79,6 +81,9 @@ export class CatalogAdditionService {
     this.previews.set(token, {
       records: parsed.records,
       existingByName,
+      modifiedPlants: conflicts
+        .map((record) => existingByName.get(normalizeDatabaseKey(record.name)))
+        .filter((plant): plant is Plant => plant !== undefined),
       expiresAt: Date.now() + 5 * 60_000,
     });
     return {
@@ -87,6 +92,16 @@ export class CatalogAdditionService {
       created: parsed.records.length - existingByName.size,
       unchanged,
       conflicts: conflicts.map(({ name }) => name),
+      impactedSelections: groupSelectionUsages(
+        await this.repository.listSelectionUsages(
+          conflicts
+            .map((record) =>
+              existingByName.get(normalizeDatabaseKey(record.name)),
+            )
+            .filter((plant): plant is Plant => plant !== undefined)
+            .map(({ id }) => id),
+        ),
+      ),
     };
   }
 
@@ -134,7 +149,10 @@ export class CatalogAdditionService {
         inputs.push({ ...record, id: existing.id });
         updated += 1;
       }
-      this.repository.upsertImportedBatch(inputs);
+      this.repository.upsertImportedBatch(
+        inputs,
+        policy === 'update_existing' ? preview.modifiedPlants : [],
+      );
       return {
         ok: true,
         created,

@@ -1,6 +1,7 @@
 import type { SelectionSummary } from '@my-little-garden/core';
 import { PlantPhoto } from '@renderer/components/PlantPhoto';
 import detailsIcon from '@renderer/assets/details.svg';
+import { SelectionStatus } from './SelectionStatus';
 
 function formatDate(value: string): string {
   const date = new Date(value);
@@ -63,6 +64,12 @@ function SelectionRow({
         <SelectionPreview selection={selection} />
       </td>
       <td>{selection.plantCount}</td>
+      <td>
+        <SelectionStatus
+          status={selection.status}
+          modifiedPlantCount={selection.modifiedPlantCount}
+        />
+      </td>
       <td>{formatDate(selection.createdAt)}</td>
       <td>{formatDate(selection.updatedAt)}</td>
       <td>
@@ -118,6 +125,7 @@ export function SelectionsTable({
                 <th scope="col">Nom</th>
                 <th scope="col">Aperçu</th>
                 <th scope="col">Plantes</th>
+                <th scope="col">Statut</th>
                 <th scope="col">Date de création</th>
                 <th scope="col">Dernière modification</th>
                 <th scope="col">Actions</th>

@@ -8,6 +8,8 @@ const { SqlitePlantCatalogRepository } = require('../dist');
 const migration = [
   '001_initial_schema.sql',
   '002_remove_selection_normalized_name.sql',
+  '003_selection_plant_changes.sql',
+  '004_selection_plant_change_baseline.sql',
 ]
   .map((filename) =>
     readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),

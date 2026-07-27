@@ -17,7 +17,20 @@ const selectionNameMigration = readFileSync(
   ),
   'utf8',
 );
-const migration = `${initialMigration}\n${selectionNameMigration}`;
+const selectionPlantChangesMigration = readFileSync(
+  join(__dirname, '..', 'migrations', '003_selection_plant_changes.sql'),
+  'utf8',
+);
+const selectionPlantBaselineMigration = readFileSync(
+  join(
+    __dirname,
+    '..',
+    'migrations',
+    '004_selection_plant_change_baseline.sql',
+  ),
+  'utf8',
+);
+const migration = `${initialMigration}\n${selectionNameMigration}\n${selectionPlantChangesMigration}\n${selectionPlantBaselineMigration}`;
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -88,6 +101,7 @@ test('migration creates the expected tables', (t) => {
       'plant_photos',
       'selections',
       'selection_plants',
+      'selection_plant_changes',
     ]),
   );
 });

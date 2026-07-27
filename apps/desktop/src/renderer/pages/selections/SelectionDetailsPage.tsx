@@ -3,6 +3,7 @@ import type { SelectionDetails } from '@my-little-garden/core';
 import removeIcon from '@renderer/assets/sup.svg';
 import { Pagination } from '@renderer/components/Pagination';
 import { PlantsTable } from '@renderer/components/PlantsTable';
+import { SelectionStatus } from './components/SelectionStatus';
 
 const PLANTS_PER_PAGE = 25;
 
@@ -24,6 +25,8 @@ export function SelectionDetailsPage({
   );
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [removing, setRemoving] = useState(false);
+  const [acknowledging, setAcknowledging] = useState(false);
+  const [modifiedDetailsOpen, setModifiedDetailsOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -103,6 +106,23 @@ export function SelectionDetailsPage({
 
   const selectedCount = selectedPlantIds.length;
 
+  const acknowledgeModifiedPlants = async (): Promise<void> => {
+    setAcknowledging(true);
+    try {
+      const result =
+        await window.selectionService.acknowledgeModifiedPlants(selectionId);
+      if (result) {
+        setSelection(result);
+        setModifiedDetailsOpen(false);
+        onUpdated();
+      }
+    } catch {
+      setError('Les modifications n’ont pas pu être acquittées.');
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+
   return (
     <>
       <section
@@ -115,9 +135,15 @@ export function SelectionDetailsPage({
               {selection?.name ?? 'Détail de la sélection'}
             </h1>
             {selection ? (
-              <p className="selection-detail-count">
-                {plantCount} {plantCount === 1 ? 'plante' : 'plantes'}
-              </p>
+              <div className="selection-detail-metadata">
+                <p className="selection-detail-count">
+                  {plantCount} {plantCount === 1 ? 'plante' : 'plantes'}
+                </p>
+                <SelectionStatus
+                  status={selection.status}
+                  modifiedPlantCount={selection.modifiedPlantCount}
+                />
+              </div>
             ) : null}
           </div>
           <button
@@ -160,6 +186,96 @@ export function SelectionDetailsPage({
       {error ? (
         <div className="error-banner" role="alert">
           {error}
+        </div>
+      ) : null}
+      {selection && selection.modifiedPlants.length > 0 ? (
+        <section className="selection-modified-message" role="alert">
+          <div>
+            <strong>
+              {selection.modifiedPlants.length === 1
+                ? '1 plante modifiée'
+                : `${selection.modifiedPlants.length} plantes modifiées`}
+            </strong>
+          </div>
+          <div className="selection-modified-message-actions">
+            <button
+              type="button"
+              className="selection-modified-details-button"
+              onClick={() => setModifiedDetailsOpen(true)}
+            >
+              <svg
+                className="selection-modified-details-icon"
+                aria-hidden="true"
+                viewBox="0 0 9.525 9.525"
+              >
+                <path d="M .938 4.756c2.35 2.313 4.779 3.472 7.523.011" />
+                <path d="M .915 4.742C3.265 2.429 5.694 1.27 8.438 4.73" />
+                <ellipse cx="4.739" cy="4.733" rx="1.092" ry=".995" />
+              </svg>
+              Détails
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Fermer le message des plantes modifiées"
+              disabled={acknowledging}
+              onClick={() => void acknowledgeModifiedPlants()}
+            >
+              ×
+            </button>
+          </div>
+        </section>
+      ) : null}
+      {modifiedDetailsOpen && selection ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="selection-modal selection-modified-details-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modified-plants-details-title"
+          >
+            <div className="selection-modal-heading">
+              <h2 id="modified-plants-details-title">
+                Modifications du catalogue
+              </h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Fermer le détail des plantes modifiées"
+                disabled={acknowledging}
+                onClick={() => void acknowledgeModifiedPlants()}
+              >
+                ×
+              </button>
+            </div>
+            {selection.modifiedPlants.map((plant) => (
+              <section key={plant.id} className="modified-plant-comparison">
+                <h3>{plant.name}</h3>
+                {plant.attributes.length === 0 ? (
+                  <p>Les valeurs précédentes ne sont pas disponibles.</p>
+                ) : (
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Attribut</th>
+                        <th>Avant</th>
+                        <th>Après</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {plant.attributes.map((attribute) => (
+                        <tr key={attribute.label}>
+                          <th scope="row">{attribute.label}</th>
+                          <td>{attribute.before}</td>
+                          <td>{attribute.after}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </section>
+            ))}
+          </section>
         </div>
       ) : null}
       {!loaded ? (

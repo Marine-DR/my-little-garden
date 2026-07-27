@@ -8,6 +8,8 @@ const { SqliteSelectionRepository } = require('../dist');
 const migration = [
   '001_initial_schema.sql',
   '002_remove_selection_normalized_name.sql',
+  '003_selection_plant_changes.sql',
+  '004_selection_plant_change_baseline.sql',
 ]
   .map((filename) =>
     readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
@@ -96,6 +98,7 @@ test('lists selection summaries with plant counts and four preview images', asyn
 
   assert.equal(result.length, 2);
   assert.equal(result[0].name, 'Bordure plein soleil');
+  assert.equal(result[0].status, 'up_to_date');
   assert.equal(result[0].plantCount, 5);
   assert.deepEqual(result[0].previewManagedFilenames, [
     'plant-1.png',
@@ -104,8 +107,43 @@ test('lists selection summaries with plant counts and four preview images', asyn
     'plant-4.png',
   ]);
   assert.equal(result[1].name, 'Selection vide');
+  assert.equal(result[1].status, 'up_to_date');
   assert.equal(result[1].plantCount, 0);
   assert.deepEqual(result[1].previewManagedFilenames, []);
+});
+
+test('derives modified status and clears it when the warning is acknowledged', async (t) => {
+  const database = createDatabase(t);
+  const repository = createRepository(database);
+  database
+    .prepare(
+      `INSERT INTO selections (id, name, created_at, updated_at)
+       VALUES ('selection-1', 'Massif', '2026-07-10T08:00:00.000Z',
+               '2026-07-10T08:00:00.000Z')`,
+    )
+    .run();
+  insertPlant(database, 'plant-1', 'Achillée', 'achillee');
+  database
+    .prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', 'plant-1', '2026-07-10T08:00:00.000Z')`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selection_plant_changes (
+        id, selection_id, plant_id, change_kind, plant_name, baseline_json, created_at, updated_at
+      ) VALUES ('change-1', 'selection-1', 'plant-1', 'modified', 'Achillée', '{}',
+                '2026-07-11T08:00:00.000Z', '2026-07-11T08:00:00.000Z')`,
+    )
+    .run();
+
+  const summaries = await repository.listSummaries();
+  assert.equal(summaries[0].status, 'contains_modified_plants');
+  const acknowledged =
+    await repository.acknowledgeModifiedPlants('selection-1');
+  assert.equal(acknowledged.status, 'up_to_date');
+  assert.deepEqual(acknowledged.modifiedPlants, []);
 });
 
 test('creates a trimmed named selection with unique plant links', async (t) => {

@@ -37,16 +37,36 @@ export interface CatalogPage {
 export interface SelectionSummary {
   readonly id: string;
   readonly name: string;
+  readonly status: SelectionStatus;
+  readonly modifiedPlantCount: number;
   readonly previewPhotoUrls: readonly (string | null)[];
   readonly plantCount: number;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
 
+export type SelectionStatus =
+  'up_to_date' | 'contains_modified_plants' | 'contains_deleted_plants';
+
 export interface SelectionDetails {
   readonly id: string;
   readonly name: string;
+  readonly status: SelectionStatus;
+  readonly modifiedPlantCount: number;
+  readonly modifiedPlants: readonly SelectionModifiedPlant[];
   readonly plants: readonly CatalogPlant[];
+}
+
+export interface SelectionModifiedPlant {
+  readonly id: string;
+  readonly name: string;
+  readonly attributes: readonly SelectionPlantAttributeChange[];
+}
+
+export interface SelectionPlantAttributeChange {
+  readonly label: string;
+  readonly before: string;
+  readonly after: string;
 }
 
 export interface SelectionCreationInput {
@@ -145,6 +165,7 @@ export type CatalogAddPreviewResult =
   | (CatalogPreview & {
       readonly created: number;
       readonly conflicts: readonly string[];
+      readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
     })
   | CatalogOperationFailure;
 
@@ -158,8 +179,15 @@ export type CatalogModifyPreviewResult =
   | (CatalogPreview & {
       readonly updated: number;
       readonly missing: readonly string[];
+      readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
     })
   | CatalogOperationFailure;
+
+export interface CatalogModifyImpactedSelection {
+  readonly id: string;
+  readonly name: string;
+  readonly plantNames: readonly string[];
+}
 
 export type CatalogModifyResult =
   | (CatalogUpdateResult & {

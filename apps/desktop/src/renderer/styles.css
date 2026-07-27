@@ -309,12 +309,126 @@ main {
   color: #969191;
   font-size: 14px;
 }
+.selection-detail-metadata {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.selection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.selection-status-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+}
+.selection-status-up-to-date {
+  color: #2f7d32;
+}
+.selection-status-up-to-date .selection-status-icon {
+  background: #2f7d32;
+}
+.selection-status-modified {
+  color: #a16207;
+}
+.selection-status-modified .selection-status-icon {
+  background: #a16207;
+}
+.selection-status-deleted {
+  color: #b91c1c;
+}
+.selection-status-deleted .selection-status-icon {
+  background: #b91c1c;
+}
 .selection-detail-toolbar {
   min-height: auto;
   padding-top: 10px;
   padding-bottom: 10px;
   align-items: center;
   background: #fff;
+}
+.selection-modified-message {
+  margin: 0 24px 16px;
+  padding: 14px 16px;
+  width: fit-content;
+  max-width: calc(100% - 48px);
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  color: #a16207;
+  background: #fffbeb;
+  border: 1px solid #facc15;
+  border-radius: 6px;
+}
+.selection-modified-message-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.selection-modified-message .icon-button {
+  color: #a16207;
+  background: transparent;
+}
+.selection-modified-message .icon-button:hover {
+  background: rgb(161 98 7 / 10%);
+}
+.selection-modified-message p {
+  margin: 4px 0 0;
+  color: #713f12;
+}
+.selection-modified-details-button {
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #a16207;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.selection-modified-details-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.529;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.selection-modified-details-modal {
+  width: min(820px, 100%);
+}
+.modified-plant-comparison + .modified-plant-comparison {
+  margin-top: 24px;
+}
+.modified-plant-comparison h3 {
+  margin: 0 0 8px;
+}
+.modified-plant-comparison table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.modified-plant-comparison th,
+.modified-plant-comparison td {
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
 }
 .selection-detail-toolbar .catalog-toolbar-main {
   align-items: center;

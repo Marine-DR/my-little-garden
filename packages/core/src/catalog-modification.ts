@@ -1,19 +1,46 @@
-import type { CatalogImportError, CatalogModifyResult } from './desktop-api';
+import type {
+  CatalogImportError,
+  CatalogModifyImpactedSelection,
+  CatalogModifyResult,
+} from './desktop-api';
 import { normalizeDatabaseKey } from './normalization';
 import {
   hasSameMaterialPlantRecord,
   type Plant,
   type PlantWriteInput,
 } from './plant';
-import type { IncrementalPlantCatalogRepository } from './repository';
+import type {
+  IncrementalPlantCatalogRepository,
+  SelectionPlantUsage,
+} from './repository';
 
 export type CatalogModificationPolicy = 'create_missing' | 'ignore_missing';
+
+export function groupSelectionUsages(
+  usages: readonly SelectionPlantUsage[],
+): readonly CatalogModifyImpactedSelection[] {
+  return [
+    ...usages
+      .reduce((selections, usage) => {
+        const selection = selections.get(usage.selectionId) ?? {
+          id: usage.selectionId,
+          name: usage.selectionName,
+          plantNames: [],
+        };
+        selection.plantNames.push(usage.plantName);
+        selections.set(usage.selectionId, selection);
+        return selections;
+      }, new Map<string, { id: string; name: string; plantNames: string[] }>())
+      .values(),
+  ];
+}
 
 export type CatalogModificationAnalysis = {
   readonly existingByName: ReadonlyMap<string, Plant>;
   readonly updated: number;
   readonly unchanged: number;
   readonly missing: readonly string[];
+  readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
 };
 
 /** Shared business rules for applying complete CSV records to a catalog. */
@@ -41,6 +68,17 @@ export class CatalogModificationService {
         existingByName.set(key, existing);
       }
     }
+    const changedPlants = records.flatMap((record) => {
+      const existing = existingByName.get(normalizeDatabaseKey(record.name));
+      return existing && !hasSameMaterialPlantRecord(existing, record)
+        ? [existing]
+        : [];
+    });
+    const impactedSelections = groupSelectionUsages(
+      await this.repository.listSelectionUsages(
+        changedPlants.map(({ id }) => id),
+      ),
+    );
     return {
       existingByName,
       updated: records.filter((record) => {
@@ -61,6 +99,7 @@ export class CatalogModificationService {
           (record) => !existingByName.has(normalizeDatabaseKey(record.name)),
         )
         .map(({ name }) => name),
+      impactedSelections,
     };
   }
 
@@ -93,7 +132,14 @@ export class CatalogModificationService {
           updated += 1;
         }
       }
-      this.repository.upsertImportedBatch(inputs);
+      this.repository.upsertImportedBatch(
+        inputs,
+        inputs
+          .map((input) =>
+            analysis.existingByName.get(normalizeDatabaseKey(input.name)),
+          )
+          .filter((plant): plant is Plant => plant !== undefined),
+      );
       return {
         ok: true,
         created,

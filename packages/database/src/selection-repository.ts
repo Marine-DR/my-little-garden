@@ -1,8 +1,10 @@
+import { describePlantChanges, type Plant } from '@my-little-garden/core';
 import type {
   PlantCatalogRepository,
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetailsRecord,
+  SelectionModifiedPlantRecord,
   SelectionPlantAdditionInput,
   SelectionPlantAdditionResult,
   SelectionRepository,
@@ -65,6 +67,56 @@ export class SqliteSelectionRepository implements SelectionRepository {
     return plantIds.every((plantId) => existingPlantIds.has(plantId));
   }
 
+  private statusFor(
+    selectionId: string,
+  ): 'up_to_date' | 'contains_modified_plants' {
+    const pending = this.database
+      .prepare(
+        `SELECT 1 FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'modified' LIMIT 1`,
+      )
+      .get(selectionId);
+    return pending ? 'contains_modified_plants' : 'up_to_date';
+  }
+
+  private modifiedPlantCountFor(selectionId: string): number {
+    const row = this.database
+      .prepare(
+        `SELECT count(*) AS count FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'modified'`,
+      )
+      .get(selectionId) as SqliteRow;
+    return numberColumn(row, 'count');
+  }
+
+  private modifiedPlantsFor(
+    selectionId: string,
+    plants: readonly Plant[],
+  ): readonly SelectionModifiedPlantRecord[] {
+    return this.database
+      .prepare(
+        `SELECT plant_id, plant_name, baseline_json FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'modified'
+         ORDER BY plant_name COLLATE NOCASE, plant_id`,
+      )
+      .all(selectionId)
+      .map((row) => {
+        const change = row as SqliteRow;
+        const plant = plants.find(
+          ({ id }) => id === stringColumn(change, 'plant_id'),
+        );
+        const baselineJson = nullableStringColumn(change, 'baseline_json');
+        return {
+          id: stringColumn(change, 'plant_id'),
+          name: stringColumn(change, 'plant_name'),
+          attributes:
+            plant && baselineJson
+              ? describePlantChanges(JSON.parse(baselineJson) as Plant, plant)
+              : [],
+        };
+      });
+  }
+
   async listSummaries(): Promise<SelectionSummaryRecord[]> {
     const selections = this.database
       .prepare(
@@ -111,6 +163,8 @@ export class SqliteSelectionRepository implements SelectionRepository {
     return selections.map((selection) => ({
       id: selection.id,
       name: selection.name,
+      status: this.statusFor(selection.id),
+      modifiedPlantCount: this.modifiedPlantCountFor(selection.id),
       previewManagedFilenames: previewsBySelection.get(selection.id) ?? [],
       plantCount: selection.plantCount,
       createdAt: selection.createdAt,
@@ -132,10 +186,14 @@ export class SqliteSelectionRepository implements SelectionRepository {
       )
       .all(selectionId)
       .map((row) => stringColumn(row as SqliteRow, 'plant_id'));
+    const plants = await this.plantRepository.listByIds(plantIds);
     return {
       id: stringColumn(selection, 'id'),
       name: stringColumn(selection, 'name'),
-      plants: await this.plantRepository.listByIds(plantIds),
+      status: this.statusFor(selectionId),
+      modifiedPlantCount: this.modifiedPlantCountFor(selectionId),
+      modifiedPlants: this.modifiedPlantsFor(selectionId, plants),
+      plants,
     };
   }
 
@@ -273,5 +331,23 @@ export class SqliteSelectionRepository implements SelectionRepository {
         ignoredCount: plantIds.length - addedCount,
       };
     });
+  }
+
+  async acknowledgeModifiedPlants(
+    selectionId: string,
+  ): Promise<SelectionDetailsRecord | null> {
+    const selectionExists = this.database
+      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .get(selectionId);
+    if (!selectionExists) {
+      return null;
+    }
+    this.database
+      .prepare(
+        `DELETE FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'modified'`,
+      )
+      .run(selectionId);
+    return this.get(selectionId);
   }
 }

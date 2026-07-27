@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import collapseIcon from '@renderer/assets/collapse.svg';
 import expandIcon from '@renderer/assets/expand.svg';
 import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
+import type { CatalogModifyImpactedSelection } from '@my-little-garden/core';
 
 const CATALOG_UPDATE_ERROR =
   "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.";
@@ -11,11 +12,13 @@ type PendingCatalogAction =
       readonly kind: 'add';
       readonly token: string;
       readonly plants: readonly string[];
+      readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
     }
   | {
       readonly kind: 'modify';
       readonly token: string;
       readonly plants: readonly string[];
+      readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
     };
 
 export function CatalogManager({
@@ -156,8 +159,12 @@ export function CatalogManager({
         kind: 'add' as const,
         token: preview.token,
         plants: preview.conflicts,
+        impactedSelections: preview.impactedSelections,
       };
-      if (action.plants.length === 0) {
+      if (
+        action.plants.length === 0 &&
+        action.impactedSelections.length === 0
+      ) {
         await completeCatalogAction(action, 'ignore_existing');
         return;
       }
@@ -194,8 +201,12 @@ export function CatalogManager({
         kind: 'modify' as const,
         token: preview.token,
         plants: preview.missing,
+        impactedSelections: preview.impactedSelections,
       };
-      if (action.plants.length === 0) {
+      if (
+        action.plants.length === 0 &&
+        action.impactedSelections.length === 0
+      ) {
         await completeCatalogAction(action, 'ignore_missing');
         return;
       }
@@ -310,7 +321,7 @@ export function CatalogManager({
             <div className="error-modal-heading">
               <h2 id="catalog-add-conflicts-title">
                 Les plantes suivantes existent dans le catalogue avec des
-                caractéristiques différentes
+                caractéristiques différentes :
               </h2>
               <button
                 type="button"
@@ -325,17 +336,31 @@ export function CatalogManager({
                 <li key={name}>{name}</li>
               ))}
             </ul>
+            {pendingAction.impactedSelections.length > 0 ? (
+              <>
+                <p>Certaines plantes sont utilisées dans des Sélections :</p>
+                <ul>
+                  {pendingAction.impactedSelections.map((selection) => (
+                    <li key={selection.id}>
+                      {selection.name} : {selection.plantNames.join(', ')}
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  En cas de modification, les changements seront appliqués dans
+                  le Catalogue et les Sélections concernées.
+                </p>
+              </>
+            ) : null}
             <p>Que voulez-vous faire ?</p>
             <div className="modal-actions">
               <button
                 className="secondary-button"
                 type="button"
                 disabled={importing}
-                onClick={() =>
-                  void completeCatalogAction(pendingAction, 'ignore_existing')
-                }
+                onClick={() => setPendingAction(null)}
               >
-                Ne pas mettre à jour
+                Annuler
               </button>
               <button
                 className="primary-button"
@@ -345,7 +370,17 @@ export function CatalogManager({
                   void completeCatalogAction(pendingAction, 'update_existing')
                 }
               >
-                Mettre à jour
+                Créer et modifier
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={importing}
+                onClick={() =>
+                  void completeCatalogAction(pendingAction, 'ignore_existing')
+                }
+              >
+                Créer sans modifier
               </button>
             </div>
           </section>
@@ -361,7 +396,9 @@ export function CatalogManager({
           >
             <div className="error-modal-heading">
               <h2 id="catalog-modify-missing-title">
-                Les plantes suivantes n&apos;existent pas dans le catalogue
+                {pendingAction.impactedSelections.length > 0
+                  ? 'Des plantes modifiées sont utilisées dans des sélections'
+                  : "Les plantes suivantes n'existent pas dans le catalogue"}
               </h2>
               <button
                 type="button"
@@ -371,22 +408,43 @@ export function CatalogManager({
                 ×
               </button>
             </div>
-            <ul>
-              {pendingAction.plants.map((name) => (
-                <li key={name}>{name}</li>
-              ))}
-            </ul>
+            {pendingAction.impactedSelections.length > 0 ? (
+              <>
+                <p>Certaines plantes sont utilisées dans des Sélections :</p>
+                <ul>
+                  {pendingAction.impactedSelections.map((selection) => (
+                    <li key={selection.id}>
+                      {selection.name} : {selection.plantNames.join(', ')}
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  En cas de modification, les changements seront appliqués dans
+                  le Catalogue et les Sélections concernées.
+                </p>
+              </>
+            ) : null}
+            {pendingAction.plants.length > 0 ? (
+              <>
+                <p>
+                  Les plantes suivantes n&apos;existent pas dans le catalogue :
+                </p>
+                <ul>
+                  {pendingAction.plants.map((name) => (
+                    <li key={name}>{name}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
             <p>Que voulez-vous faire ?</p>
             <div className="modal-actions">
               <button
                 className="secondary-button"
                 type="button"
                 disabled={importing}
-                onClick={() =>
-                  void completeCatalogAction(pendingAction, 'ignore_missing')
-                }
+                onClick={() => setPendingAction(null)}
               >
-                Ne pas Créer
+                Annuler
               </button>
               <button
                 className="primary-button"
@@ -396,7 +454,17 @@ export function CatalogManager({
                   void completeCatalogAction(pendingAction, 'create_missing')
                 }
               >
-                Créer
+                Créer et modifier
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={importing}
+                onClick={() =>
+                  void completeCatalogAction(pendingAction, 'ignore_missing')
+                }
+              >
+                Modifier sans créer
               </button>
             </div>
           </section>

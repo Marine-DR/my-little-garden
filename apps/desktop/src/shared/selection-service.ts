@@ -13,6 +13,7 @@ export const SELECTION_CHANNELS = {
   addPlants: 'selections:add-plants',
   get: 'selections:get',
   removePlants: 'selections:remove-plants',
+  acknowledgeModified: 'selections:acknowledge-modified',
 } as const;
 
 export interface SelectionService {
@@ -21,6 +22,9 @@ export interface SelectionService {
   removePlantsFromSelection(
     selectionId: string,
     plantIds: readonly string[],
+  ): Promise<SelectionDetails | null>;
+  acknowledgeModifiedPlants(
+    selectionId: string,
   ): Promise<SelectionDetails | null>;
   createSelection(
     input: SelectionCreationInput,
