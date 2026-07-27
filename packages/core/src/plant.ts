@@ -6,6 +6,7 @@ import type {
   PLANT_KINDS,
 } from './constants';
 import type { NonEmptyArray } from './types';
+import { normalizeDatabaseKey } from './normalization';
 
 export type ExposureCode = (typeof EXPOSURE_CODES)[number];
 export type PlantingSeasonCode = (typeof PLANTING_SEASON_CODES)[number];
@@ -76,4 +77,61 @@ export interface PlantWriteInput {
   readonly spacingCm: number | null;
   readonly plantingSeasons: readonly PlantingSeasonCode[];
   readonly photo: PlantPhoto | null;
+}
+
+/**
+ * Compares catalog records using their material fields only. Technical fields
+ * and managed photos are deliberately excluded from CSV catalog maintenance.
+ */
+export function hasSameMaterialPlantRecord(
+  existing: Plant,
+  imported: PlantWriteInput,
+): boolean {
+  const materialRecord = (input: Plant | PlantWriteInput): string => {
+    const values =
+      'typeLabel' in input
+        ? {
+            name: normalizeDatabaseKey(input.name),
+            height: input.heightCm,
+            type: input.typeLabel
+              ? normalizeDatabaseKey(input.typeLabel)
+              : null,
+            kind: input.kind,
+            soils: input.soilLabels.map(normalizeDatabaseKey).sort(),
+            exposures: [...input.exposures].sort(),
+            bloom: input.bloom,
+            flowers: input.flowerColorLabels.map(normalizeDatabaseKey).sort(),
+            leaves: input.leafColorLabels.map(normalizeDatabaseKey).sort(),
+            temperature: input.minimumTemperatureCelsius,
+            foliage: input.foliagePersistence,
+            spacing: input.spacingCm,
+            seasons: [...input.plantingSeasons].sort(),
+          }
+        : {
+            name: normalizeDatabaseKey(input.name),
+            height: input.heightCm,
+            type: input.type?.label
+              ? normalizeDatabaseKey(input.type.label)
+              : null,
+            kind: input.kind,
+            soils: input.soils
+              .map(({ label }) => normalizeDatabaseKey(label))
+              .sort(),
+            exposures: [...input.exposures].sort(),
+            bloom: input.bloom,
+            flowers: input.flowerColors
+              .map(({ label }) => normalizeDatabaseKey(label))
+              .sort(),
+            leaves: input.leafColors
+              .map(({ label }) => normalizeDatabaseKey(label))
+              .sort(),
+            temperature: input.minimumTemperatureCelsius,
+            foliage: input.foliagePersistence,
+            spacing: input.spacingCm,
+            seasons: [...input.plantingSeasons].sort(),
+          };
+    return JSON.stringify(values);
+  };
+
+  return materialRecord(existing) === materialRecord(imported);
 }

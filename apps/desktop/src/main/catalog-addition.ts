@@ -1,15 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { CsvPlantCatalogImporter } from '@my-little-garden/communication';
 import {
+  hasSameMaterialPlantRecord,
   normalizeDatabaseKey,
   type CatalogAddPreviewResult,
   type CatalogAddResult,
-  type CatalogImportError,
+  type PlantCatalogImporter,
   type Plant,
   type PlantWriteInput,
+  type IncrementalPlantCatalogRepository,
 } from '@my-little-garden/core';
-import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
-import type { DatabaseSync } from 'node:sqlite';
 
 type Preview = {
   readonly records: readonly PlantWriteInput[];
@@ -17,84 +16,30 @@ type Preview = {
   readonly expiresAt: number;
 };
 
-function materialRecord(input: PlantWriteInput | Plant): string {
-  const values =
-    'typeLabel' in input
-      ? {
-          name: normalizeDatabaseKey(input.name),
-          height: input.heightCm,
-          type: input.typeLabel ? normalizeDatabaseKey(input.typeLabel) : null,
-          kind: input.kind,
-          soils: input.soilLabels.map(normalizeDatabaseKey).sort(),
-          exposures: [...input.exposures].sort(),
-          bloom: input.bloom,
-          flowers: input.flowerColorLabels.map(normalizeDatabaseKey).sort(),
-          leaves: input.leafColorLabels.map(normalizeDatabaseKey).sort(),
-          temperature: input.minimumTemperatureCelsius,
-          foliage: input.foliagePersistence,
-          spacing: input.spacingCm,
-          seasons: [...input.plantingSeasons].sort(),
-        }
-      : {
-          name: normalizeDatabaseKey(input.name),
-          height: input.heightCm,
-          type: input.type?.label
-            ? normalizeDatabaseKey(input.type.label)
-            : null,
-          kind: input.kind,
-          soils: input.soils
-            .map(({ label }) => normalizeDatabaseKey(label))
-            .sort(),
-          exposures: [...input.exposures].sort(),
-          bloom: input.bloom,
-          flowers: input.flowerColors
-            .map(({ label }) => normalizeDatabaseKey(label))
-            .sort(),
-          leaves: input.leafColors
-            .map(({ label }) => normalizeDatabaseKey(label))
-            .sort(),
-          temperature: input.minimumTemperatureCelsius,
-          foliage: input.foliagePersistence,
-          spacing: input.spacingCm,
-          seasons: [...input.plantingSeasons].sort(),
-        };
-  return JSON.stringify(values);
-}
-
-function fileErrors(
-  filename: string,
-  csv: string,
-): readonly CatalogImportError[] {
-  if (!/\.csv$/iu.test(filename)) {
-    return [
-      {
-        code: 'invalid_file_type',
-        field: 'file',
-        message: 'Le fichier doit être au format .csv.',
-      },
-    ];
-  }
-  const result = new CsvPlantCatalogImporter().importData(csv);
-  return result.ok ? [] : result.errors;
-}
-
 export class CatalogAdditionService {
   private readonly previews = new Map<string, Preview>();
-  private readonly repository: SqlitePlantCatalogRepository;
-
-  constructor(database: DatabaseSync) {
-    this.repository = new SqlitePlantCatalogRepository(database);
-  }
+  constructor(
+    private readonly repository: IncrementalPlantCatalogRepository,
+    private readonly importer: PlantCatalogImporter,
+  ) {}
 
   async preview(
     filename: string,
     csv: string,
   ): Promise<CatalogAddPreviewResult> {
-    const errors = fileErrors(filename, csv);
-    if (errors.length > 0) {
-      return { ok: false, errors };
+    if (!/\.csv$/iu.test(filename)) {
+      return {
+        ok: false,
+        errors: [
+          {
+            code: 'invalid_file_type',
+            field: 'file',
+            message: 'Le fichier doit être au format .csv.',
+          },
+        ],
+      };
     }
-    const parsed = new CsvPlantCatalogImporter().importData(csv);
+    const parsed = this.importer.importData(csv);
     if (!parsed.ok) {
       return parsed;
     }
@@ -124,11 +69,11 @@ export class CatalogAdditionService {
     }
     const conflicts = parsed.records.filter((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
-      return existing && materialRecord(existing) !== materialRecord(record);
+      return existing && !hasSameMaterialPlantRecord(existing, record);
     });
     const unchanged = parsed.records.filter((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
-      return existing && materialRecord(existing) === materialRecord(record);
+      return existing && hasSameMaterialPlantRecord(existing, record);
     }).length;
     const token = randomUUID();
     this.previews.set(token, {
@@ -178,7 +123,7 @@ export class CatalogAdditionService {
           created += 1;
           continue;
         }
-        if (materialRecord(existing) === materialRecord(record)) {
+        if (hasSameMaterialPlantRecord(existing, record)) {
           alreadyExisted += 1;
           continue;
         }

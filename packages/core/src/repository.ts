@@ -68,6 +68,11 @@ export interface PlantCatalogReplacementRepository {
   replace(plants: Iterable<PlantWriteInput>): number;
 }
 
+export interface IncrementalPlantCatalogRepository {
+  findByNormalizedName(normalizedName: string): Promise<Plant | null>;
+  upsertImportedBatch(inputs: readonly PlantWriteInput[]): void;
+}
+
 export interface PlantPhotoRepository {
   listTargets(): PlantPhotoTarget[];
   upsert(record: PlantPhotoRecord): void;

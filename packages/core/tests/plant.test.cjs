@@ -3,6 +3,7 @@ const test = require('node:test');
 
 const {
   normalizeDatabaseKey,
+  hasSameMaterialPlantRecord,
   validatePlantWriteInput,
   PlantWriteInputValidator,
 } = require('../dist/index.js');
@@ -41,6 +42,39 @@ test('preserves meaningful special characters in normalized names', () => {
 
 test('accepts a complete valid plant', () => {
   assert.deepEqual(validatePlantWriteInput(validPlant()), []);
+});
+
+test('compares complete material records independently of technical fields', () => {
+  const imported = validPlant();
+  const existing = {
+    id: 'existing-id',
+    name: 'Rosé ancienne',
+    heightCm: { min: 40, max: 80 },
+    type: { id: 1, label: 'Vivace' },
+    kind: 'flower',
+    soils: [{ id: 1, label: 'Drainé' }],
+    exposures: ['sun'],
+    bloom: { startMonth: 5, endMonth: 9 },
+    flowerColors: [{ id: 2, label: 'Rose' }],
+    leafColors: [{ id: 3, label: 'Vert' }],
+    minimumTemperatureCelsius: -10,
+    foliagePersistence: 'deciduous',
+    spacingCm: 40,
+    plantingSeasons: ['spring', 'autumn'],
+    photo: {
+      managedFilename: 'rose.png',
+      mediaType: 'image/png',
+      checksumSha256: 'checksum',
+    },
+    createdAt: new Date('2026-01-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-02-01T00:00:00.000Z'),
+  };
+
+  assert.equal(hasSameMaterialPlantRecord(existing, imported), true);
+  assert.equal(
+    hasSameMaterialPlantRecord(existing, validPlant({ spacingCm: 50 })),
+    false,
+  );
 });
 
 test('uses a reusable validator service for core domain rules', () => {

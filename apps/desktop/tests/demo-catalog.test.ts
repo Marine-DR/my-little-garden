@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { readCatalogCsvTemplate } from '@my-little-garden/communication';
+import {
+  CsvPlantCatalogImporter,
+  readCatalogCsvTemplate,
+} from '@my-little-garden/communication';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -36,7 +39,10 @@ describe('demo catalog', () => {
     seedDemoCatalog(database, demoCsv);
     const lines = demoCsv.split(/\r?\n/u);
     const csv = `${lines[0]}\n${lines[1]}\nAster,10,20,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,printemps\n`;
-    const service = new CatalogAdditionService(database);
+    const service = new CatalogAdditionService(
+      new SqlitePlantCatalogRepository(database),
+      new CsvPlantCatalogImporter(),
+    );
     const preview = await service.preview('ajout.csv', csv);
     expect(preview).toMatchObject({
       ok: true,
