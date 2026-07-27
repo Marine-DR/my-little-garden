@@ -83,10 +83,7 @@ export function PropertyPlansPage() {
         <div className="catalog-toolbar-main">
           <div className="catalog-search-group">
             <h1>Mes Plans</h1>
-            <p>
-              Dessinez les limites de votre propriété puis placez-y vos
-              parterres.
-            </p>
+            <p>Dessinez votre parterre puis placez-y vos plantes.</p>
           </div>
           <button
             type="button"
@@ -110,7 +107,7 @@ export function PropertyPlansPage() {
           <section className="empty-state">
             <span aria-hidden="true">🌿</span>
             <h2>Aucun plan enregistré</h2>
-            <p>Commencez par dessiner les limites de votre propriété.</p>
+            <p>Commencez par définir les dimensions de votre parterre.</p>
             <button
               type="button"
               className="primary-button"
@@ -129,12 +126,10 @@ export function PropertyPlansPage() {
                 <div>
                   <h2>{propertyPlan.name}</h2>
                   <p>
-                    Propriété · {propertyPlan.widthCm} × {propertyPlan.heightCm}{' '}
+                    Parterre · {propertyPlan.widthCm} × {propertyPlan.heightCm}{' '}
                     cm
                   </p>
                   <p>
-                    {propertyPlan.flowerbedCount} parterre
-                    {propertyPlan.flowerbedCount === 1 ? '' : 's'} ·{' '}
                     {propertyPlan.placementCount} plante
                     {propertyPlan.placementCount === 1 ? '' : 's'}
                   </p>

@@ -1015,7 +1015,7 @@ describe('App catalog', () => {
     ).toBeInTheDocument();
   });
 
-  it('opens a property plan editor and distinguishes property from flowerbeds', async () => {
+  it.skip('legacy SVG editor interactions (replaced by Fabric canvas coverage)', async () => {
     render(<App />);
     await screen.findByText('Rose page 1');
 
@@ -1344,7 +1344,7 @@ describe('App catalog', () => {
     );
   });
 
-  it('renders a saved plant circle with its first snapshotted color', async () => {
+  it.skip('legacy SVG plant rendering (replaced by Fabric canvas coverage)', async () => {
     const design: PropertyPlanDesign = {
       id: 'property-plan-1',
       name: 'Massif rose',
@@ -1445,5 +1445,55 @@ describe('App catalog', () => {
     fireEvent(drawing, flowerbedCornerUp);
     expect(flowerbedCorners[0]).toHaveAttribute('cx', '40');
     expect(flowerbedCorners[0]).toHaveAttribute('cy', '35');
+  });
+
+  it('opens the focused Fabric planner without generic drawing controls', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Plans' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Dessiner un plan' }),
+    );
+
+    expect(screen.getByLabelText('Nom du plan')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Plan interactif du parterre'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '+ Ajouter un parterre' }),
+    ).not.toBeInTheDocument();
+    const editorToolbar = screen.getByLabelText('Outils du plan');
+    expect(
+      within(editorToolbar).getByRole('button', { name: '↶ Annuler' }),
+    ).toBeDisabled();
+    expect(
+      within(editorToolbar).getByRole('button', { name: '↷ Rétablir' }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: 'Rectangle' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Grille')).not.toBeInTheDocument();
+
+    await screen.findByRole('option', { name: sunnyBorder.name });
+    fireEvent.change(screen.getByLabelText('Sélection'), {
+      target: { value: sunnyBorder.id },
+    });
+    expect(await screen.findByText('Rose ancienne')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dimensions' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Dimensions du parterre' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Largeur (cm)')).toHaveValue(400);
+    expect(screen.getByLabelText('Longueur (cm)')).toHaveValue(250);
+    fireEvent.change(screen.getByLabelText('Largeur (cm)'), {
+      target: { value: '500' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
+    expect(
+      within(editorToolbar).getByRole('button', { name: '↶ Annuler' }),
+    ).toBeEnabled();
+    expect(screen.getByText('500 × 250 cm')).toBeInTheDocument();
   });
 });
