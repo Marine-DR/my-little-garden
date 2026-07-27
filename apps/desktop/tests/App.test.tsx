@@ -13,6 +13,8 @@ import type {
   CatalogImportResult,
   CatalogAddPreviewResult,
   CatalogAddResult,
+  CatalogModifyPreviewResult,
+  CatalogModifyResult,
   CatalogPage,
   CatalogPlant,
   PhotoDeleteResult,
@@ -88,6 +90,17 @@ describe('App catalog', () => {
         policy: 'update_existing' | 'ignore_existing',
       ) => Promise<CatalogAddResult>
     >();
+  const previewCatalogModification =
+    vi.fn<
+      (filename: string, csv: string) => Promise<CatalogModifyPreviewResult>
+    >();
+  const commitCatalogModification =
+    vi.fn<
+      (
+        token: string,
+        policy: 'create_missing' | 'ignore_missing',
+      ) => Promise<CatalogModifyResult>
+    >();
   const importPhotos =
     vi.fn<
       (
@@ -141,6 +154,21 @@ describe('App catalog', () => {
       alreadyExisted: 0,
       notAdded: 0,
     });
+    previewCatalogModification.mockResolvedValue({
+      ok: true,
+      token: 'modification-preview',
+      updated: 1,
+      unchanged: 0,
+      missing: [],
+    });
+    commitCatalogModification.mockResolvedValue({
+      ok: true,
+      created: 0,
+      updated: 1,
+      ignored: 0,
+      unchanged: 0,
+      notAdded: 0,
+    });
     importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
     deletePhoto.mockResolvedValue({ ok: true });
     listSelections.mockResolvedValue([sunnyBorder]);
@@ -186,6 +214,8 @@ describe('App catalog', () => {
       replaceCatalog,
       previewCatalogAddition,
       commitCatalogAddition,
+      previewCatalogModification,
+      commitCatalogModification,
       getTemplate: vi.fn(async () => 'Nom,Sol,Exposition\nRose,Drainé,Soleil'),
     };
     window.photoService = {

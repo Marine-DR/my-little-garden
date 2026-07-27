@@ -5,6 +5,7 @@ import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { CATALOG_MANAGEMENT_CHANNELS } from '../../shared/catalog-management-service.js';
 import { replaceCatalog } from '../catalog-replacement.js';
 import { CatalogAdditionService } from '../catalog-addition.js';
+import { CatalogModificationImportService } from '../catalog-modification.js';
 
 export function registerCatalogManagementHandlers(
   ipcMain: IpcMain,
@@ -13,6 +14,10 @@ export function registerCatalogManagementHandlers(
   catalogTemplate: string,
 ): void {
   const addition = new CatalogAdditionService(
+    new SqlitePlantCatalogRepository(database),
+    new CsvPlantCatalogImporter(),
+  );
+  const modification = new CatalogModificationImportService(
     new SqlitePlantCatalogRepository(database),
     new CsvPlantCatalogImporter(),
   );
@@ -30,5 +35,15 @@ export function registerCatalogManagementHandlers(
     CATALOG_MANAGEMENT_CHANNELS.addCommit,
     (_event, token: string, policy: 'update_existing' | 'ignore_existing') =>
       addition.commit(token, policy),
+  );
+  ipcMain.handle(
+    CATALOG_MANAGEMENT_CHANNELS.modifyPreview,
+    (_event, filename: string, csv: string) =>
+      modification.preview(filename, csv),
+  );
+  ipcMain.handle(
+    CATALOG_MANAGEMENT_CHANNELS.modifyCommit,
+    (_event, token: string, policy: 'create_missing' | 'ignore_missing') =>
+      modification.commit(token, policy),
   );
 }

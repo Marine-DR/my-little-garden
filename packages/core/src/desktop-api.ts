@@ -142,3 +142,24 @@ export type CatalogAddResult =
       readonly notAdded: number;
     }
   | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+
+export type CatalogModifyPreviewResult =
+  | {
+      readonly ok: true;
+      readonly token: string;
+      readonly updated: number;
+      readonly unchanged: number;
+      readonly missing: readonly string[];
+    }
+  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+
+export type CatalogModifyResult =
+  | {
+      readonly ok: true;
+      readonly created: number;
+      readonly updated: number;
+      readonly ignored: number;
+      readonly unchanged: number;
+      readonly notAdded: number;
+    }
+  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };

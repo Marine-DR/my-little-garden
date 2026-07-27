@@ -20,7 +20,13 @@ export function CatalogManager({
   const [importing, setImporting] = useState(false);
   const [additionToken, setAdditionToken] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<readonly string[]>([]);
-  const [fileAction, setFileAction] = useState<'add' | 'replace' | null>(null);
+  const [modificationToken, setModificationToken] = useState<string | null>(
+    null,
+  );
+  const [missingPlants, setMissingPlants] = useState<readonly string[]>([]);
+  const [fileAction, setFileAction] = useState<
+    'add' | 'modify' | 'replace' | null
+  >(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const menu = useRef<HTMLDivElement>(null);
 
@@ -137,6 +143,83 @@ export function CatalogManager({
     }
   };
 
+  const completeModification = async (
+    token: string,
+    policy: 'create_missing' | 'ignore_missing',
+  ): Promise<void> => {
+    setImporting(true);
+    try {
+      const result =
+        await window.catalogManagementService.commitCatalogModification(
+          token,
+          policy,
+        );
+      if (!result.ok) {
+        setErrors([
+          "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
+        ]);
+        return;
+      }
+      onReplaced();
+      const details = [
+        `${result.updated} ${result.updated === 1 ? 'plante a été mise à jour.' : 'plantes ont été mises à jour.'}`,
+        result.created > 0
+          ? `${result.created} ${result.created === 1 ? 'plante a été créée.' : 'plantes ont été créées.'}`
+          : '',
+        result.notAdded > 0
+          ? `${result.notAdded} ${result.notAdded === 1 ? 'plante n’a pas pu être ajoutée.' : 'plantes n’ont pas pu être ajoutées.'}`
+          : '',
+      ].filter(Boolean);
+      onSuccess(details.join(' '));
+    } catch {
+      setErrors([
+        "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
+      ]);
+    } finally {
+      setModificationToken(null);
+      setMissingPlants([]);
+      setImporting(false);
+    }
+  };
+
+  const modifyCatalog = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    setImporting(true);
+    setErrors([]);
+    setMenuOpen(false);
+    try {
+      const preview =
+        await window.catalogManagementService.previewCatalogModification(
+          file.name,
+          await file.text(),
+        );
+      if (!preview.ok) {
+        setErrors([
+          "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
+        ]);
+        return;
+      }
+      if (preview.missing.length === 0) {
+        await completeModification(preview.token, 'ignore_missing');
+        return;
+      }
+      setModificationToken(preview.token);
+      setMissingPlants(preview.missing);
+    } catch {
+      setErrors([
+        "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
+      ]);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <>
       <div className="catalog-actions">
@@ -168,6 +251,16 @@ export function CatalogManager({
               <button
                 type="button"
                 onClick={() => {
+                  setFileAction('modify');
+                  fileInput.current?.click();
+                }}
+              >
+                <span aria-hidden="true">✎</span>
+                Modifier des plantes depuis un CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setFileAction('replace');
                   fileInput.current?.click();
                 }}
@@ -185,7 +278,9 @@ export function CatalogManager({
             onChange={(event) =>
               void (fileAction === 'add'
                 ? addCatalog(event)
-                : replaceCatalog(event))
+                : fileAction === 'modify'
+                  ? modifyCatalog(event)
+                  : replaceCatalog(event))
             }
           />
         </div>
@@ -267,6 +362,60 @@ export function CatalogManager({
                 }
               >
                 Mettre à jour
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+      {modificationToken ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="error-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="catalog-modify-missing-title"
+          >
+            <div className="error-modal-heading">
+              <h2 id="catalog-modify-missing-title">
+                Les plantes suivantes n&apos;existent pas dans le catalogue
+              </h2>
+              <button
+                type="button"
+                aria-label="Fermer le conflit d’import"
+                onClick={() => {
+                  setModificationToken(null);
+                  setMissingPlants([]);
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <ul>
+              {missingPlants.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+            <p>Que voulez-vous faire ?</p>
+            <div className="modal-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={importing}
+                onClick={() =>
+                  void completeModification(modificationToken, 'ignore_missing')
+                }
+              >
+                Ne pas Créer
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={importing}
+                onClick={() =>
+                  void completeModification(modificationToken, 'create_missing')
+                }
+              >
+                Créer
               </button>
             </div>
           </section>
