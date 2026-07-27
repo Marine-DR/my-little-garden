@@ -122,44 +122,47 @@ export type CatalogImportResult =
   | { readonly ok: true; readonly imported: number }
   | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
 
+type CatalogOperationFailure = {
+  readonly ok: false;
+  readonly errors: readonly CatalogImportError[];
+};
+
+type CatalogPreview = {
+  readonly ok: true;
+  readonly token: string;
+  readonly unchanged: number;
+};
+
+type CatalogUpdateResult = {
+  readonly ok: true;
+  readonly created: number;
+  readonly updated: number;
+  readonly ignored: number;
+  readonly notAdded: number;
+};
+
 export type CatalogAddPreviewResult =
-  | {
-      readonly ok: true;
-      readonly token: string;
+  | (CatalogPreview & {
       readonly created: number;
-      readonly unchanged: number;
       readonly conflicts: readonly string[];
-    }
-  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+    })
+  | CatalogOperationFailure;
 
 export type CatalogAddResult =
-  | {
-      readonly ok: true;
-      readonly created: number;
-      readonly updated: number;
-      readonly ignored: number;
+  | (CatalogUpdateResult & {
       readonly alreadyExisted: number;
-      readonly notAdded: number;
-    }
-  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+    })
+  | CatalogOperationFailure;
 
 export type CatalogModifyPreviewResult =
-  | {
-      readonly ok: true;
-      readonly token: string;
+  | (CatalogPreview & {
       readonly updated: number;
-      readonly unchanged: number;
       readonly missing: readonly string[];
-    }
-  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+    })
+  | CatalogOperationFailure;
 
 export type CatalogModifyResult =
-  | {
-      readonly ok: true;
-      readonly created: number;
-      readonly updated: number;
-      readonly ignored: number;
+  | (CatalogUpdateResult & {
       readonly unchanged: number;
-      readonly notAdded: number;
-    }
-  | { readonly ok: false; readonly errors: readonly CatalogImportError[] };
+    })
+  | CatalogOperationFailure;

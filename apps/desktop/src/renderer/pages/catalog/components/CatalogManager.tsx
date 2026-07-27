@@ -3,8 +3,20 @@ import collapseIcon from '@renderer/assets/collapse.svg';
 import expandIcon from '@renderer/assets/expand.svg';
 import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
 
-const CATALOG_ADDITION_ERROR =
+const CATALOG_UPDATE_ERROR =
   "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.";
+
+type PendingCatalogAction =
+  | {
+      readonly kind: 'add';
+      readonly token: string;
+      readonly plants: readonly string[];
+    }
+  | {
+      readonly kind: 'modify';
+      readonly token: string;
+      readonly plants: readonly string[];
+    };
 
 export function CatalogManager({
   onReplaced,
@@ -18,12 +30,8 @@ export function CatalogManager({
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [additionToken, setAdditionToken] = useState<string | null>(null);
-  const [conflicts, setConflicts] = useState<readonly string[]>([]);
-  const [modificationToken, setModificationToken] = useState<string | null>(
-    null,
-  );
-  const [missingPlants, setMissingPlants] = useState<readonly string[]>([]);
+  const [pendingAction, setPendingAction] =
+    useState<PendingCatalogAction | null>(null);
   const [fileAction, setFileAction] = useState<
     'add' | 'modify' | 'replace' | null
   >(null);
@@ -71,27 +79,42 @@ export function CatalogManager({
     }
   };
 
-  const completeAddition = async (
-    token: string,
-    policy: 'update_existing' | 'ignore_existing',
+  const completeCatalogAction = async (
+    action: PendingCatalogAction,
+    policy:
+      | 'update_existing'
+      | 'ignore_existing'
+      | 'create_missing'
+      | 'ignore_missing',
   ): Promise<void> => {
     setImporting(true);
     try {
       const result =
-        await window.catalogManagementService.commitCatalogAddition(
-          token,
-          policy,
-        );
+        action.kind === 'add'
+          ? await window.catalogManagementService.commitCatalogAddition(
+              action.token,
+              policy as 'update_existing' | 'ignore_existing',
+            )
+          : await window.catalogManagementService.commitCatalogModification(
+              action.token,
+              policy as 'create_missing' | 'ignore_missing',
+            );
       if (!result.ok) {
-        setErrors([CATALOG_ADDITION_ERROR]);
+        setErrors([CATALOG_UPDATE_ERROR]);
         return;
       }
       onReplaced();
       const details = [
-        `${result.created} ${result.created === 1 ? 'plante a été ajoutée' : 'plantes ont été ajoutées'} au catalogue.`,
-        result.updated > 0
+        action.kind === 'add'
+          ? `${result.created} ${result.created === 1 ? 'plante a été ajoutée' : 'plantes ont été ajoutées'} au catalogue.`
+          : `${result.updated} ${result.updated === 1 ? 'plante a été mise à jour.' : 'plantes ont été mises à jour.'}`,
+        result.updated > 0 && action.kind === 'add'
           ? `${result.updated} ${result.updated === 1 ? 'plante a été mise à jour' : 'plantes ont été mises à jour'}.`
-          : '',
+          : action.kind === 'modify' && result.created > 0
+            ? `${result.created} ${result.created === 1 ? 'plante a été créée.' : 'plantes ont été créées.'}`
+            : '',
+        action.kind === 'add' &&
+        'alreadyExisted' in result &&
         result.alreadyExisted > 0
           ? `${result.alreadyExisted} ${result.alreadyExisted === 1 ? 'plante existait déjà' : 'plantes existaient déjà'}.`
           : '',
@@ -101,10 +124,9 @@ export function CatalogManager({
       ].filter(Boolean);
       onSuccess(details.join(' '));
     } catch {
-      setErrors([CATALOG_ADDITION_ERROR]);
+      setErrors([CATALOG_UPDATE_ERROR]);
     } finally {
-      setAdditionToken(null);
-      setConflicts([]);
+      setPendingAction(null);
       setImporting(false);
     }
   };
@@ -127,57 +149,22 @@ export function CatalogManager({
           await file.text(),
         );
       if (!preview.ok) {
-        setErrors([CATALOG_ADDITION_ERROR]);
+        setErrors([CATALOG_UPDATE_ERROR]);
         return;
       }
-      if (preview.conflicts.length === 0) {
-        await completeAddition(preview.token, 'ignore_existing');
+      const action = {
+        kind: 'add' as const,
+        token: preview.token,
+        plants: preview.conflicts,
+      };
+      if (action.plants.length === 0) {
+        await completeCatalogAction(action, 'ignore_existing');
         return;
       }
-      setAdditionToken(preview.token);
-      setConflicts(preview.conflicts);
+      setPendingAction(action);
     } catch {
-      setErrors([CATALOG_ADDITION_ERROR]);
+      setErrors([CATALOG_UPDATE_ERROR]);
     } finally {
-      setImporting(false);
-    }
-  };
-
-  const completeModification = async (
-    token: string,
-    policy: 'create_missing' | 'ignore_missing',
-  ): Promise<void> => {
-    setImporting(true);
-    try {
-      const result =
-        await window.catalogManagementService.commitCatalogModification(
-          token,
-          policy,
-        );
-      if (!result.ok) {
-        setErrors([
-          "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-        ]);
-        return;
-      }
-      onReplaced();
-      const details = [
-        `${result.updated} ${result.updated === 1 ? 'plante a été mise à jour.' : 'plantes ont été mises à jour.'}`,
-        result.created > 0
-          ? `${result.created} ${result.created === 1 ? 'plante a été créée.' : 'plantes ont été créées.'}`
-          : '',
-        result.notAdded > 0
-          ? `${result.notAdded} ${result.notAdded === 1 ? 'plante n’a pas pu être ajoutée.' : 'plantes n’ont pas pu être ajoutées.'}`
-          : '',
-      ].filter(Boolean);
-      onSuccess(details.join(' '));
-    } catch {
-      setErrors([
-        "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-      ]);
-    } finally {
-      setModificationToken(null);
-      setMissingPlants([]);
       setImporting(false);
     }
   };
@@ -200,21 +187,21 @@ export function CatalogManager({
           await file.text(),
         );
       if (!preview.ok) {
-        setErrors([
-          "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-        ]);
+        setErrors([CATALOG_UPDATE_ERROR]);
         return;
       }
-      if (preview.missing.length === 0) {
-        await completeModification(preview.token, 'ignore_missing');
+      const action = {
+        kind: 'modify' as const,
+        token: preview.token,
+        plants: preview.missing,
+      };
+      if (action.plants.length === 0) {
+        await completeCatalogAction(action, 'ignore_missing');
         return;
       }
-      setModificationToken(preview.token);
-      setMissingPlants(preview.missing);
+      setPendingAction(action);
     } catch {
-      setErrors([
-        "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-      ]);
+      setErrors([CATALOG_UPDATE_ERROR]);
     } finally {
       setImporting(false);
     }
@@ -312,7 +299,7 @@ export function CatalogManager({
           </section>
         </div>
       ) : null}
-      {additionToken ? (
+      {pendingAction?.kind === 'add' ? (
         <div className="modal-backdrop" role="presentation">
           <section
             className="error-modal"
@@ -328,16 +315,13 @@ export function CatalogManager({
               <button
                 type="button"
                 aria-label="Fermer le conflit d’import"
-                onClick={() => {
-                  setAdditionToken(null);
-                  setConflicts([]);
-                }}
+                onClick={() => setPendingAction(null)}
               >
                 ×
               </button>
             </div>
             <ul>
-              {conflicts.map((name) => (
+              {pendingAction.plants.map((name) => (
                 <li key={name}>{name}</li>
               ))}
             </ul>
@@ -348,7 +332,7 @@ export function CatalogManager({
                 type="button"
                 disabled={importing}
                 onClick={() =>
-                  void completeAddition(additionToken, 'ignore_existing')
+                  void completeCatalogAction(pendingAction, 'ignore_existing')
                 }
               >
                 Ne pas mettre à jour
@@ -358,7 +342,7 @@ export function CatalogManager({
                 type="button"
                 disabled={importing}
                 onClick={() =>
-                  void completeAddition(additionToken, 'update_existing')
+                  void completeCatalogAction(pendingAction, 'update_existing')
                 }
               >
                 Mettre à jour
@@ -367,7 +351,7 @@ export function CatalogManager({
           </section>
         </div>
       ) : null}
-      {modificationToken ? (
+      {pendingAction?.kind === 'modify' ? (
         <div className="modal-backdrop" role="presentation">
           <section
             className="error-modal"
@@ -382,16 +366,13 @@ export function CatalogManager({
               <button
                 type="button"
                 aria-label="Fermer le conflit d’import"
-                onClick={() => {
-                  setModificationToken(null);
-                  setMissingPlants([]);
-                }}
+                onClick={() => setPendingAction(null)}
               >
                 ×
               </button>
             </div>
             <ul>
-              {missingPlants.map((name) => (
+              {pendingAction.plants.map((name) => (
                 <li key={name}>{name}</li>
               ))}
             </ul>
@@ -402,7 +383,7 @@ export function CatalogManager({
                 type="button"
                 disabled={importing}
                 onClick={() =>
-                  void completeModification(modificationToken, 'ignore_missing')
+                  void completeCatalogAction(pendingAction, 'ignore_missing')
                 }
               >
                 Ne pas Créer
@@ -412,7 +393,7 @@ export function CatalogManager({
                 type="button"
                 disabled={importing}
                 onClick={() =>
-                  void completeModification(modificationToken, 'create_missing')
+                  void completeCatalogAction(pendingAction, 'create_missing')
                 }
               >
                 Créer
