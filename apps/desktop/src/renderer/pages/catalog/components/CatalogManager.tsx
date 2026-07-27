@@ -3,8 +3,20 @@ import collapseIcon from '@renderer/assets/collapse.svg';
 import expandIcon from '@renderer/assets/expand.svg';
 import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
 
-const CATALOG_ADDITION_ERROR =
+const CATALOG_UPDATE_ERROR =
   "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.";
+
+type PendingCatalogAction =
+  | {
+      readonly kind: 'add';
+      readonly token: string;
+      readonly plants: readonly string[];
+    }
+  | {
+      readonly kind: 'modify';
+      readonly token: string;
+      readonly plants: readonly string[];
+    };
 
 export function CatalogManager({
   onReplaced,
@@ -18,9 +30,11 @@ export function CatalogManager({
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [additionToken, setAdditionToken] = useState<string | null>(null);
-  const [conflicts, setConflicts] = useState<readonly string[]>([]);
-  const [fileAction, setFileAction] = useState<'add' | 'replace' | null>(null);
+  const [pendingAction, setPendingAction] =
+    useState<PendingCatalogAction | null>(null);
+  const [fileAction, setFileAction] = useState<
+    'add' | 'modify' | 'replace' | null
+  >(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const menu = useRef<HTMLDivElement>(null);
 
@@ -65,27 +79,42 @@ export function CatalogManager({
     }
   };
 
-  const completeAddition = async (
-    token: string,
-    policy: 'update_existing' | 'ignore_existing',
+  const completeCatalogAction = async (
+    action: PendingCatalogAction,
+    policy:
+      | 'update_existing'
+      | 'ignore_existing'
+      | 'create_missing'
+      | 'ignore_missing',
   ): Promise<void> => {
     setImporting(true);
     try {
       const result =
-        await window.catalogManagementService.commitCatalogAddition(
-          token,
-          policy,
-        );
+        action.kind === 'add'
+          ? await window.catalogManagementService.commitCatalogAddition(
+              action.token,
+              policy as 'update_existing' | 'ignore_existing',
+            )
+          : await window.catalogManagementService.commitCatalogModification(
+              action.token,
+              policy as 'create_missing' | 'ignore_missing',
+            );
       if (!result.ok) {
-        setErrors([CATALOG_ADDITION_ERROR]);
+        setErrors([CATALOG_UPDATE_ERROR]);
         return;
       }
       onReplaced();
       const details = [
-        `${result.created} ${result.created === 1 ? 'plante a été ajoutée' : 'plantes ont été ajoutées'} au catalogue.`,
-        result.updated > 0
+        action.kind === 'add'
+          ? `${result.created} ${result.created === 1 ? 'plante a été ajoutée' : 'plantes ont été ajoutées'} au catalogue.`
+          : `${result.updated} ${result.updated === 1 ? 'plante a été mise à jour.' : 'plantes ont été mises à jour.'}`,
+        result.updated > 0 && action.kind === 'add'
           ? `${result.updated} ${result.updated === 1 ? 'plante a été mise à jour' : 'plantes ont été mises à jour'}.`
-          : '',
+          : action.kind === 'modify' && result.created > 0
+            ? `${result.created} ${result.created === 1 ? 'plante a été créée.' : 'plantes ont été créées.'}`
+            : '',
+        action.kind === 'add' &&
+        'alreadyExisted' in result &&
         result.alreadyExisted > 0
           ? `${result.alreadyExisted} ${result.alreadyExisted === 1 ? 'plante existait déjà' : 'plantes existaient déjà'}.`
           : '',
@@ -95,10 +124,9 @@ export function CatalogManager({
       ].filter(Boolean);
       onSuccess(details.join(' '));
     } catch {
-      setErrors([CATALOG_ADDITION_ERROR]);
+      setErrors([CATALOG_UPDATE_ERROR]);
     } finally {
-      setAdditionToken(null);
-      setConflicts([]);
+      setPendingAction(null);
       setImporting(false);
     }
   };
@@ -121,17 +149,59 @@ export function CatalogManager({
           await file.text(),
         );
       if (!preview.ok) {
-        setErrors([CATALOG_ADDITION_ERROR]);
+        setErrors([CATALOG_UPDATE_ERROR]);
         return;
       }
-      if (preview.conflicts.length === 0) {
-        await completeAddition(preview.token, 'ignore_existing');
+      const action = {
+        kind: 'add' as const,
+        token: preview.token,
+        plants: preview.conflicts,
+      };
+      if (action.plants.length === 0) {
+        await completeCatalogAction(action, 'ignore_existing');
         return;
       }
-      setAdditionToken(preview.token);
-      setConflicts(preview.conflicts);
+      setPendingAction(action);
     } catch {
-      setErrors([CATALOG_ADDITION_ERROR]);
+      setErrors([CATALOG_UPDATE_ERROR]);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const modifyCatalog = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    setImporting(true);
+    setErrors([]);
+    setMenuOpen(false);
+    try {
+      const preview =
+        await window.catalogManagementService.previewCatalogModification(
+          file.name,
+          await file.text(),
+        );
+      if (!preview.ok) {
+        setErrors([CATALOG_UPDATE_ERROR]);
+        return;
+      }
+      const action = {
+        kind: 'modify' as const,
+        token: preview.token,
+        plants: preview.missing,
+      };
+      if (action.plants.length === 0) {
+        await completeCatalogAction(action, 'ignore_missing');
+        return;
+      }
+      setPendingAction(action);
+    } catch {
+      setErrors([CATALOG_UPDATE_ERROR]);
     } finally {
       setImporting(false);
     }
@@ -168,6 +238,16 @@ export function CatalogManager({
               <button
                 type="button"
                 onClick={() => {
+                  setFileAction('modify');
+                  fileInput.current?.click();
+                }}
+              >
+                <span aria-hidden="true">✎</span>
+                Modifier des plantes depuis un CSV
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setFileAction('replace');
                   fileInput.current?.click();
                 }}
@@ -185,7 +265,9 @@ export function CatalogManager({
             onChange={(event) =>
               void (fileAction === 'add'
                 ? addCatalog(event)
-                : replaceCatalog(event))
+                : fileAction === 'modify'
+                  ? modifyCatalog(event)
+                  : replaceCatalog(event))
             }
           />
         </div>
@@ -217,7 +299,7 @@ export function CatalogManager({
           </section>
         </div>
       ) : null}
-      {additionToken ? (
+      {pendingAction?.kind === 'add' ? (
         <div className="modal-backdrop" role="presentation">
           <section
             className="error-modal"
@@ -233,16 +315,13 @@ export function CatalogManager({
               <button
                 type="button"
                 aria-label="Fermer le conflit d’import"
-                onClick={() => {
-                  setAdditionToken(null);
-                  setConflicts([]);
-                }}
+                onClick={() => setPendingAction(null)}
               >
                 ×
               </button>
             </div>
             <ul>
-              {conflicts.map((name) => (
+              {pendingAction.plants.map((name) => (
                 <li key={name}>{name}</li>
               ))}
             </ul>
@@ -253,7 +332,7 @@ export function CatalogManager({
                 type="button"
                 disabled={importing}
                 onClick={() =>
-                  void completeAddition(additionToken, 'ignore_existing')
+                  void completeCatalogAction(pendingAction, 'ignore_existing')
                 }
               >
                 Ne pas mettre à jour
@@ -263,10 +342,61 @@ export function CatalogManager({
                 type="button"
                 disabled={importing}
                 onClick={() =>
-                  void completeAddition(additionToken, 'update_existing')
+                  void completeCatalogAction(pendingAction, 'update_existing')
                 }
               >
                 Mettre à jour
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+      {pendingAction?.kind === 'modify' ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="error-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="catalog-modify-missing-title"
+          >
+            <div className="error-modal-heading">
+              <h2 id="catalog-modify-missing-title">
+                Les plantes suivantes n&apos;existent pas dans le catalogue
+              </h2>
+              <button
+                type="button"
+                aria-label="Fermer le conflit d’import"
+                onClick={() => setPendingAction(null)}
+              >
+                ×
+              </button>
+            </div>
+            <ul>
+              {pendingAction.plants.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+            <p>Que voulez-vous faire ?</p>
+            <div className="modal-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={importing}
+                onClick={() =>
+                  void completeCatalogAction(pendingAction, 'ignore_missing')
+                }
+              >
+                Ne pas Créer
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={importing}
+                onClick={() =>
+                  void completeCatalogAction(pendingAction, 'create_missing')
+                }
+              >
+                Créer
               </button>
             </div>
           </section>

@@ -14,6 +14,7 @@ import {
   validateCatalogCsvStructure,
 } from '../src/main/catalog-import';
 import { CatalogAdditionService } from '../src/main/catalog-addition';
+import { CatalogModificationImportService } from '../src/main/catalog-modification';
 
 const initialMigration = readFileSync(
   resolve('packages/database/migrations/001_initial_schema.sql'),
@@ -32,6 +33,60 @@ afterEach(() => {
 });
 
 describe('demo catalog', () => {
+  it('modifies existing plants, ignores identical records, and resolves missing plants', async () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const lines = demoCsv.split(/\r?\n/u);
+    const csv = `${lines[0]}\n${lines[1]?.replace(',50,80,', ',25,80,')}\nNouvelle fleur,10,20,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,printemps\n`;
+    const service = new CatalogModificationImportService(
+      new SqlitePlantCatalogRepository(database),
+      new CsvPlantCatalogImporter(),
+    );
+    const preview = await service.preview('modification.csv', csv);
+    expect(preview).toMatchObject({
+      ok: true,
+      updated: 1,
+      unchanged: 0,
+      missing: ['Nouvelle fleur'],
+    });
+    if (!preview.ok) {
+      throw new Error('Preview should succeed');
+    }
+    expect(service.commit(preview.token, 'ignore_missing')).toEqual({
+      ok: true,
+      created: 0,
+      updated: 1,
+      ignored: 1,
+      unchanged: 0,
+      notAdded: 1,
+    });
+    const catalog = await new SqlitePlantCatalogRepository(database).list({
+      offset: 0,
+      limit: 25,
+    });
+    expect(catalog.total).toBe(4);
+    expect(
+      catalog.items.find(({ name }) => name === 'Achilée Ornementale')
+        ?.heightCm,
+    ).toEqual({ min: 25, max: 80 });
+
+    const createPreview = await service.preview('modification.csv', csv);
+    if (!createPreview.ok) {
+      throw new Error('Preview should succeed');
+    }
+    expect(service.commit(createPreview.token, 'create_missing')).toMatchObject(
+      {
+        ok: true,
+        created: 1,
+        updated: 0,
+        unchanged: 1,
+        notAdded: 0,
+      },
+    );
+  });
+
   it('adds new plants, ignores identical plants, and updates conflicts on request', async () => {
     database = new DatabaseSync(':memory:');
     database.exec(initialMigration);
@@ -282,6 +337,20 @@ Sans hauteur,N/A,N/A,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,
     expect(
       database.prepare('SELECT count(*) AS total FROM plants').get()?.total,
     ).toBe(4);
+  });
+
+  it('reports a specific error when spacing is negative', () => {
+    const invalidCsv = demoCsv.replace(
+      ',oui,40,printemps|automne',
+      ',oui,-30,printemps|automne',
+    );
+
+    expect(validateCatalogCsvStructure(invalidCsv)).toContainEqual({
+      code: 'invalid_spacing',
+      field: 'Espace(cm)',
+      message:
+        'La valeur de la colonne Espace(cm) doit être un nombre entier positif ou nul.',
+    });
   });
 
   it('accepts every controlled value including accented and plain summer', () => {

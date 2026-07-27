@@ -14,6 +14,18 @@ export function createCatalogManagementService(
       ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.addPreview, filename, csv),
     commitCatalogAddition: (token, policy) =>
       ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.addCommit, token, policy),
+    previewCatalogModification: (filename, csv) =>
+      ipcRenderer.invoke(
+        CATALOG_MANAGEMENT_CHANNELS.modifyPreview,
+        filename,
+        csv,
+      ),
+    commitCatalogModification: (token, policy) =>
+      ipcRenderer.invoke(
+        CATALOG_MANAGEMENT_CHANNELS.modifyCommit,
+        token,
+        policy,
+      ),
     getTemplate: () => ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.template),
   };
 }

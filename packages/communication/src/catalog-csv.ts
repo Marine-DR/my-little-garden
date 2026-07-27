@@ -130,6 +130,14 @@ function numericIssue(parameter: string): DataImportError {
   );
 }
 
+function negativeSpacingIssue(): DataImportError {
+  return issue(
+    'invalid_spacing',
+    'La valeur de la colonne Espace(cm) doit être un nombre entier positif ou nul.',
+    'Espace(cm)',
+  );
+}
+
 function containsUnsupportedValue(
   value: string | undefined,
   supported: ReadonlySet<string>,
@@ -249,7 +257,12 @@ export function validateCatalogCsvStructure(
           ? isIntegerText(value)
           : isNonNegativeInteger(value);
         if (value && !isMissingHeight && !isValidNumber) {
-          addUnique(errors, numericIssue(parameter));
+          addUnique(
+            errors,
+            parameter === 'Espace(cm)' && isIntegerText(value)
+              ? negativeSpacingIssue()
+              : numericIssue(parameter),
+          );
         }
       }
       if (
