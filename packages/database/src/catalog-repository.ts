@@ -117,6 +117,17 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     return plant;
   }
 
+  /** Imports complete CSV records atomically without replacing managed photos. */
+  upsertImportedBatch(inputs: readonly PlantWriteInput[]): void {
+    const now = new Date().toISOString();
+    runInTransaction(this.database, () => {
+      for (const input of inputs) {
+        this.upsertPlant(input, now);
+        this.replaceRelations(input);
+      }
+    });
+  }
+
   private hydrate(rows: ReturnType<CatalogQueries['page']>): Plant[] {
     if (rows.length === 0) {
       return [];

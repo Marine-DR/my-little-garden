@@ -476,6 +476,11 @@ main {
   justify-content: flex-end;
   gap: 10px;
 }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
 .selection-list-status,
 .selection-add-summary {
   margin: 8px 0 0;
