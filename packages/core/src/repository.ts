@@ -5,7 +5,6 @@ import type {
   SelectionCreationResult,
   SelectionPlantAdditionInput,
   SelectionPlantAdditionResult,
-  SelectionPlantAttributeChange,
   SelectionStatus,
 } from './desktop-api';
 
@@ -57,7 +56,7 @@ export interface SelectionDetailsRecord {
 export interface SelectionModifiedPlantRecord {
   readonly id: string;
   readonly name: string;
-  readonly attributes: readonly SelectionPlantAttributeChange[];
+  readonly baseline: Plant | null;
 }
 
 export interface SelectionPlantUsage {

@@ -6,6 +6,8 @@ import type {
   PlantCatalogRepository,
   SelectionRepository,
   SelectionDetails,
+  SelectionDetailsRecord,
+  SelectionPlantAttributeChange,
   SelectionSummary,
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
@@ -55,14 +57,7 @@ export async function getSelectionDetails(
   if (!selection) {
     return null;
   }
-  return {
-    id: selection.id,
-    name: selection.name,
-    status: selection.status,
-    modifiedPlantCount: selection.modifiedPlantCount,
-    modifiedPlants: selection.modifiedPlants,
-    plants: selection.plants.map(toCatalogPlant),
-  };
+  return toSelectionDetails(selection);
 }
 
 export async function removePlantsFromSelection(
@@ -77,14 +72,7 @@ export async function removePlantsFromSelection(
   if (!selection) {
     return null;
   }
-  return {
-    id: selection.id,
-    name: selection.name,
-    status: selection.status,
-    modifiedPlantCount: selection.modifiedPlantCount,
-    modifiedPlants: selection.modifiedPlants,
-    plants: selection.plants.map(toCatalogPlant),
-  };
+  return toSelectionDetails(selection);
 }
 
 export async function acknowledgeModifiedSelectionPlants(
@@ -96,14 +84,107 @@ export async function acknowledgeModifiedSelectionPlants(
   if (!selection) {
     return null;
   }
+  return toSelectionDetails(selection);
+}
+
+function toSelectionDetails(
+  selection: SelectionDetailsRecord,
+): SelectionDetails {
   return {
     id: selection.id,
     name: selection.name,
     status: selection.status,
     modifiedPlantCount: selection.modifiedPlantCount,
-    modifiedPlants: selection.modifiedPlants,
+    modifiedPlants: selection.modifiedPlants.map((modifiedPlant) => {
+      const currentPlant = selection.plants.find(
+        ({ id }) => id === modifiedPlant.id,
+      );
+      return {
+        id: modifiedPlant.id,
+        name: modifiedPlant.name,
+        attributes:
+          modifiedPlant.baseline && currentPlant
+            ? describePlantChanges(modifiedPlant.baseline, currentPlant)
+            : [],
+      };
+    }),
     plants: selection.plants.map(toCatalogPlant),
   };
+}
+
+function displayValue(value: unknown): string {
+  if (value === null || value === undefined || value === '') {
+    return '-';
+  }
+  if (Array.isArray(value)) {
+    return value.join(', ') || '-';
+  }
+  return String(value);
+}
+
+function describePlantChanges(
+  before: Plant,
+  after: Plant,
+): readonly SelectionPlantAttributeChange[] {
+  const fields: readonly [string, unknown, unknown][] = [
+    ['Nom', before.name, after.name],
+    [
+      'Hauteur',
+      before.heightCm
+        ? `${before.heightCm.min ?? '-'}–${before.heightCm.max ?? '-'} cm`
+        : '-',
+      after.heightCm
+        ? `${after.heightCm.min ?? '-'}–${after.heightCm.max ?? '-'} cm`
+        : '-',
+    ],
+    ['Type', before.type?.label, after.type?.label],
+    [
+      'Sol',
+      before.soils.map(({ label }) => label),
+      after.soils.map(({ label }) => label),
+    ],
+    ['Exposition', before.exposures, after.exposures],
+    [
+      'Floraison',
+      before.bloom
+        ? `${before.bloom.startMonth} → ${before.bloom.endMonth}`
+        : '-',
+      after.bloom ? `${after.bloom.startMonth} → ${after.bloom.endMonth}` : '-',
+    ],
+    [
+      'Couleurs fleur',
+      before.flowerColors.map(({ label }) => label),
+      after.flowerColors.map(({ label }) => label),
+    ],
+    [
+      'Couleurs feuille',
+      before.leafColors.map(({ label }) => label),
+      after.leafColors.map(({ label }) => label),
+    ],
+    [
+      'Température minimum',
+      before.minimumTemperatureCelsius === null
+        ? '-'
+        : `${before.minimumTemperatureCelsius} °C`,
+      after.minimumTemperatureCelsius === null
+        ? '-'
+        : `${after.minimumTemperatureCelsius} °C`,
+    ],
+    ['Persistant', before.foliagePersistence, after.foliagePersistence],
+    [
+      'Espacement',
+      before.spacingCm === null ? '-' : `${before.spacingCm} cm`,
+      after.spacingCm === null ? '-' : `${after.spacingCm} cm`,
+    ],
+    ['Plantation', before.plantingSeasons, after.plantingSeasons],
+  ];
+  return fields.flatMap(([label, previous, current]) => {
+    const beforeValue = displayValue(previous);
+    const afterValue = displayValue(current);
+    return beforeValue === afterValue
+      ? []
+      : [{ label, before: beforeValue, after: afterValue }];
+  });
 }
 
 function toCatalogPlant(plant: Plant): CatalogPlant {

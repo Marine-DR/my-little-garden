@@ -1,5 +1,5 @@
-import { describePlantChanges, type Plant } from '@my-little-garden/core';
 import type {
+  Plant,
   PlantCatalogRepository,
   SelectionCreationInput,
   SelectionCreationResult,
@@ -91,7 +91,6 @@ export class SqliteSelectionRepository implements SelectionRepository {
 
   private modifiedPlantsFor(
     selectionId: string,
-    plants: readonly Plant[],
   ): readonly SelectionModifiedPlantRecord[] {
     return this.database
       .prepare(
@@ -102,17 +101,11 @@ export class SqliteSelectionRepository implements SelectionRepository {
       .all(selectionId)
       .map((row) => {
         const change = row as SqliteRow;
-        const plant = plants.find(
-          ({ id }) => id === stringColumn(change, 'plant_id'),
-        );
         const baselineJson = nullableStringColumn(change, 'baseline_json');
         return {
           id: stringColumn(change, 'plant_id'),
           name: stringColumn(change, 'plant_name'),
-          attributes:
-            plant && baselineJson
-              ? describePlantChanges(JSON.parse(baselineJson) as Plant, plant)
-              : [],
+          baseline: baselineJson ? (JSON.parse(baselineJson) as Plant) : null,
         };
       });
   }
@@ -192,7 +185,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
       name: stringColumn(selection, 'name'),
       status: this.statusFor(selectionId),
       modifiedPlantCount: this.modifiedPlantCountFor(selectionId),
-      modifiedPlants: this.modifiedPlantsFor(selectionId, plants),
+      modifiedPlants: this.modifiedPlantsFor(selectionId),
       plants,
     };
   }

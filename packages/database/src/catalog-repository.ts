@@ -155,9 +155,9 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
       if (modifiedPlants.length > 0) {
         const insertChange = this.database.prepare(
           `INSERT OR IGNORE INTO selection_plant_changes (
-            id, selection_id, plant_id, change_kind, plant_name, baseline_json, created_at, updated_at
+            selection_id, plant_id, change_kind, plant_name, baseline_json, created_at, updated_at
           )
-          SELECT lower(hex(randomblob(16))), selection_id, ?, 'modified', ?, ?, ?, ?
+          SELECT selection_id, ?, 'modified', ?, ?, ?, ?
           FROM selection_plants WHERE plant_id = ?`,
         );
         for (const plant of modifiedPlants) {

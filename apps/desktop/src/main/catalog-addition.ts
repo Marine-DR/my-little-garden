@@ -69,10 +69,13 @@ export class CatalogAdditionService {
         existingByName.set(key, existing);
       }
     }
-    const conflicts = parsed.records.filter((record) => {
+    const conflicts = parsed.records.flatMap((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
-      return existing && !hasSameMaterialPlantRecord(existing, record);
+      return existing && !hasSameMaterialPlantRecord(existing, record)
+        ? [{ record, existing }]
+        : [];
     });
+    const modifiedPlants = conflicts.map(({ existing }) => existing);
     const unchanged = parsed.records.filter((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
       return existing && hasSameMaterialPlantRecord(existing, record);
@@ -81,9 +84,7 @@ export class CatalogAdditionService {
     this.previews.set(token, {
       records: parsed.records,
       existingByName,
-      modifiedPlants: conflicts
-        .map((record) => existingByName.get(normalizeDatabaseKey(record.name)))
-        .filter((plant): plant is Plant => plant !== undefined),
+      modifiedPlants,
       expiresAt: Date.now() + 5 * 60_000,
     });
     return {
@@ -91,15 +92,10 @@ export class CatalogAdditionService {
       token,
       created: parsed.records.length - existingByName.size,
       unchanged,
-      conflicts: conflicts.map(({ name }) => name),
+      conflicts: conflicts.map(({ record: { name } }) => name),
       impactedSelections: groupSelectionUsages(
         await this.repository.listSelectionUsages(
-          conflicts
-            .map((record) =>
-              existingByName.get(normalizeDatabaseKey(record.name)),
-            )
-            .filter((plant): plant is Plant => plant !== undefined)
-            .map(({ id }) => id),
+          modifiedPlants.map(({ id }) => id),
         ),
       ),
     };

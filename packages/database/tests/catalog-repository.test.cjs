@@ -3,14 +3,12 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
-const { SqlitePlantCatalogRepository } = require('../dist');
+const {
+  databaseMigrationFilenames,
+  SqlitePlantCatalogRepository,
+} = require('../dist');
 
-const migration = [
-  '001_initial_schema.sql',
-  '002_remove_selection_normalized_name.sql',
-  '003_selection_plant_changes.sql',
-  '004_selection_plant_change_baseline.sql',
-]
+const migration = databaseMigrationFilenames
   .map((filename) =>
     readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
   )

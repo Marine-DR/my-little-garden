@@ -3,14 +3,12 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
-const { SqliteSelectionRepository } = require('../dist');
+const {
+  databaseMigrationFilenames,
+  SqliteSelectionRepository,
+} = require('../dist');
 
-const migration = [
-  '001_initial_schema.sql',
-  '002_remove_selection_normalized_name.sql',
-  '003_selection_plant_changes.sql',
-  '004_selection_plant_change_baseline.sql',
-]
+const migration = databaseMigrationFilenames
   .map((filename) =>
     readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
   )
@@ -132,8 +130,8 @@ test('derives modified status and clears it when the warning is acknowledged', a
   database
     .prepare(
       `INSERT INTO selection_plant_changes (
-        id, selection_id, plant_id, change_kind, plant_name, baseline_json, created_at, updated_at
-      ) VALUES ('change-1', 'selection-1', 'plant-1', 'modified', 'Achillée', '{}',
+        selection_id, plant_id, change_kind, plant_name, baseline_json, created_at, updated_at
+      ) VALUES ('selection-1', 'plant-1', 'modified', 'Achillée', '{}',
                 '2026-07-11T08:00:00.000Z', '2026-07-11T08:00:00.000Z')`,
     )
     .run();
