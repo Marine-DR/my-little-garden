@@ -6,17 +6,21 @@ import type {
 import filterIcon from '@renderer/assets/filter.svg';
 import resetFilterIcon from '@renderer/assets/resetFilter.svg';
 import { MONTH_LABELS } from '../catalog-labels';
-import { EXPOSURES } from '../formatters';
+import { colorEmoji, EXPOSURES } from '../formatters';
 
 export const EMPTY_FILTERS: CatalogFilters = {
   soils: [],
   exposures: [],
   bloomMonths: [],
+  flowerColors: [],
 };
 
 export function countFilters(filters: CatalogFilters): number {
   return (
-    filters.soils.length + filters.exposures.length + filters.bloomMonths.length
+    filters.soils.length +
+    filters.exposures.length +
+    filters.bloomMonths.length +
+    filters.flowerColors.length
   );
 }
 
@@ -33,7 +37,8 @@ function sameFilters(left: CatalogFilters, right: CatalogFilters): boolean {
   return (
     sameValues(left.soils, right.soils) &&
     sameValues(left.exposures, right.exposures) &&
-    sameValues(left.bloomMonths, right.bloomMonths)
+    sameValues(left.bloomMonths, right.bloomMonths) &&
+    sameValues(left.flowerColors, right.flowerColors)
   );
 }
 
@@ -195,6 +200,37 @@ export function CatalogFiltersPanel({
                         <span>{MONTH_LABELS[month - 1]}</span>
                       </label>
                     ))
+                  ) : (
+                    <p>Aucune valeur disponible</p>
+                  )}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>Couleurs fleurs</legend>
+                <div className="color-filter-picker">
+                  {options?.flowerColors.length ? (
+                    options.flowerColors.map((color) => {
+                      const emoji = colorEmoji(color);
+                      return (
+                        <label key={color} className="color-filter-option">
+                          <input
+                            type="checkbox"
+                            aria-label={color}
+                            checked={draft.flowerColors.includes(color)}
+                            onChange={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                flowerColors: toggleValue(
+                                  current.flowerColors,
+                                  color,
+                                ),
+                              }))
+                            }
+                          />
+                          <span title={color}>{emoji ?? color}</span>
+                        </label>
+                      );
+                    })
                   ) : (
                     <p>Aucune valeur disponible</p>
                   )}
