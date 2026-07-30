@@ -112,5 +112,8 @@
   },
   "allowScripts": {
     "esbuild@0.28.1": true
+  },
+  "overrides": {
+    "brace-expansion": "5.0.9"
   }
 }
