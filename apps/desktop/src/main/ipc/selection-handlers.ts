@@ -7,11 +7,11 @@ import type { IpcMain } from 'electron';
 import { SELECTION_CHANNELS } from '../../shared/selection-service.js';
 import {
   acknowledgeModifiedSelectionPlants,
-  acknowledgeDeletedSelectionPlants,
   getSelectionDetails,
   listSelectionSummaries,
   removePlantsFromSelection,
 } from '../catalog-view.js';
+import { acknowledgeDeletedPlantsAndCleanup } from '../selection-deletion.js';
 
 export function registerSelectionHandlers(
   ipcMain: IpcMain,
@@ -29,7 +29,7 @@ export function registerSelectionHandlers(
   ipcMain.handle(
     SELECTION_CHANNELS.acknowledgeDeleted,
     (_event, selectionId: string) =>
-      acknowledgeDeletedSelectionPlants(
+      acknowledgeDeletedPlantsAndCleanup(
         selectionRepository,
         selectionId,
         photoDirectory,

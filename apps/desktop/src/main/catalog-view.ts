@@ -12,8 +12,6 @@ import type {
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
 import { createPhotoUrl } from '@my-little-garden/photo-handling';
-import { rmSync } from 'node:fs';
-import { join } from 'node:path';
 
 const CATALOG_PAGE_SIZE = 25;
 
@@ -92,18 +90,9 @@ export async function acknowledgeModifiedSelectionPlants(
 export async function acknowledgeDeletedSelectionPlants(
   selectionRepository: SelectionRepository,
   selectionId: string,
-  photoDirectory: string,
 ): Promise<SelectionDetails | null> {
-  const filenames = selectionRepository.listDeletedPhotoFilenames(selectionId);
   const selection =
     await selectionRepository.acknowledgeDeletedPlants(selectionId);
-  if (selection) {
-    for (const filename of filenames) {
-      if (!selectionRepository.isPhotoFilenameReferenced(filename)) {
-        rmSync(join(photoDirectory, filename), { force: true });
-      }
-    }
-  }
   return selection ? toSelectionDetails(selection) : null;
 }
 
