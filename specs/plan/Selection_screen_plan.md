@@ -393,8 +393,8 @@ Search should work across:
 - **Status**
 
   - à jour
-  - contient des plantes modifiées
-  - contient des plantes supprimées
+  - X plantes modifiées
+  - X plantes supprimées
 
 - **Usage**
 
@@ -546,7 +546,7 @@ Required card behavior:
 ```text
 ┌────────────────────────────────────────────┐
 │ ☐ Spring Rose Bed   [Renommer]             │
-│ 12 flowers · Modified on June 12, 2026     │
+│ 12 flowers ·                               │
 │                                            │
 │ [🌸] [🌺] [🌼] [+9]                        │
 │                                            │
@@ -564,7 +564,7 @@ Required card behavior:
 ```text
 ┌────────────────────────────────────────────┐
 │ ☐ Dry Sunny Border   [Renommer]            │
-│ 18 flowers · Modified on June 9, 2026      │
+│ 18 flowers ·                               │
 │                                            │
 │ [🌼] [🟡] [🟠] [+15]                       │
 │                                            │
@@ -582,7 +582,7 @@ Required card behavior:
 ```text
 ┌────────────────────────────────────────────┐
 │ ☐ Wild Corner   [Renommer]                 │
-│ 9 flowers · Modified on June 2, 2026       │
+│ 9 flowers ·                                │
 │                                            │
 │ [🌾] [🌸] [🔴] [+6]                        │
 │                                            │

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   hasSameMaterialPlantRecord,
+  groupSelectionUsages,
   normalizeDatabaseKey,
   type CatalogAddPreviewResult,
   type CatalogAddResult,
@@ -13,6 +14,7 @@ import {
 type Preview = {
   readonly records: readonly PlantWriteInput[];
   readonly existingByName: ReadonlyMap<string, Plant>;
+  readonly modifiedPlants: readonly Plant[];
   readonly expiresAt: number;
 };
 
@@ -67,10 +69,13 @@ export class CatalogAdditionService {
         existingByName.set(key, existing);
       }
     }
-    const conflicts = parsed.records.filter((record) => {
+    const conflicts = parsed.records.flatMap((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
-      return existing && !hasSameMaterialPlantRecord(existing, record);
+      return existing && !hasSameMaterialPlantRecord(existing, record)
+        ? [{ record, existing }]
+        : [];
     });
+    const modifiedPlants = conflicts.map(({ existing }) => existing);
     const unchanged = parsed.records.filter((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
       return existing && hasSameMaterialPlantRecord(existing, record);
@@ -79,6 +84,7 @@ export class CatalogAdditionService {
     this.previews.set(token, {
       records: parsed.records,
       existingByName,
+      modifiedPlants,
       expiresAt: Date.now() + 5 * 60_000,
     });
     return {
@@ -86,7 +92,12 @@ export class CatalogAdditionService {
       token,
       created: parsed.records.length - existingByName.size,
       unchanged,
-      conflicts: conflicts.map(({ name }) => name),
+      conflicts: conflicts.map(({ record: { name } }) => name),
+      impactedSelections: groupSelectionUsages(
+        await this.repository.listSelectionUsages(
+          modifiedPlants.map(({ id }) => id),
+        ),
+      ),
     };
   }
 
@@ -134,7 +145,10 @@ export class CatalogAdditionService {
         inputs.push({ ...record, id: existing.id });
         updated += 1;
       }
-      this.repository.upsertImportedBatch(inputs);
+      this.repository.upsertImportedBatch(
+        inputs,
+        policy === 'update_existing' ? preview.modifiedPlants : [],
+      );
       return {
         ok: true,
         created,

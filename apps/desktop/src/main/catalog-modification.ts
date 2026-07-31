@@ -71,6 +71,7 @@ export class CatalogModificationImportService {
       updated: analysis.updated,
       unchanged: analysis.unchanged,
       missing: analysis.missing,
+      impactedSelections: analysis.impactedSelections,
     };
   }
 

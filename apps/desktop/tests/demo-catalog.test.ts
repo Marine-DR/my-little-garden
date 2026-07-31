@@ -5,7 +5,10 @@ import {
   CsvPlantCatalogImporter,
   readCatalogCsvTemplate,
 } from '@my-little-garden/communication';
-import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
+import {
+  databaseMigrationFilenames,
+  SqlitePlantCatalogRepository,
+} from '@my-little-garden/database';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -16,10 +19,11 @@ import {
 import { CatalogAdditionService } from '../src/main/catalog-addition';
 import { CatalogModificationImportService } from '../src/main/catalog-modification';
 
-const initialMigration = readFileSync(
-  resolve('packages/database/migrations/001_initial_schema.sql'),
-  'utf8',
-);
+const initialMigration = databaseMigrationFilenames
+  .map((filename) =>
+    readFileSync(resolve('packages/database/migrations', filename), 'utf8'),
+  )
+  .join('\n');
 const demoCsv = readFileSync(
   resolve('apps/desktop/resources/demo-catalog.csv'),
   'utf8',

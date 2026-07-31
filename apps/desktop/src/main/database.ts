@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { App } from 'electron';
 import { DatabaseSync } from 'node:sqlite';
+import { databaseMigrationFilenames } from '@my-little-garden/database';
 
 export function openApplicationDatabase(app: App): DatabaseSync {
   const demoMode = process.env.MY_LITTLE_GARDEN_DEMO === '1';
@@ -37,10 +38,6 @@ export function seedDemoCatalogIfNeeded(
 }
 
 function ensureSchema(app: App, database: DatabaseSync): void {
-  const migrationFilenames = [
-    '001_initial_schema.sql',
-    '002_remove_selection_normalized_name.sql',
-  ];
   const hasPlants = database
     .prepare(
       "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
@@ -64,8 +61,12 @@ function ensureSchema(app: App, database: DatabaseSync): void {
     version = selectionColumns.includes('normalized_name') ? 1 : 2;
   }
 
-  for (let index = version; index < migrationFilenames.length; index += 1) {
-    const filename = migrationFilenames[index];
+  for (
+    let index = version;
+    index < databaseMigrationFilenames.length;
+    index += 1
+  ) {
+    const filename = databaseMigrationFilenames[index];
     if (!filename) {
       throw new Error(`Missing database migration at index ${index}.`);
     }

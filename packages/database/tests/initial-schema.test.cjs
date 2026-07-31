@@ -3,21 +3,19 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
+const { databaseMigrationFilenames } = require('../dist');
 
-const initialMigration = readFileSync(
-  join(__dirname, '..', 'migrations', '001_initial_schema.sql'),
-  'utf8',
+const migrations = new Map(
+  databaseMigrationFilenames.map((filename) => [
+    filename,
+    readFileSync(join(__dirname, '..', 'migrations', filename), 'utf8'),
+  ]),
 );
-const selectionNameMigration = readFileSync(
-  join(
-    __dirname,
-    '..',
-    'migrations',
-    '002_remove_selection_normalized_name.sql',
-  ),
-  'utf8',
+const migration = [...migrations.values()].join('\n');
+const initialMigration = migrations.get('001_initial_schema.sql');
+const selectionNameMigration = migrations.get(
+  '002_remove_selection_normalized_name.sql',
 );
-const migration = `${initialMigration}\n${selectionNameMigration}`;
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -88,6 +86,7 @@ test('migration creates the expected tables', (t) => {
       'plant_photos',
       'selections',
       'selection_plants',
+      'selection_plant_changes',
     ]),
   );
 });
@@ -119,6 +118,33 @@ test('plants table contains the complete scalar field set', (t) => {
       'created_at',
       'updated_at',
     ]),
+  );
+});
+
+test('selection plant changes use the selection and plant as their key', (t) => {
+  const database = createDatabase(t);
+  const columns = database
+    .prepare('PRAGMA table_info(selection_plant_changes)')
+    .all();
+
+  assert.deepEqual(
+    columns.map(({ name }) => name),
+    [
+      'selection_id',
+      'plant_id',
+      'change_kind',
+      'plant_name',
+      'baseline_json',
+      'created_at',
+      'updated_at',
+    ],
+  );
+  assert.deepEqual(
+    columns
+      .filter(({ pk }) => pk > 0)
+      .sort((left, right) => left.pk - right.pk)
+      .map(({ name }) => name),
+    ['selection_id', 'plant_id'],
   );
 });
 

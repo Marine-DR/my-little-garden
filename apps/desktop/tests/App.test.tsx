@@ -51,6 +51,8 @@ const rose: CatalogPlant = {
 const sunnyBorder: SelectionSummary = {
   id: 'sunny-border',
   name: 'Bordure plein soleil',
+  status: 'up_to_date',
+  modifiedPlantCount: 0,
   previewPhotoUrls: [
     'photo://rose-1',
     'photo://rose-2',
@@ -118,6 +120,8 @@ describe('App catalog', () => {
         plantIds: readonly string[],
       ) => Promise<SelectionDetails | null>
     >();
+  const acknowledgeModifiedPlants =
+    vi.fn<(selectionId: string) => Promise<SelectionDetails | null>>();
   const createSelection =
     vi.fn<
       (input: SelectionCreationInput) => Promise<SelectionCreationResult>
@@ -145,6 +149,7 @@ describe('App catalog', () => {
       created: 1,
       unchanged: 0,
       conflicts: [],
+      impactedSelections: [],
     });
     commitCatalogAddition.mockResolvedValue({
       ok: true,
@@ -160,6 +165,7 @@ describe('App catalog', () => {
       updated: 1,
       unchanged: 0,
       missing: [],
+      impactedSelections: [],
     });
     commitCatalogModification.mockResolvedValue({
       ok: true,
@@ -175,11 +181,17 @@ describe('App catalog', () => {
     getSelection.mockResolvedValue({
       id: sunnyBorder.id,
       name: sunnyBorder.name,
+      status: 'up_to_date',
+      modifiedPlantCount: 0,
+      modifiedPlants: [],
       plants: [rose],
     });
     removePlantsFromSelection.mockResolvedValue({
       id: sunnyBorder.id,
       name: sunnyBorder.name,
+      status: 'up_to_date',
+      modifiedPlantCount: 0,
+      modifiedPlants: [],
       plants: [rose],
     });
     createSelection.mockResolvedValue({
@@ -207,6 +219,7 @@ describe('App catalog', () => {
       listSelections,
       getSelection,
       removePlantsFromSelection,
+      acknowledgeModifiedPlants,
       createSelection,
       addPlantsToSelection,
     };
@@ -749,6 +762,7 @@ describe('App catalog', () => {
       created: 1,
       unchanged: 0,
       conflicts: ['Rose ancienne'],
+      impactedSelections: [],
     });
     render(<App />);
     await screen.findByText('Rose page 1');
@@ -770,7 +784,7 @@ describe('App catalog', () => {
     expect(await screen.findByText('Rose ancienne')).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Mettre à jour',
+        name: 'Créer et modifier',
       }),
     );
     await waitFor(() =>
@@ -910,6 +924,7 @@ describe('App catalog', () => {
       'Nom',
       'Aperçu',
       'Plantes',
+      'Statut',
       'Date de création',
       'Dernière modification',
       'Actions',
@@ -917,6 +932,7 @@ describe('App catalog', () => {
 
     const row = screen.getByRole('row', { name: /Bordure plein soleil/u });
     expect(row).toHaveTextContent('6');
+    expect(row).toHaveTextContent('à jour');
     expect(row).toHaveTextContent('10/07/2026');
     expect(row).toHaveTextContent('14/07/2026');
     expect(
@@ -961,6 +977,7 @@ describe('App catalog', () => {
     ).toBeInTheDocument();
     expect(getSelection).toHaveBeenCalledWith('sunny-border');
     expect(screen.getByText('1 plante')).toBeInTheDocument();
+    expect(screen.getByText('à jour')).toBeInTheDocument();
     expect(screen.queryByText(/dans la sélection/u)).not.toBeInTheDocument();
     expect(screen.getByText('1-1 sur 1 plantes')).toBeInTheDocument();
     expect(
@@ -1022,6 +1039,9 @@ describe('App catalog', () => {
     removePlantsFromSelection.mockResolvedValueOnce({
       id: sunnyBorder.id,
       name: sunnyBorder.name,
+      status: 'up_to_date',
+      modifiedPlantCount: 0,
+      modifiedPlants: [],
       plants: [],
     });
     render(<App />);
@@ -1087,6 +1107,9 @@ describe('App catalog', () => {
     getSelection.mockResolvedValueOnce({
       id: sunnyBorder.id,
       name: sunnyBorder.name,
+      status: 'up_to_date',
+      modifiedPlantCount: 0,
+      modifiedPlants: [],
       plants: Array.from({ length: 26 }, (_, index) => ({
         ...rose,
         id: `selection-plant-${index + 1}`,

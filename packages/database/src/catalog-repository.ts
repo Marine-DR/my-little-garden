@@ -5,6 +5,7 @@ import type {
   PlantCatalogRepository,
   PlantPage,
   PlantPageRequest,
+  SelectionPlantUsage,
   PlantWriteInput,
   PlantingSeasonCode,
   VocabularyValue,
@@ -118,9 +119,58 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
   }
 
   /** Imports complete CSV records atomically without replacing managed photos. */
-  upsertImportedBatch(inputs: readonly PlantWriteInput[]): void {
+  async listSelectionUsages(
+    plantIds: readonly string[],
+  ): Promise<readonly SelectionPlantUsage[]> {
+    const ids = [...new Set(plantIds)];
+    if (ids.length === 0) {
+      return [];
+    }
+    const placeholders = ids.map(() => '?').join(', ');
+    return this.database
+      .prepare(
+        `SELECT sp.selection_id, s.name AS selection_name, p.id AS plant_id,
+                p.name AS plant_name
+         FROM selection_plants sp
+         JOIN selections s ON s.id = sp.selection_id
+         JOIN plants p ON p.id = sp.plant_id
+         WHERE sp.plant_id IN (${placeholders})
+         ORDER BY s.name COLLATE NOCASE, s.id, p.name COLLATE NOCASE, p.id`,
+      )
+      .all(...ids)
+      .map((row) => ({
+        selectionId: String(row.selection_id),
+        selectionName: String(row.selection_name),
+        plantId: String(row.plant_id),
+        plantName: String(row.plant_name),
+      }));
+  }
+
+  upsertImportedBatch(
+    inputs: readonly PlantWriteInput[],
+    modifiedPlants: readonly Plant[] = [],
+  ): void {
     const now = new Date().toISOString();
     runInTransaction(this.database, () => {
+      if (modifiedPlants.length > 0) {
+        const insertChange = this.database.prepare(
+          `INSERT OR IGNORE INTO selection_plant_changes (
+            selection_id, plant_id, change_kind, plant_name, baseline_json, created_at, updated_at
+          )
+          SELECT selection_id, ?, 'modified', ?, ?, ?, ?
+          FROM selection_plants WHERE plant_id = ?`,
+        );
+        for (const plant of modifiedPlants) {
+          insertChange.run(
+            plant.id,
+            plant.name,
+            JSON.stringify(plant),
+            now,
+            now,
+            plant.id,
+          );
+        }
+      }
       for (const input of inputs) {
         this.upsertPlant(input, now);
         this.replaceRelations(input);

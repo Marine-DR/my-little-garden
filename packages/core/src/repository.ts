@@ -5,6 +5,7 @@ import type {
   SelectionCreationResult,
   SelectionPlantAdditionInput,
   SelectionPlantAdditionResult,
+  SelectionStatus,
 } from './desktop-api';
 
 export interface PlantPageRequest {
@@ -35,6 +36,8 @@ export interface PlantPhotoRecord {
 export interface SelectionSummaryRecord {
   readonly id: string;
   readonly name: string;
+  readonly status: SelectionStatus;
+  readonly modifiedPlantCount: number;
   readonly previewManagedFilenames: readonly (string | null)[];
   readonly plantCount: number;
   readonly createdAt: string;
@@ -44,7 +47,23 @@ export interface SelectionSummaryRecord {
 export interface SelectionDetailsRecord {
   readonly id: string;
   readonly name: string;
+  readonly status: SelectionStatus;
+  readonly modifiedPlantCount: number;
+  readonly modifiedPlants: readonly SelectionModifiedPlantRecord[];
   readonly plants: readonly Plant[];
+}
+
+export interface SelectionModifiedPlantRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly baseline: Plant | null;
+}
+
+export interface SelectionPlantUsage {
+  readonly selectionId: string;
+  readonly selectionName: string;
+  readonly plantId: string;
+  readonly plantName: string;
 }
 
 /**
@@ -70,7 +89,13 @@ export interface PlantCatalogReplacementRepository {
 
 export interface IncrementalPlantCatalogRepository {
   findByNormalizedName(normalizedName: string): Promise<Plant | null>;
-  upsertImportedBatch(inputs: readonly PlantWriteInput[]): void;
+  listSelectionUsages(
+    plantIds: readonly string[],
+  ): Promise<readonly SelectionPlantUsage[]>;
+  upsertImportedBatch(
+    inputs: readonly PlantWriteInput[],
+    modifiedPlants?: readonly Plant[],
+  ): void;
 }
 
 export interface PlantPhotoRepository {
@@ -90,4 +115,7 @@ export interface SelectionRepository {
   addPlants(
     input: SelectionPlantAdditionInput,
   ): Promise<SelectionPlantAdditionResult>;
+  acknowledgeModifiedPlants(
+    selectionId: string,
+  ): Promise<SelectionDetailsRecord | null>;
 }

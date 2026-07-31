@@ -6,6 +6,7 @@ import type {
 import type { IpcMain } from 'electron';
 import { SELECTION_CHANNELS } from '../../shared/selection-service.js';
 import {
+  acknowledgeModifiedSelectionPlants,
   getSelectionDetails,
   listSelectionSummaries,
   removePlantsFromSelection,
@@ -30,6 +31,11 @@ export function registerSelectionHandlers(
   );
   ipcMain.handle(SELECTION_CHANNELS.get, (_event, selectionId: string) =>
     getSelectionDetails(selectionRepository, selectionId),
+  );
+  ipcMain.handle(
+    SELECTION_CHANNELS.acknowledgeModified,
+    (_event, selectionId: string) =>
+      acknowledgeModifiedSelectionPlants(selectionRepository, selectionId),
   );
   ipcMain.handle(
     SELECTION_CHANNELS.removePlants,

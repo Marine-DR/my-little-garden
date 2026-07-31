@@ -17,6 +17,8 @@ export function createSelectionService(
         selectionId,
         plantIds,
       ),
+    acknowledgeModifiedPlants: (selectionId) =>
+      ipcRenderer.invoke(SELECTION_CHANNELS.acknowledgeModified, selectionId),
     createSelection: (input) =>
       ipcRenderer.invoke(SELECTION_CHANNELS.create, input),
     addPlantsToSelection: (input) =>
