@@ -220,7 +220,8 @@ export function CatalogPage({
           isFiltered={
             filters.soils.length > 0 ||
             filters.exposures.length > 0 ||
-            filters.bloomMonths.length > 0
+            filters.bloomMonths.length > 0 ||
+            filters.flowerColors.length > 0
           }
           onPageChange={changePage}
           selectedPlantIds={selectedPlantIds}

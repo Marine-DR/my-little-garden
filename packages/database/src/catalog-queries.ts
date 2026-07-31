@@ -111,7 +111,7 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
   const joins: string[] = [];
   const clauses: string[] = [];
   const parameters: SQLInputValue[] = [];
-  const { soils, exposures, bloomMonths } = activeFilters;
+  const { soils, exposures, bloomMonths, flowerColors } = activeFilters;
 
   if (soils.length > 0) {
     joins.push(`JOIN plant_soils ps_filter ON ps_filter.plant_id = p.id`);
@@ -147,6 +147,17 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
     for (const month of bloomMonths) {
       parameters.push(month, month, month);
     }
+  }
+
+  if (flowerColors.length > 0) {
+    joins.push(
+      `JOIN plant_flower_colors pfc_filter ON pfc_filter.plant_id = p.id`,
+    );
+    joins.push(`JOIN colors fc_filter ON fc_filter.id = pfc_filter.color_id`);
+    clauses.push(
+      `fc_filter.label IN (${flowerColors.map(() => '?').join(', ')})`,
+    );
+    parameters.push(...flowerColors);
   }
 
   return {
@@ -321,7 +332,15 @@ export class CatalogQueries {
           ),
       ),
     ];
-    return { soils, exposures, bloomMonths };
+    const flowerColors = this.database
+      .prepare(
+        `SELECT DISTINCT c.label, c.normalized_label FROM colors c
+         JOIN plant_flower_colors pfc ON pfc.color_id = c.id
+         ORDER BY c.normalized_label`,
+      )
+      .all()
+      .map((row) => stringColumn(row as SqliteRow, 'label'));
+    return { soils, exposures, bloomMonths, flowerColors };
   }
 
   relations(ids: readonly string[]): RelationQueries {

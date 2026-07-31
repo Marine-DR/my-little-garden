@@ -944,6 +944,43 @@ main {
   background: #245e26;
   border-color: #245e26;
 }
+.color-filter-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.color-filter-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.color-filter-option span {
+  min-width: 39px;
+  min-height: 39px;
+  padding: 4px 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid #b9bfc4;
+  border-radius: 999px;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+}
+.color-filter-option span:hover {
+  background: #f4ffee;
+  border-color: #2f7d32;
+}
+.color-filter-option input:checked + span {
+  background: #e8f2e6;
+  border-color: #2f7d32;
+  box-shadow: 0 0 0 1px #2f7d32;
+}
+.color-filter-option input:focus-visible + span {
+  outline: 2px solid #2f7d32;
+  outline-offset: 2px;
+}
 .filter-groups p {
   margin: 0;
   color: #969191;

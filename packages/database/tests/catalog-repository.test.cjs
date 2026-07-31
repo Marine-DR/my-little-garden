@@ -38,6 +38,16 @@ function createCatalog(t) {
   `,
     )
     .get();
+  const colors = new Map();
+  for (const label of ['Blanc', 'Rose', 'Violet']) {
+    const color = database
+      .prepare(
+        `INSERT INTO colors (label, normalized_label, created_at)
+         VALUES (?, ?, '2026-06-28') RETURNING id`,
+      )
+      .get(label, label.toLowerCase());
+    colors.set(label, Number(color.id));
+  }
   for (let index = 0; index < 30; index += 1) {
     const suffix = String(index).padStart(2, '0');
     const id = `plant-${suffix}`;
@@ -78,6 +88,16 @@ function createCatalog(t) {
       `,
         )
         .run(id);
+    }
+    const flowerColors =
+      index === 0 ? ['Blanc', 'Rose'] : index === 1 ? ['Violet'] : ['Rose'];
+    for (const color of flowerColors) {
+      database
+        .prepare(
+          `INSERT INTO plant_flower_colors (plant_id, color_id)
+           VALUES (?, ?)`,
+        )
+        .run(id, colors.get(color));
     }
   }
   return new SqlitePlantCatalogRepository(database);
@@ -254,6 +274,53 @@ test('filters by cyclic bloom month without relation filters', async (t) => {
   assert.deepEqual(plantNames(result), ['Achillée']);
 });
 
+test('filters by one flower color', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      flowerColors: ['Blanc'],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.deepEqual(plantNames(result), ['Échinacée']);
+});
+
+test('uses OR between flower colors and avoids duplicate plants', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 30,
+    filters: {
+      flowerColors: ['Blanc', 'Rose'],
+    },
+  });
+
+  assert.equal(result.total, 29);
+  assert.equal(result.items.length, 29);
+  assert.equal(new Set(result.items.map(({ id }) => id)).size, 29);
+  assert.ok(!plantNames(result).includes('Achillée'));
+});
+
+test('combines flower colors with other filter attributes', async (t) => {
+  const repository = createCatalog(t);
+  const result = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      soils: ['Humide'],
+      exposures: ['shade'],
+      bloomMonths: [1],
+      flowerColors: ['Rose', 'Violet'],
+    },
+  });
+
+  assert.equal(result.total, 1);
+  assert.deepEqual(plantNames(result), ['Achillée']);
+});
+
 test('filters by soil, exposure, and cyclic bloom months', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.list({
@@ -291,10 +358,13 @@ test('lists every plant id matching the active filters', async (t) => {
 
   const allIds = await repository.listIds();
   const shadeIds = await repository.listIds({ exposures: ['shade'] });
+  const roseIds = await repository.listIds({ flowerColors: ['Rose'] });
 
   assert.equal(allIds.length, 30);
   assert.deepEqual(allIds.slice(0, 2), ['plant-01', 'plant-00']);
   assert.deepEqual(shadeIds, ['plant-01']);
+  assert.equal(roseIds.length, 29);
+  assert.ok(!roseIds.includes('plant-01'));
 });
 
 test('lists catalog filter options from stored values', async (t) => {
@@ -303,6 +373,7 @@ test('lists catalog filter options from stored values', async (t) => {
 
   assert.deepEqual(options.soils, ['Drainé', 'Humide']);
   assert.deepEqual(options.exposures, ['sun', 'shade']);
+  assert.deepEqual(options.flowerColors, ['Blanc', 'Rose', 'Violet']);
   const wrapStart = options.bloomMonths.indexOf(11);
   assert.deepEqual(options.bloomMonths.slice(wrapStart), [11, 12, 1, 2]);
 });

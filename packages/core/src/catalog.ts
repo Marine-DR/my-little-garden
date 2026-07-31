@@ -9,12 +9,14 @@ export interface PlantCatalogFilters {
   readonly soils?: readonly string[];
   readonly exposures?: readonly ExposureCode[];
   readonly bloomMonths?: readonly number[];
+  readonly flowerColors?: readonly string[];
 }
 
 export interface PlantCatalogFilterOptions {
   readonly soils: readonly string[];
   readonly exposures: readonly ExposureCode[];
   readonly bloomMonths: readonly number[];
+  readonly flowerColors: readonly string[];
 }
 
 export function activeBloomMonths(start: number, end: number): number[] {
@@ -48,6 +50,9 @@ export function sanitizeCatalogFilters(
           ?.map((value) => Math.trunc(value))
           .filter((value) => MONTH_NUMBERS.includes(value)) ?? [],
       ),
+    ],
+    flowerColors: [
+      ...new Set(filters?.flowerColors?.filter((value) => value.trim()) ?? []),
     ],
   };
 }
