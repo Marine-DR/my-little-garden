@@ -3,6 +3,7 @@ import type {
   Plant,
   PlantCatalogFilterOptions,
   PlantCatalogRepository,
+  PlantDeletionResult,
   PlantPage,
   PlantPageRequest,
   SelectionPlantUsage,
@@ -175,6 +176,73 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
         this.upsertPlant(input, now);
         this.replaceRelations(input);
       }
+    });
+  }
+
+  deletePlants(plantIds: readonly string[]): PlantDeletionResult {
+    const ids = [...new Set(plantIds)];
+    if (ids.length === 0) {
+      return { ok: false, code: 'no_plants' };
+    }
+
+    return runInTransaction(this.database, () => {
+      const placeholders = ids.map(() => '?').join(', ');
+      const existing = this.database
+        .prepare(`SELECT id FROM plants WHERE id IN (${placeholders})`)
+        .all(...ids);
+      if (existing.length !== ids.length) {
+        return { ok: false, code: 'plants_not_found' };
+      }
+
+      const affectedSelectionCount = Number(
+        (
+          this.database
+            .prepare(
+              `SELECT count(DISTINCT selection_id) AS count
+               FROM selection_plants WHERE plant_id IN (${placeholders})`,
+            )
+            .get(...ids) as { count: number | bigint }
+        ).count,
+      );
+      const now = new Date().toISOString();
+      this.database
+        .prepare(
+          `INSERT INTO selection_plant_changes (
+             selection_id, plant_id, change_kind, plant_name,
+             baseline_json, created_at, updated_at, photo_managed_filename
+           )
+           SELECT sp.selection_id, p.id, 'deleted', p.name,
+                  NULL, ?, ?, ph.managed_filename
+           FROM selection_plants sp
+           JOIN plants p ON p.id = sp.plant_id
+           LEFT JOIN plant_photos ph ON ph.plant_id = p.id
+           WHERE p.id IN (${placeholders})
+           ON CONFLICT(selection_id, plant_id) DO UPDATE SET
+             change_kind = 'deleted',
+             plant_name = excluded.plant_name,
+             baseline_json = NULL,
+             updated_at = excluded.updated_at,
+             photo_managed_filename = excluded.photo_managed_filename`,
+        )
+        .run(now, now, ...ids);
+      this.database
+        .prepare(
+          `UPDATE selections SET updated_at = ?
+           WHERE id IN (
+             SELECT DISTINCT selection_id FROM selection_plants
+             WHERE plant_id IN (${placeholders})
+           )`,
+        )
+        .run(now, ...ids);
+      this.database
+        .prepare(`DELETE FROM plants WHERE id IN (${placeholders})`)
+        .run(...ids);
+
+      return {
+        ok: true,
+        deletedPlantCount: ids.length,
+        affectedSelectionCount,
+      };
     });
   }
 

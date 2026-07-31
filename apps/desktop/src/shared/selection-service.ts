@@ -14,6 +14,7 @@ export const SELECTION_CHANNELS = {
   get: 'selections:get',
   removePlants: 'selections:remove-plants',
   acknowledgeModified: 'selections:acknowledge-modified',
+  acknowledgeDeleted: 'selections:acknowledge-deleted',
 } as const;
 
 export interface SelectionService {
@@ -24,6 +25,9 @@ export interface SelectionService {
     plantIds: readonly string[],
   ): Promise<SelectionDetails | null>;
   acknowledgeModifiedPlants(
+    selectionId: string,
+  ): Promise<SelectionDetails | null>;
+  acknowledgeDeletedPlants(
     selectionId: string,
   ): Promise<SelectionDetails | null>;
   createSelection(

@@ -388,6 +388,27 @@ main {
   margin: 4px 0 0;
   color: #713f12;
 }
+.selection-deleted-message {
+  margin: 0 24px 16px;
+  padding: 14px 16px;
+  width: fit-content;
+  max-width: calc(100% - 48px);
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 20px;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+}
+.selection-deleted-message ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+.selection-deleted-message .icon-button {
+  color: #991b1b;
+  background: transparent;
+}
 .selection-modified-details-button {
   padding: 7px 10px;
   display: inline-flex;
@@ -589,6 +610,29 @@ main {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+.plant-deletion-modal {
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.plant-deletion-list,
+.plant-deletion-impacts ul {
+  margin: 14px 0 0;
+  padding-left: 22px;
+}
+.plant-deletion-impacts {
+  margin-top: 20px;
+}
+.plant-deletion-impacts h3 {
+  margin: 0 0 12px;
+  color: #2f7d32;
+  font-size: 16px;
+}
+.plant-deletion-impacts div + div {
+  margin-top: 14px;
+}
+.plant-deletion-impacts ul {
+  margin-top: 5px;
 }
 .modal-actions {
   display: flex;

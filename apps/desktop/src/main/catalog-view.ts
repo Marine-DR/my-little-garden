@@ -12,6 +12,8 @@ import type {
   SelectionSummaryRecord,
 } from '@my-little-garden/core';
 import { createPhotoUrl } from '@my-little-garden/photo-handling';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 
 const CATALOG_PAGE_SIZE = 25;
 
@@ -87,6 +89,24 @@ export async function acknowledgeModifiedSelectionPlants(
   return toSelectionDetails(selection);
 }
 
+export async function acknowledgeDeletedSelectionPlants(
+  selectionRepository: SelectionRepository,
+  selectionId: string,
+  photoDirectory: string,
+): Promise<SelectionDetails | null> {
+  const filenames = selectionRepository.listDeletedPhotoFilenames(selectionId);
+  const selection =
+    await selectionRepository.acknowledgeDeletedPlants(selectionId);
+  if (selection) {
+    for (const filename of filenames) {
+      if (!selectionRepository.isPhotoFilenameReferenced(filename)) {
+        rmSync(join(photoDirectory, filename), { force: true });
+      }
+    }
+  }
+  return selection ? toSelectionDetails(selection) : null;
+}
+
 function toSelectionDetails(
   selection: SelectionDetailsRecord,
 ): SelectionDetails {
@@ -95,6 +115,7 @@ function toSelectionDetails(
     name: selection.name,
     status: selection.status,
     modifiedPlantCount: selection.modifiedPlantCount,
+    deletedPlantCount: selection.deletedPlantCount,
     modifiedPlants: selection.modifiedPlants.map((modifiedPlant) => {
       const currentPlant = selection.plants.find(
         ({ id }) => id === modifiedPlant.id,
@@ -108,6 +129,11 @@ function toSelectionDetails(
             : [],
       };
     }),
+    deletedPlants: selection.deletedPlants.map((deletedPlant) => ({
+      id: deletedPlant.id,
+      name: deletedPlant.name,
+      photoUrl: createPhotoUrl(deletedPlant.managedFilename),
+    })),
     plants: selection.plants.map(toCatalogPlant),
   };
 }
@@ -217,6 +243,7 @@ function toSelectionSummary(
     name: selection.name,
     status: selection.status,
     modifiedPlantCount: selection.modifiedPlantCount,
+    deletedPlantCount: selection.deletedPlantCount,
     previewPhotoUrls: selection.previewManagedFilenames.map((filename) =>
       createPhotoUrl(filename),
     ),

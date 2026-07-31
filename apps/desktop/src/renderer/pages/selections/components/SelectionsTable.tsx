@@ -68,6 +68,7 @@ function SelectionRow({
         <SelectionStatus
           status={selection.status}
           modifiedPlantCount={selection.modifiedPlantCount}
+          deletedPlantCount={selection.deletedPlantCount}
         />
       </td>
       <td>{formatDate(selection.createdAt)}</td>

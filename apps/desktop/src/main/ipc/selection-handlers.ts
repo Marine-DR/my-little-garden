@@ -7,6 +7,7 @@ import type { IpcMain } from 'electron';
 import { SELECTION_CHANNELS } from '../../shared/selection-service.js';
 import {
   acknowledgeModifiedSelectionPlants,
+  acknowledgeDeletedSelectionPlants,
   getSelectionDetails,
   listSelectionSummaries,
   removePlantsFromSelection,
@@ -15,6 +16,7 @@ import {
 export function registerSelectionHandlers(
   ipcMain: IpcMain,
   selectionRepository: SelectionRepository,
+  photoDirectory: string,
 ): void {
   ipcMain.handle(SELECTION_CHANNELS.list, () =>
     listSelectionSummaries(selectionRepository),
@@ -23,6 +25,15 @@ export function registerSelectionHandlers(
     SELECTION_CHANNELS.create,
     (_event, input: SelectionCreationInput) =>
       selectionRepository.create(input),
+  );
+  ipcMain.handle(
+    SELECTION_CHANNELS.acknowledgeDeleted,
+    (_event, selectionId: string) =>
+      acknowledgeDeletedSelectionPlants(
+        selectionRepository,
+        selectionId,
+        photoDirectory,
+      ),
   );
   ipcMain.handle(
     SELECTION_CHANNELS.addPlants,

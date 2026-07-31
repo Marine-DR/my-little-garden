@@ -6,6 +6,7 @@ import type {
   SelectionPlantAdditionInput,
   SelectionPlantAdditionResult,
   SelectionStatus,
+  PlantDeletionResult,
 } from './desktop-api';
 
 export interface PlantPageRequest {
@@ -38,6 +39,7 @@ export interface SelectionSummaryRecord {
   readonly name: string;
   readonly status: SelectionStatus;
   readonly modifiedPlantCount: number;
+  readonly deletedPlantCount: number;
   readonly previewManagedFilenames: readonly (string | null)[];
   readonly plantCount: number;
   readonly createdAt: string;
@@ -49,7 +51,9 @@ export interface SelectionDetailsRecord {
   readonly name: string;
   readonly status: SelectionStatus;
   readonly modifiedPlantCount: number;
+  readonly deletedPlantCount: number;
   readonly modifiedPlants: readonly SelectionModifiedPlantRecord[];
+  readonly deletedPlants: readonly SelectionDeletedPlantRecord[];
   readonly plants: readonly Plant[];
 }
 
@@ -57,6 +61,12 @@ export interface SelectionModifiedPlantRecord {
   readonly id: string;
   readonly name: string;
   readonly baseline: Plant | null;
+}
+
+export interface SelectionDeletedPlantRecord {
+  readonly id: string;
+  readonly name: string;
+  readonly managedFilename: string | null;
 }
 
 export interface SelectionPlantUsage {
@@ -96,6 +106,7 @@ export interface IncrementalPlantCatalogRepository {
     inputs: readonly PlantWriteInput[],
     modifiedPlants?: readonly Plant[],
   ): void;
+  deletePlants(plantIds: readonly string[]): PlantDeletionResult;
 }
 
 export interface PlantPhotoRepository {
@@ -118,4 +129,9 @@ export interface SelectionRepository {
   acknowledgeModifiedPlants(
     selectionId: string,
   ): Promise<SelectionDetailsRecord | null>;
+  acknowledgeDeletedPlants(
+    selectionId: string,
+  ): Promise<SelectionDetailsRecord | null>;
+  listDeletedPhotoFilenames(selectionId: string): readonly string[];
+  isPhotoFilenameReferenced(managedFilename: string): boolean;
 }

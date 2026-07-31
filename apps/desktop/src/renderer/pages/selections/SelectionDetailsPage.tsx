@@ -123,6 +123,22 @@ export function SelectionDetailsPage({
     }
   };
 
+  const acknowledgeDeletedPlants = async (): Promise<void> => {
+    setAcknowledging(true);
+    try {
+      const result =
+        await window.selectionService.acknowledgeDeletedPlants(selectionId);
+      if (result) {
+        setSelection(result);
+        onUpdated();
+      }
+    } catch {
+      setError('Les suppressions n’ont pas pu être acquittées.');
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+
   return (
     <>
       <section
@@ -142,6 +158,7 @@ export function SelectionDetailsPage({
                 <SelectionStatus
                   status={selection.status}
                   modifiedPlantCount={selection.modifiedPlantCount}
+                  deletedPlantCount={selection.deletedPlantCount}
                 />
               </div>
             ) : null}
@@ -187,6 +204,31 @@ export function SelectionDetailsPage({
         <div className="error-banner" role="alert">
           {error}
         </div>
+      ) : null}
+      {selection && selection.deletedPlants.length > 0 ? (
+        <section className="selection-deleted-message" role="alert">
+          <div>
+            <strong>
+              {selection.deletedPlants.length === 1
+                ? '1 plante supprimée du catalogue'
+                : `${selection.deletedPlants.length} plantes supprimées du catalogue`}
+            </strong>
+            <ul>
+              {selection.deletedPlants.map((plant) => (
+                <li key={plant.id}>{plant.name}</li>
+              ))}
+            </ul>
+          </div>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Fermer le message des plantes supprimées"
+            disabled={acknowledging}
+            onClick={() => void acknowledgeDeletedPlants()}
+          >
+            ×
+          </button>
+        </section>
       ) : null}
       {selection && selection.modifiedPlants.length > 0 ? (
         <section className="selection-modified-message" role="alert">

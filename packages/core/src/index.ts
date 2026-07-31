@@ -1,4 +1,5 @@
 export * from './catalog';
+export * from './catalog-deletion';
 export * from './catalog-modification';
 export * from './communication';
 export * from './constants';

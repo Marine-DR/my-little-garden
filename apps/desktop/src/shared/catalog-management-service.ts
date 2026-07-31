@@ -4,6 +4,8 @@ import type {
   CatalogModifyPreviewResult,
   CatalogModifyResult,
   CatalogImportResult,
+  PlantDeletionPreviewResult,
+  PlantDeletionResult,
 } from '@my-little-garden/core';
 
 export const CATALOG_MANAGEMENT_CHANNELS = {
@@ -12,6 +14,8 @@ export const CATALOG_MANAGEMENT_CHANNELS = {
   addCommit: 'catalog:add-commit',
   modifyPreview: 'catalog:modify-preview',
   modifyCommit: 'catalog:modify-commit',
+  deletePreview: 'catalog:delete-preview',
+  deleteCommit: 'catalog:delete-commit',
   template: 'catalog:template',
 } as const;
 
@@ -33,5 +37,9 @@ export interface CatalogManagementService {
     token: string,
     policy: 'create_missing' | 'ignore_missing',
   ): Promise<CatalogModifyResult>;
+  previewPlantDeletion(
+    plantIds: readonly string[],
+  ): Promise<PlantDeletionPreviewResult>;
+  deletePlants(plantIds: readonly string[]): Promise<PlantDeletionResult>;
   getTemplate(): Promise<string>;
 }

@@ -144,6 +144,42 @@ test('derives modified status and clears it when the warning is acknowledged', a
   assert.deepEqual(acknowledged.modifiedPlants, []);
 });
 
+test('derives deleted status above modified status and exposes retained plants', async (t) => {
+  const database = createDatabase(t);
+  const repository = createRepository(database);
+  database
+    .prepare(
+      `INSERT INTO selections (id, name, created_at, updated_at)
+       VALUES ('selection-1', 'Massif', '2026-07-10', '2026-07-10')`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO selection_plant_changes (
+         selection_id, plant_id, change_kind, plant_name, baseline_json,
+         created_at, updated_at, photo_managed_filename
+       ) VALUES
+         ('selection-1', 'plant-1', 'modified', 'Achillée', '{}',
+          '2026-07-11', '2026-07-11', NULL),
+         ('selection-1', 'plant-2', 'deleted', 'Rose', NULL,
+          '2026-07-12', '2026-07-12', 'rose.png')`,
+    )
+    .run();
+
+  const details = await repository.get('selection-1');
+  assert.equal(details.status, 'contains_deleted_plants');
+  assert.equal(details.modifiedPlantCount, 1);
+  assert.equal(details.deletedPlantCount, 1);
+  assert.deepEqual(details.deletedPlants, [
+    { id: 'plant-2', name: 'Rose', managedFilename: 'rose.png' },
+  ]);
+
+  const acknowledged = await repository.acknowledgeDeletedPlants('selection-1');
+  assert.equal(acknowledged.status, 'contains_modified_plants');
+  assert.equal(acknowledged.deletedPlantCount, 0);
+  assert.deepEqual(acknowledged.deletedPlants, []);
+});
+
 test('creates a trimmed named selection with unique plant links', async (t) => {
   const database = createDatabase(t);
   const repository = createRepository(database);

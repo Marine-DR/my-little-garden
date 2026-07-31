@@ -26,6 +26,10 @@ export function createCatalogManagementService(
         token,
         policy,
       ),
+    previewPlantDeletion: (plantIds) =>
+      ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.deletePreview, plantIds),
+    deletePlants: (plantIds) =>
+      ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.deleteCommit, plantIds),
     getTemplate: () => ipcRenderer.invoke(CATALOG_MANAGEMENT_CHANNELS.template),
   };
 }
