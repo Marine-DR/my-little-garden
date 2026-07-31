@@ -99,6 +99,10 @@ export function PlantDeleter({
             </ul>
             {preview.impactedSelections.length > 0 ? (
               <section className="plant-deletion-impacts">
+                <p className="plant-deletion-warning" role="alert">
+                  Certaines plantes sont utilisées dans des sélections. Leur
+                  suppression les retirera également de ces sélections.
+                </p>
                 <h3>Sélections concernées</h3>
                 {preview.impactedSelections.map((selection) => (
                   <div key={selection.id}>
