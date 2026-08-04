@@ -3,6 +3,7 @@ import type {
   SelectionDeletedPlant,
   SelectionDetails,
 } from '@my-little-garden/core';
+import detailsIcon from '@renderer/assets/details.svg';
 import removeIcon from '@renderer/assets/sup.svg';
 import { Pagination } from '@renderer/components/Pagination';
 import { PlantPhoto } from '@renderer/components/PlantPhoto';
@@ -250,15 +251,11 @@ export function SelectionDetailsPage({
                   disabled={acknowledging}
                   onClick={reviewDeletedPlants}
                 >
-                  <svg
+                  <img
                     className="selection-modified-details-icon"
-                    aria-hidden="true"
-                    viewBox="0 0 9.525 9.525"
-                  >
-                    <path d="M .938 4.756c2.35 2.313 4.779 3.472 7.523.011" />
-                    <path d="M .915 4.742C3.265 2.429 5.694 1.27 8.438 4.73" />
-                    <ellipse cx="4.739" cy="4.733" rx="1.092" ry=".995" />
-                  </svg>
+                    src={detailsIcon}
+                    alt=""
+                  />
                   Détails
                 </button>
                 <button
@@ -288,15 +285,11 @@ export function SelectionDetailsPage({
                   className="selection-modified-details-button"
                   onClick={() => setModifiedDetailsOpen(true)}
                 >
-                  <svg
+                  <img
                     className="selection-modified-details-icon"
-                    aria-hidden="true"
-                    viewBox="0 0 9.525 9.525"
-                  >
-                    <path d="M .938 4.756c2.35 2.313 4.779 3.472 7.523.011" />
-                    <path d="M .915 4.742C3.265 2.429 5.694 1.27 8.438 4.73" />
-                    <ellipse cx="4.739" cy="4.733" rx="1.092" ry=".995" />
-                  </svg>
+                    src={detailsIcon}
+                    alt=""
+                  />
                   Détails
                 </button>
                 <button
