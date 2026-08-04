@@ -40,7 +40,7 @@ app.whenReady().then(async () => {
   handlePhotoRequests(photoDirectory);
   registerAboutHandlers(ipcMain, { version: app.getVersion() });
   registerCatalogHandlers(ipcMain, catalogRepository);
-  registerSelectionHandlers(ipcMain, selectionRepository);
+  registerSelectionHandlers(ipcMain, selectionRepository, photoDirectory);
   registerCatalogManagementHandlers(
     ipcMain,
     openedDatabase,

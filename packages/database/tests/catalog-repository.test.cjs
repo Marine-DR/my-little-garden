@@ -217,6 +217,112 @@ test('upserts and finds a hydrated plant by id or normalized name', async (t) =>
   assert.equal(await repository.findById('missing-plant'), null);
 });
 
+test('deletes plants and records every affected selection atomically', (t) => {
+  const database = new DatabaseSync(':memory:');
+  database.exec(migration);
+  t.after(() => database.close());
+  const repository = new SqlitePlantCatalogRepository(database);
+  const insertPlant = database.prepare(
+    `INSERT INTO plants (
+       id, name, normalized_name, created_at, updated_at
+     ) VALUES (?, ?, ?, '2026-07-31', '2026-07-31')`,
+  );
+  insertPlant.run('plant-rose', 'Rose', 'rose');
+  insertPlant.run('plant-sage', 'Sauge', 'sauge');
+  database
+    .prepare(
+      `INSERT INTO plant_photos (
+         plant_id, managed_filename, media_type, checksum_sha256, created_at
+       ) VALUES ('plant-rose', 'rose.png', 'image/png', 'checksum', '2026-07-31')`,
+    )
+    .run();
+  const insertSelection = database.prepare(
+    `INSERT INTO selections (id, name, created_at, updated_at)
+     VALUES (?, ?, '2026-07-31', '2026-07-31')`,
+  );
+  insertSelection.run('selection-1', 'Massif');
+  insertSelection.run('selection-2', 'Prairie');
+  const insertLink = database.prepare(
+    `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+     VALUES (?, ?, '2026-07-31')`,
+  );
+  insertLink.run('selection-1', 'plant-rose');
+  insertLink.run('selection-1', 'plant-sage');
+  insertLink.run('selection-2', 'plant-rose');
+  database
+    .prepare(
+      `INSERT INTO selection_plant_changes (
+         selection_id, plant_id, change_kind, plant_name, baseline_json,
+         created_at, updated_at
+       ) VALUES (
+         'selection-1', 'plant-rose', 'modified', 'Rose', '{}',
+         '2026-07-30', '2026-07-30'
+       )`,
+    )
+    .run();
+
+  assert.deepEqual(repository.deletePlants(['plant-rose', 'plant-rose']), {
+    ok: true,
+    deletedPlantCount: 1,
+    affectedSelectionCount: 2,
+  });
+  assert.deepEqual(
+    database
+      .prepare('SELECT id FROM plants ORDER BY id')
+      .all()
+      .map(({ id }) => ({ id })),
+    [{ id: 'plant-sage' }],
+  );
+  assert.deepEqual(
+    database
+      .prepare(
+        'SELECT selection_id, plant_id FROM selection_plants ORDER BY selection_id, plant_id',
+      )
+      .all()
+      .map(({ selection_id, plant_id }) => ({ selection_id, plant_id })),
+    [{ selection_id: 'selection-1', plant_id: 'plant-sage' }],
+  );
+  assert.deepEqual(
+    database
+      .prepare(
+        `SELECT selection_id, plant_id, change_kind, plant_name,
+                baseline_json, photo_managed_filename
+         FROM selection_plant_changes ORDER BY selection_id`,
+      )
+      .all()
+      .map((row) => ({ ...row })),
+    [
+      {
+        selection_id: 'selection-1',
+        plant_id: 'plant-rose',
+        change_kind: 'deleted',
+        plant_name: 'Rose',
+        baseline_json: null,
+        photo_managed_filename: 'rose.png',
+      },
+      {
+        selection_id: 'selection-2',
+        plant_id: 'plant-rose',
+        change_kind: 'deleted',
+        plant_name: 'Rose',
+        baseline_json: null,
+        photo_managed_filename: 'rose.png',
+      },
+    ],
+  );
+
+  assert.deepEqual(repository.deletePlants(['plant-sage', 'missing']), {
+    ok: false,
+    code: 'plants_not_found',
+  });
+  assert.equal(
+    database
+      .prepare("SELECT count(*) AS count FROM plants WHERE id = 'plant-sage'")
+      .get().count,
+    1,
+  );
+});
+
 test('filters by soil without requiring exposure or bloom filters', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.list({

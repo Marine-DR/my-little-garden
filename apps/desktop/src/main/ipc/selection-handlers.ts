@@ -11,10 +11,12 @@ import {
   listSelectionSummaries,
   removePlantsFromSelection,
 } from '../catalog-view.js';
+import { acknowledgeDeletedPlantsAndCleanup } from '../selection-deletion.js';
 
 export function registerSelectionHandlers(
   ipcMain: IpcMain,
   selectionRepository: SelectionRepository,
+  photoDirectory: string,
 ): void {
   ipcMain.handle(SELECTION_CHANNELS.list, () =>
     listSelectionSummaries(selectionRepository),
@@ -23,6 +25,15 @@ export function registerSelectionHandlers(
     SELECTION_CHANNELS.create,
     (_event, input: SelectionCreationInput) =>
       selectionRepository.create(input),
+  );
+  ipcMain.handle(
+    SELECTION_CHANNELS.acknowledgeDeleted,
+    (_event, selectionId: string) =>
+      acknowledgeDeletedPlantsAndCleanup(
+        selectionRepository,
+        selectionId,
+        photoDirectory,
+      ),
   );
   ipcMain.handle(
     SELECTION_CHANNELS.addPlants,

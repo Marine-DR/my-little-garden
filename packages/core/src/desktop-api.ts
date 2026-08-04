@@ -39,6 +39,7 @@ export interface SelectionSummary {
   readonly name: string;
   readonly status: SelectionStatus;
   readonly modifiedPlantCount: number;
+  readonly deletedPlantCount: number;
   readonly previewPhotoUrls: readonly (string | null)[];
   readonly plantCount: number;
   readonly createdAt: string;
@@ -53,8 +54,16 @@ export interface SelectionDetails {
   readonly name: string;
   readonly status: SelectionStatus;
   readonly modifiedPlantCount: number;
+  readonly deletedPlantCount: number;
   readonly modifiedPlants: readonly SelectionModifiedPlant[];
+  readonly deletedPlants: readonly SelectionDeletedPlant[];
   readonly plants: readonly CatalogPlant[];
+}
+
+export interface SelectionDeletedPlant {
+  readonly id: string;
+  readonly name: string;
+  readonly photoUrl: string | null;
 }
 
 export interface SelectionModifiedPlant {
@@ -188,6 +197,29 @@ export interface CatalogModifyImpactedSelection {
   readonly name: string;
   readonly plantNames: readonly string[];
 }
+
+export interface PlantDeletionTarget {
+  readonly id: string;
+  readonly name: string;
+}
+
+export type PlantDeletionErrorCode = 'no_plants' | 'plants_not_found';
+
+export type PlantDeletionPreviewResult =
+  | {
+      readonly ok: true;
+      readonly plants: readonly PlantDeletionTarget[];
+      readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
+    }
+  | { readonly ok: false; readonly code: PlantDeletionErrorCode };
+
+export type PlantDeletionResult =
+  | {
+      readonly ok: true;
+      readonly deletedPlantCount: number;
+      readonly affectedSelectionCount: number;
+    }
+  | { readonly ok: false; readonly code: PlantDeletionErrorCode };
 
 export type CatalogModifyResult =
   | (CatalogUpdateResult & {

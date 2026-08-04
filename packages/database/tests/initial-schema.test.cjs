@@ -137,6 +137,7 @@ test('selection plant changes use the selection and plant as their key', (t) => 
       'baseline_json',
       'created_at',
       'updated_at',
+      'photo_managed_filename',
     ],
   );
   assert.deepEqual(

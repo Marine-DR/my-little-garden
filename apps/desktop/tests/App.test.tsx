@@ -19,6 +19,8 @@ import type {
   CatalogPlant,
   PhotoDeleteResult,
   PhotoImportResult,
+  PlantDeletionPreviewResult,
+  PlantDeletionResult,
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetails,
@@ -53,6 +55,7 @@ const sunnyBorder: SelectionSummary = {
   name: 'Bordure plein soleil',
   status: 'up_to_date',
   modifiedPlantCount: 0,
+  deletedPlantCount: 0,
   previewPhotoUrls: [
     'photo://rose-1',
     'photo://rose-2',
@@ -103,6 +106,12 @@ describe('App catalog', () => {
         policy: 'create_missing' | 'ignore_missing',
       ) => Promise<CatalogModifyResult>
     >();
+  const previewPlantDeletion =
+    vi.fn<
+      (plantIds: readonly string[]) => Promise<PlantDeletionPreviewResult>
+    >();
+  const deletePlants =
+    vi.fn<(plantIds: readonly string[]) => Promise<PlantDeletionResult>>();
   const importPhotos =
     vi.fn<
       (
@@ -121,6 +130,8 @@ describe('App catalog', () => {
       ) => Promise<SelectionDetails | null>
     >();
   const acknowledgeModifiedPlants =
+    vi.fn<(selectionId: string) => Promise<SelectionDetails | null>>();
+  const acknowledgeDeletedPlants =
     vi.fn<(selectionId: string) => Promise<SelectionDetails | null>>();
   const createSelection =
     vi.fn<
@@ -176,6 +187,16 @@ describe('App catalog', () => {
       unchanged: 0,
       notAdded: 0,
     });
+    previewPlantDeletion.mockResolvedValue({
+      ok: true,
+      plants: [{ id: 'rose-1', name: 'Rose page 1' }],
+      impactedSelections: [],
+    });
+    deletePlants.mockResolvedValue({
+      ok: true,
+      deletedPlantCount: 1,
+      affectedSelectionCount: 0,
+    });
     importPhotos.mockResolvedValue({ ok: true, imported: 1, unmatched: [] });
     deletePhoto.mockResolvedValue({ ok: true });
     listSelections.mockResolvedValue([sunnyBorder]);
@@ -184,7 +205,9 @@ describe('App catalog', () => {
       name: sunnyBorder.name,
       status: 'up_to_date',
       modifiedPlantCount: 0,
+      deletedPlantCount: 0,
       modifiedPlants: [],
+      deletedPlants: [],
       plants: [rose],
     });
     removePlantsFromSelection.mockResolvedValue({
@@ -192,7 +215,9 @@ describe('App catalog', () => {
       name: sunnyBorder.name,
       status: 'up_to_date',
       modifiedPlantCount: 0,
+      deletedPlantCount: 0,
       modifiedPlants: [],
+      deletedPlants: [],
       plants: [rose],
     });
     createSelection.mockResolvedValue({
@@ -221,6 +246,7 @@ describe('App catalog', () => {
       getSelection,
       removePlantsFromSelection,
       acknowledgeModifiedPlants,
+      acknowledgeDeletedPlants,
       createSelection,
       addPlantsToSelection,
     };
@@ -230,6 +256,8 @@ describe('App catalog', () => {
       commitCatalogAddition,
       previewCatalogModification,
       commitCatalogModification,
+      previewPlantDeletion,
+      deletePlants,
       getTemplate: vi.fn(async () => 'Nom,Sol,Exposition\nRose,Drainé,Soleil'),
     };
     window.photoService = {
@@ -409,6 +437,65 @@ describe('App catalog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
     expect(await screen.findByText('Coin parfumé')).toBeInTheDocument();
+  });
+
+  it('deletes checked catalog plants only after preview and confirmation', async () => {
+    previewPlantDeletion.mockResolvedValueOnce({
+      ok: true,
+      plants: [{ id: 'rose-1', name: 'Rose page 1' }],
+      impactedSelections: [
+        {
+          id: sunnyBorder.id,
+          name: sunnyBorder.name,
+          plantNames: ['Rose page 1'],
+        },
+      ],
+    });
+    deletePlants.mockResolvedValueOnce({
+      ok: true,
+      deletedPlantCount: 1,
+      affectedSelectionCount: 1,
+    });
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    const deleteButton = screen.getByRole('button', { name: 'Supprimer' });
+    expect(deleteButton).toBeDisabled();
+    expect(deleteButton).toHaveClass('delete-button');
+
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Sélectionner Rose page 1' }),
+    );
+    expect(deleteButton).toBeEnabled();
+    fireEvent.click(deleteButton);
+
+    const dialog = await screen.findByRole('alertdialog', {
+      name: 'Supprimer 1 plante du catalogue ?',
+    });
+    expect(previewPlantDeletion).toHaveBeenCalledWith(['rose-1']);
+    expect(dialog).toHaveTextContent('Rose page 1');
+    expect(dialog).toHaveTextContent('Sélections concernées');
+    expect(dialog).toHaveTextContent('Bordure plein soleil');
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Annuler' }));
+    expect(deletePlants).not.toHaveBeenCalled();
+
+    fireEvent.click(deleteButton);
+    const confirmedDialog = await screen.findByRole('alertdialog', {
+      name: 'Supprimer 1 plante du catalogue ?',
+    });
+    fireEvent.click(
+      within(confirmedDialog).getByRole('button', { name: 'Supprimer' }),
+    );
+
+    await waitFor(() => expect(deletePlants).toHaveBeenCalledWith(['rose-1']));
+    expect(
+      await screen.findByText(
+        'Suppression terminée : 1 plante supprimée. 1 sélection a été mise à jour.',
+      ),
+    ).toBeInTheDocument();
+    expect(deleteButton).toBeDisabled();
+    expect(listFilterOptions).toHaveBeenCalledTimes(2);
   });
 
   it('adds checked catalog plants to a chosen existing selection', async () => {
@@ -1050,7 +1137,9 @@ describe('App catalog', () => {
       name: sunnyBorder.name,
       status: 'up_to_date',
       modifiedPlantCount: 0,
+      deletedPlantCount: 0,
       modifiedPlants: [],
+      deletedPlants: [],
       plants: [],
     });
     render(<App />);
@@ -1118,7 +1207,9 @@ describe('App catalog', () => {
       name: sunnyBorder.name,
       status: 'up_to_date',
       modifiedPlantCount: 0,
+      deletedPlantCount: 0,
       modifiedPlants: [],
+      deletedPlants: [],
       plants: Array.from({ length: 26 }, (_, index) => ({
         ...rose,
         id: `selection-plant-${index + 1}`,

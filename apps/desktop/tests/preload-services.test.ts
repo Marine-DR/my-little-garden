@@ -48,6 +48,7 @@ describe('preload services', () => {
     await service.listSelections();
     await service.getSelection('selection-1');
     await service.removePlantsFromSelection('selection-1', ['plant-1']);
+    await service.acknowledgeDeletedPlants('selection-1');
     await service.createSelection({ name: 'Soleil', plantIds: ['plant-1'] });
     await service.addPlantsToSelection({
       selectionId: 'selection-1',
@@ -58,6 +59,7 @@ describe('preload services', () => {
       [SELECTION_CHANNELS.list],
       [SELECTION_CHANNELS.get, 'selection-1'],
       [SELECTION_CHANNELS.removePlants, 'selection-1', ['plant-1']],
+      [SELECTION_CHANNELS.acknowledgeDeleted, 'selection-1'],
       [SELECTION_CHANNELS.create, { name: 'Soleil', plantIds: ['plant-1'] }],
       [
         SELECTION_CHANNELS.addPlants,
@@ -78,6 +80,8 @@ describe('preload services', () => {
       'preview-1',
       'ignore_existing',
     );
+    await catalogManagement.previewPlantDeletion(['plant-1']);
+    await catalogManagement.deletePlants(['plant-1']);
     await catalogManagement.getTemplate();
     await photos.importPhotos([{ name: 'rose.png', bytes: new Uint8Array() }]);
     await photos.deletePhoto('plant-1');
@@ -86,6 +90,8 @@ describe('preload services', () => {
       [CATALOG_MANAGEMENT_CHANNELS.replace, 'catalog.csv', 'name\nRose'],
       [CATALOG_MANAGEMENT_CHANNELS.addPreview, 'catalog.csv', 'name\nRose'],
       [CATALOG_MANAGEMENT_CHANNELS.addCommit, 'preview-1', 'ignore_existing'],
+      [CATALOG_MANAGEMENT_CHANNELS.deletePreview, ['plant-1']],
+      [CATALOG_MANAGEMENT_CHANNELS.deleteCommit, ['plant-1']],
       [CATALOG_MANAGEMENT_CHANNELS.template],
     ]);
     expect(photoRenderer.invoke.mock.calls).toEqual([

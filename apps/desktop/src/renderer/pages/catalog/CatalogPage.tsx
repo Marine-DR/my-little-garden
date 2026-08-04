@@ -15,6 +15,7 @@ import { CatalogTable } from './components/CatalogTable';
 import { ImageManager } from './components/ImageManager';
 import { SelectionCreator } from './components/SelectionCreator';
 import { SelectionAdder } from './components/SelectionAdder';
+import { PlantDeleter } from './components/PlantDeleter';
 
 export function CatalogPage({
   onSuccess,
@@ -93,6 +94,30 @@ export function CatalogPage({
     setFilterOptions(options);
     setSelectedPlantIds([]);
     setError(null);
+  };
+
+  const plantsDeleted = async (
+    deletedPlantCount: number,
+    affectedSelectionCount: number,
+  ): Promise<void> => {
+    const [catalog, options] = await Promise.all([
+      window.catalogService.listPlants(page, filters),
+      window.catalogService.listFilterOptions(),
+    ]);
+    setPage(catalog.page);
+    setData(catalog);
+    setFilterOptions(options);
+    setSelectedPlantIds([]);
+    setError(null);
+    const plantLabel =
+      deletedPlantCount === 1
+        ? '1 plante supprimée'
+        : `${deletedPlantCount} plantes supprimées`;
+    const selectionLabel =
+      affectedSelectionCount === 1
+        ? '1 sélection a été mise à jour'
+        : `${affectedSelectionCount} sélections ont été mises à jour`;
+    onSuccess(`Suppression terminée : ${plantLabel}. ${selectionLabel}.`);
   };
 
   const applyFilters = (nextFilters: CatalogFilters): void => {
@@ -201,6 +226,13 @@ export function CatalogPage({
           <SelectionAdder
             selectedPlantIds={selectedPlantIds}
             onAdded={plantsAdded}
+          />
+          <PlantDeleter
+            selectedPlantIds={selectedPlantIds}
+            onDeleted={(deletedCount, affectedCount) =>
+              void plantsDeleted(deletedCount, affectedCount)
+            }
+            onError={setError}
           />
         </div>
       </section>

@@ -24,9 +24,11 @@ const statusDetails: Record<
 export function SelectionStatus({
   status,
   modifiedPlantCount,
+  deletedPlantCount,
 }: {
   readonly status: SelectionStatusValue;
   readonly modifiedPlantCount?: number;
+  readonly deletedPlantCount?: number;
 }) {
   const details = statusDetails[status];
   return (
@@ -36,7 +38,10 @@ export function SelectionStatus({
       </span>{' '}
       {status === 'contains_modified_plants' && modifiedPlantCount !== undefined
         ? `${modifiedPlantCount} ${modifiedPlantCount === 1 ? 'plante modifiée' : details.label}`
-        : details.label}
+        : status === 'contains_deleted_plants' &&
+            deletedPlantCount !== undefined
+          ? `${deletedPlantCount} ${deletedPlantCount === 1 ? 'plante supprimée' : 'plantes supprimées'}`
+          : details.label}
     </span>
   );
 }

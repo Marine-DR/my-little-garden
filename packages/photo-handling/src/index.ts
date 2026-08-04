@@ -1,3 +1,4 @@
+import { rmSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { basename, extname, join } from 'node:path';
 import type {
@@ -164,6 +165,16 @@ export function createPhotoUrl(filename: string | null): string | null {
     return null;
   }
   return `${PHOTO_PROTOCOL_SCHEME}://${PHOTO_PROTOCOL_HOST}/${encodeURIComponent(filename)}`;
+}
+
+export function deleteManagedPhotoFile(
+  photoDirectory: string,
+  filename: string,
+): void {
+  if (!filename || basename(filename) !== filename) {
+    throw new Error('Invalid managed photo filename.');
+  }
+  rmSync(join(photoDirectory, filename), { force: true });
 }
 
 export async function handlePhotoProtocolRequest(

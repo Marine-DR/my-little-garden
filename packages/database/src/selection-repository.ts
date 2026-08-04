@@ -4,6 +4,7 @@ import type {
   SelectionCreationInput,
   SelectionCreationResult,
   SelectionDetailsRecord,
+  SelectionDeletedPlantRecord,
   SelectionModifiedPlantRecord,
   SelectionPlantAdditionInput,
   SelectionPlantAdditionResult,
@@ -69,24 +70,57 @@ export class SqliteSelectionRepository implements SelectionRepository {
 
   private statusFor(
     selectionId: string,
-  ): 'up_to_date' | 'contains_modified_plants' {
+  ): 'up_to_date' | 'contains_modified_plants' | 'contains_deleted_plants' {
     const pending = this.database
       .prepare(
-        `SELECT 1 FROM selection_plant_changes
-         WHERE selection_id = ? AND change_kind = 'modified' LIMIT 1`,
+        `SELECT change_kind FROM selection_plant_changes
+         WHERE selection_id = ?
+         ORDER BY CASE change_kind WHEN 'deleted' THEN 0 ELSE 1 END LIMIT 1`,
       )
-      .get(selectionId);
-    return pending ? 'contains_modified_plants' : 'up_to_date';
+      .get(selectionId) as SqliteRow | undefined;
+    if (!pending) {
+      return 'up_to_date';
+    }
+    return stringColumn(pending, 'change_kind') === 'deleted'
+      ? 'contains_deleted_plants'
+      : 'contains_modified_plants';
   }
 
-  private modifiedPlantCountFor(selectionId: string): number {
+  private plantChangeCountFor(
+    selectionId: string,
+    kind: 'modified' | 'deleted',
+  ): number {
     const row = this.database
       .prepare(
         `SELECT count(*) AS count FROM selection_plant_changes
-         WHERE selection_id = ? AND change_kind = 'modified'`,
+         WHERE selection_id = ? AND change_kind = ?`,
       )
-      .get(selectionId) as SqliteRow;
+      .get(selectionId, kind) as SqliteRow;
     return numberColumn(row, 'count');
+  }
+
+  private deletedPlantsFor(
+    selectionId: string,
+  ): readonly SelectionDeletedPlantRecord[] {
+    return this.database
+      .prepare(
+        `SELECT plant_id, plant_name, photo_managed_filename
+         FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'deleted'
+         ORDER BY plant_name COLLATE NOCASE, plant_id`,
+      )
+      .all(selectionId)
+      .map((row) => {
+        const change = row as SqliteRow;
+        return {
+          id: stringColumn(change, 'plant_id'),
+          name: stringColumn(change, 'plant_name'),
+          managedFilename: nullableStringColumn(
+            change,
+            'photo_managed_filename',
+          ),
+        };
+      });
   }
 
   private modifiedPlantsFor(
@@ -157,7 +191,8 @@ export class SqliteSelectionRepository implements SelectionRepository {
       id: selection.id,
       name: selection.name,
       status: this.statusFor(selection.id),
-      modifiedPlantCount: this.modifiedPlantCountFor(selection.id),
+      modifiedPlantCount: this.plantChangeCountFor(selection.id, 'modified'),
+      deletedPlantCount: this.plantChangeCountFor(selection.id, 'deleted'),
       previewManagedFilenames: previewsBySelection.get(selection.id) ?? [],
       plantCount: selection.plantCount,
       createdAt: selection.createdAt,
@@ -184,8 +219,10 @@ export class SqliteSelectionRepository implements SelectionRepository {
       id: stringColumn(selection, 'id'),
       name: stringColumn(selection, 'name'),
       status: this.statusFor(selectionId),
-      modifiedPlantCount: this.modifiedPlantCountFor(selectionId),
+      modifiedPlantCount: this.plantChangeCountFor(selectionId, 'modified'),
+      deletedPlantCount: this.plantChangeCountFor(selectionId, 'deleted'),
       modifiedPlants: this.modifiedPlantsFor(selectionId),
+      deletedPlants: this.deletedPlantsFor(selectionId),
       plants,
     };
   }
@@ -342,5 +379,49 @@ export class SqliteSelectionRepository implements SelectionRepository {
       )
       .run(selectionId);
     return this.get(selectionId);
+  }
+
+  async acknowledgeDeletedPlants(
+    selectionId: string,
+  ): Promise<SelectionDetailsRecord | null> {
+    const selectionExists = this.database
+      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .get(selectionId);
+    if (!selectionExists) {
+      return null;
+    }
+    this.database
+      .prepare(
+        `DELETE FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'deleted'`,
+      )
+      .run(selectionId);
+    return this.get(selectionId);
+  }
+
+  listDeletedPhotoFilenames(selectionId: string): readonly string[] {
+    return this.database
+      .prepare(
+        `SELECT DISTINCT photo_managed_filename
+         FROM selection_plant_changes
+         WHERE selection_id = ? AND change_kind = 'deleted'
+           AND photo_managed_filename IS NOT NULL`,
+      )
+      .all(selectionId)
+      .map((row) => stringColumn(row as SqliteRow, 'photo_managed_filename'));
+  }
+
+  isPhotoFilenameReferenced(managedFilename: string): boolean {
+    return Boolean(
+      this.database
+        .prepare(
+          `SELECT 1 FROM plant_photos WHERE managed_filename = ?
+           UNION ALL
+           SELECT 1 FROM selection_plant_changes
+           WHERE photo_managed_filename = ?
+           LIMIT 1`,
+        )
+        .get(managedFilename, managedFilename),
+    );
   }
 }
