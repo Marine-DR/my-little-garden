@@ -60,7 +60,7 @@ function SelectionRow({
       <th scope="row" className="selection-name">
         {selection.name}
       </th>
-      <td>
+      <td className="selection-preview-cell">
         <SelectionPreview selection={selection} />
       </td>
       <td>{selection.plantCount}</td>
