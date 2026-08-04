@@ -82,7 +82,7 @@ export function PropertyPlansPage() {
       <section className="catalog-toolbar flowerbed-page-toolbar">
         <div className="catalog-toolbar-main">
           <div className="catalog-search-group">
-            <h1>Mes Plans</h1>
+            <h1>Mes Parterres</h1>
             <p>Dessinez votre parterre puis placez-y vos plantes.</p>
           </div>
           <button

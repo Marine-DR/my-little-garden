@@ -22,7 +22,7 @@ const NAVIGATION_ACTIONS: Record<
   },
   'property-plans': {
     icon: flowerbedIcon,
-    label: 'Mes Plans',
+    label: 'Mes Parterres',
   },
 };
 
