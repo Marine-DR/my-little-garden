@@ -67,6 +67,49 @@ const sunnyBorder: SelectionSummary = {
   updatedAt: '2026-07-14T12:30:00.000Z',
 };
 
+const deletedSunnyBorder: SelectionSummary = {
+  ...sunnyBorder,
+  status: 'contains_deleted_plants',
+  deletedPlantCount: 1,
+  plantCount: 0,
+};
+
+const deletedSelectionDetails: SelectionDetails = {
+  id: sunnyBorder.id,
+  name: sunnyBorder.name,
+  status: 'contains_deleted_plants',
+  modifiedPlantCount: 0,
+  deletedPlantCount: 1,
+  modifiedPlants: [],
+  deletedPlants: [
+    {
+      id: rose.id,
+      name: rose.name,
+      photoUrl: 'garden-photo://image/rose.png',
+    },
+  ],
+  plants: [],
+};
+
+const reviewedSelectionDetails: SelectionDetails = {
+  ...deletedSelectionDetails,
+  status: 'up_to_date',
+  deletedPlantCount: 0,
+  deletedPlants: [],
+};
+
+const mixedSelectionDetails: SelectionDetails = {
+  ...deletedSelectionDetails,
+  modifiedPlantCount: 1,
+  modifiedPlants: [
+    {
+      id: 'sage',
+      name: 'Sauge officinale',
+      attributes: [],
+    },
+  ],
+};
+
 function page(number: number): CatalogPage {
   return {
     items: [{ ...rose, id: `rose-${number}`, name: `Rose page ${number}` }],
@@ -474,6 +517,9 @@ describe('App catalog', () => {
     });
     expect(previewPlantDeletion).toHaveBeenCalledWith(['rose-1']);
     expect(dialog).toHaveTextContent('Rose page 1');
+    expect(dialog).toHaveTextContent(
+      'Certaines plantes sont utilisées dans des sélections.',
+    );
     expect(dialog).toHaveTextContent('Sélections concernées');
     expect(dialog).toHaveTextContent('Bordure plein soleil');
 
@@ -1199,6 +1245,109 @@ describe('App catalog', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('0 plantes')).toBeInTheDocument();
     expect(removeButton).toBeDisabled();
+  });
+
+  it('keeps a deleted-plant status until the detail warning is closed', async () => {
+    listSelections.mockResolvedValue([deletedSunnyBorder]);
+    getSelection.mockResolvedValueOnce(deletedSelectionDetails);
+    acknowledgeDeletedPlants.mockResolvedValueOnce(reviewedSelectionDetails);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+    const row = await screen.findByRole('row', {
+      name: /Bordure plein soleil/u,
+    });
+    expect(within(row).getByText('1 plante supprimée')).toBeInTheDocument();
+    fireEvent.click(
+      within(row).getByRole('button', {
+        name: 'Voir les détails de Bordure plein soleil',
+      }),
+    );
+
+    await screen.findAllByText('1 plante supprimée');
+    expect(
+      document.querySelector('.selection-deleted-message'),
+    ).toHaveTextContent('1 plante supprimée');
+    expect(screen.queryByText('Rose ancienne')).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Fermer le message des plantes supprimées',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(acknowledgeDeletedPlants).toHaveBeenCalledWith('sunny-border'),
+    );
+    expect(
+      document.querySelector('.selection-deleted-message'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('à jour')).toBeInTheDocument();
+  });
+
+  it('reviews deleted plants in detail and clears the pending status', async () => {
+    listSelections.mockResolvedValue([deletedSunnyBorder]);
+    getSelection.mockResolvedValueOnce(deletedSelectionDetails);
+    acknowledgeDeletedPlants.mockResolvedValueOnce(reviewedSelectionDetails);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+    fireEvent.click(
+      within(
+        await screen.findByRole('row', { name: /Bordure plein soleil/u }),
+      ).getByRole('button', {
+        name: 'Voir les détails de Bordure plein soleil',
+      }),
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Détails' }));
+    const dialog = await screen.findByRole('dialog', {
+      name: 'Plantes supprimées du catalogue',
+    });
+    expect(within(dialog).getByText('Rose ancienne')).toBeInTheDocument();
+    expect(acknowledgeDeletedPlants).not.toHaveBeenCalled();
+
+    fireEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Fermer le détail des plantes supprimées',
+      }),
+    );
+    await waitFor(() =>
+      expect(acknowledgeDeletedPlants).toHaveBeenCalledWith('sunny-border'),
+    );
+    expect(
+      screen.queryByRole('dialog', {
+        name: 'Plantes supprimées du catalogue',
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('à jour')).toBeInTheDocument();
+    expect(
+      document.querySelector('.selection-deleted-message'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows deletion then modification warnings on the same row', async () => {
+    listSelections.mockResolvedValue([deletedSunnyBorder]);
+    getSelection.mockResolvedValueOnce(mixedSelectionDetails);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+    fireEvent.click(
+      within(
+        await screen.findByRole('row', { name: /Bordure plein soleil/u }),
+      ).getByRole('button', {
+        name: 'Voir les détails de Bordure plein soleil',
+      }),
+    );
+
+    await screen.findByText('1 plante modifiée');
+    const messages = document.querySelector('.selection-change-messages');
+    expect(messages).toBeInTheDocument();
+    const warnings = within(messages as HTMLElement).getAllByRole('alert');
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toHaveClass('selection-deleted-message');
+    expect(warnings[0]).toHaveTextContent('1 plante supprimée');
+    expect(warnings[1]).toHaveClass('selection-modified-message');
+    expect(warnings[1]).toHaveTextContent('1 plante modifiée');
   });
 
   it('paginates plants in a selection in groups of 25', async () => {

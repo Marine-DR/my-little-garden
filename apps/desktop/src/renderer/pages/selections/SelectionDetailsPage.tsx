@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
-import type { SelectionDetails } from '@my-little-garden/core';
+import type {
+  SelectionDeletedPlant,
+  SelectionDetails,
+} from '@my-little-garden/core';
+import detailsIcon from '@renderer/assets/details.svg';
 import removeIcon from '@renderer/assets/sup.svg';
 import { Pagination } from '@renderer/components/Pagination';
+import { PlantPhoto } from '@renderer/components/PlantPhoto';
 import { PlantsTable } from '@renderer/components/PlantsTable';
 import { SelectionStatus } from './components/SelectionStatus';
 
@@ -27,6 +32,10 @@ export function SelectionDetailsPage({
   const [removing, setRemoving] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
   const [modifiedDetailsOpen, setModifiedDetailsOpen] = useState(false);
+  const [deletedDetailsOpen, setDeletedDetailsOpen] = useState(false);
+  const [reviewedDeletedPlants, setReviewedDeletedPlants] = useState<
+    readonly SelectionDeletedPlant[]
+  >([]);
 
   useEffect(() => {
     let active = true;
@@ -123,7 +132,7 @@ export function SelectionDetailsPage({
     }
   };
 
-  const acknowledgeDeletedPlants = async (): Promise<void> => {
+  const acknowledgeDeletedPlants = async (): Promise<boolean> => {
     setAcknowledging(true);
     try {
       const result =
@@ -131,11 +140,28 @@ export function SelectionDetailsPage({
       if (result) {
         setSelection(result);
         onUpdated();
+        return true;
       }
+      return false;
     } catch {
       setError('Les suppressions n’ont pas pu être acquittées.');
+      return false;
     } finally {
       setAcknowledging(false);
+    }
+  };
+
+  const reviewDeletedPlants = (): void => {
+    if (!selection || selection.deletedPlants.length === 0) {
+      return;
+    }
+    setReviewedDeletedPlants(selection.deletedPlants);
+    setDeletedDetailsOpen(true);
+  };
+
+  const closeDeletedPlantDetails = async (): Promise<void> => {
+    if (await acknowledgeDeletedPlants()) {
+      setDeletedDetailsOpen(false);
     }
   };
 
@@ -205,68 +231,113 @@ export function SelectionDetailsPage({
           {error}
         </div>
       ) : null}
-      {selection && selection.deletedPlants.length > 0 ? (
-        <section className="selection-deleted-message" role="alert">
-          <div>
-            <strong>
-              {selection.deletedPlants.length === 1
-                ? '1 plante supprimée du catalogue'
-                : `${selection.deletedPlants.length} plantes supprimées du catalogue`}
-            </strong>
-            <ul>
-              {selection.deletedPlants.map((plant) => (
-                <li key={plant.id}>{plant.name}</li>
+      {selection &&
+      (selection.deletedPlants.length > 0 ||
+        selection.modifiedPlants.length > 0) ? (
+        <div className="selection-change-messages">
+          {selection.deletedPlants.length > 0 ? (
+            <section className="selection-deleted-message" role="alert">
+              <div>
+                <strong>
+                  {selection.deletedPlants.length === 1
+                    ? '1 plante supprimée'
+                    : `${selection.deletedPlants.length} plantes supprimées`}
+                </strong>
+              </div>
+              <div className="selection-deleted-message-actions">
+                <button
+                  type="button"
+                  className="selection-deleted-details-button"
+                  disabled={acknowledging}
+                  onClick={reviewDeletedPlants}
+                >
+                  <img
+                    className="selection-modified-details-icon"
+                    src={detailsIcon}
+                    alt=""
+                  />
+                  Détails
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Fermer le message des plantes supprimées"
+                  disabled={acknowledging}
+                  onClick={() => void acknowledgeDeletedPlants()}
+                >
+                  ×
+                </button>
+              </div>
+            </section>
+          ) : null}
+          {selection.modifiedPlants.length > 0 ? (
+            <section className="selection-modified-message" role="alert">
+              <div>
+                <strong>
+                  {selection.modifiedPlants.length === 1
+                    ? '1 plante modifiée'
+                    : `${selection.modifiedPlants.length} plantes modifiées`}
+                </strong>
+              </div>
+              <div className="selection-modified-message-actions">
+                <button
+                  type="button"
+                  className="selection-modified-details-button"
+                  onClick={() => setModifiedDetailsOpen(true)}
+                >
+                  <img
+                    className="selection-modified-details-icon"
+                    src={detailsIcon}
+                    alt=""
+                  />
+                  Détails
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Fermer le message des plantes modifiées"
+                  disabled={acknowledging}
+                  onClick={() => void acknowledgeModifiedPlants()}
+                >
+                  ×
+                </button>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
+      {deletedDetailsOpen ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="selection-modal selection-deleted-details-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deleted-plants-details-title"
+          >
+            <div className="selection-modal-heading">
+              <h2 id="deleted-plants-details-title">
+                Plantes supprimées du catalogue
+              </h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Fermer le détail des plantes supprimées"
+                disabled={acknowledging}
+                onClick={() => void closeDeletedPlantDetails()}
+              >
+                ×
+              </button>
+            </div>
+            <ul className="deleted-plant-details-list">
+              {reviewedDeletedPlants.map((plant) => (
+                <li key={plant.id}>
+                  <PlantPhoto name={plant.name} url={plant.photoUrl} />
+                  <span>{plant.name}</span>
+                </li>
               ))}
             </ul>
-          </div>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Fermer le message des plantes supprimées"
-            disabled={acknowledging}
-            onClick={() => void acknowledgeDeletedPlants()}
-          >
-            ×
-          </button>
-        </section>
-      ) : null}
-      {selection && selection.modifiedPlants.length > 0 ? (
-        <section className="selection-modified-message" role="alert">
-          <div>
-            <strong>
-              {selection.modifiedPlants.length === 1
-                ? '1 plante modifiée'
-                : `${selection.modifiedPlants.length} plantes modifiées`}
-            </strong>
-          </div>
-          <div className="selection-modified-message-actions">
-            <button
-              type="button"
-              className="selection-modified-details-button"
-              onClick={() => setModifiedDetailsOpen(true)}
-            >
-              <svg
-                className="selection-modified-details-icon"
-                aria-hidden="true"
-                viewBox="0 0 9.525 9.525"
-              >
-                <path d="M .938 4.756c2.35 2.313 4.779 3.472 7.523.011" />
-                <path d="M .915 4.742C3.265 2.429 5.694 1.27 8.438 4.73" />
-                <ellipse cx="4.739" cy="4.733" rx="1.092" ry=".995" />
-              </svg>
-              Détails
-            </button>
-            <button
-              type="button"
-              className="icon-button"
-              aria-label="Fermer le message des plantes modifiées"
-              disabled={acknowledging}
-              onClick={() => void acknowledgeModifiedPlants()}
-            >
-              ×
-            </button>
-          </div>
-        </section>
+          </section>
+        </div>
       ) : null}
       {modifiedDetailsOpen && selection ? (
         <div className="modal-backdrop" role="presentation">
