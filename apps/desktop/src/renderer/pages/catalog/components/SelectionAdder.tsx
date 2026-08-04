@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type {
   SelectionPlantAdditionResult,
   SelectionSummary,
@@ -31,6 +31,36 @@ export function SelectionAdder({
   const [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [existingSelections, setExistingSelections] = useState<
+    readonly SelectionSummary[] | null
+  >(null);
+
+  useEffect(() => {
+    let active = true;
+    if (selectedPlantIds.length === 0) {
+      setExistingSelections(null);
+      return () => {
+        active = false;
+      };
+    }
+
+    window.selectionService
+      .listSelections()
+      .then((result) => {
+        if (active) {
+          setExistingSelections(result);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setExistingSelections([]);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedPlantIds]);
 
   const filteredSelections = useMemo(() => {
     const query = search.trim().toLocaleLowerCase('fr');
@@ -52,8 +82,11 @@ export function SelectionAdder({
 
   const openSelectionList = async (): Promise<void> => {
     setOpen(true);
-    setSelections(null);
+    setSelections(existingSelections);
     setError(null);
+    if (existingSelections) {
+      return;
+    }
     try {
       setSelections(await window.selectionService.listSelections());
     } catch {
@@ -94,7 +127,11 @@ export function SelectionAdder({
       <button
         className="secondary-button"
         type="button"
-        disabled={selectedPlantIds.length === 0}
+        disabled={
+          selectedPlantIds.length === 0 ||
+          existingSelections === null ||
+          existingSelections.length === 0
+        }
         onClick={() => void openSelectionList()}
       >
         <span
