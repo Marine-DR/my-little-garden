@@ -1436,7 +1436,9 @@ describe('App catalog', () => {
       await screen.findByRole('heading', { name: 'Mes Parterres' }),
     ).toBeInTheDocument();
     expect(listPropertyPlans).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole('button', { name: 'Dessiner un plan' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dessiner un parterre' }),
+    );
 
     expect(
       screen.getByRole('heading', { name: 'Nouveau plan' }),
@@ -1864,7 +1866,7 @@ describe('App catalog', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Dessiner un plan' }),
+      await screen.findByRole('button', { name: 'Dessiner un parterre' }),
     );
 
     expect(screen.getByLabelText('Nom du plan')).toBeInTheDocument();

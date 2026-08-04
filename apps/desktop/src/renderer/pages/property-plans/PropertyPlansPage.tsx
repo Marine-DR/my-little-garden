@@ -90,7 +90,7 @@ export function PropertyPlansPage() {
             className="primary-button"
             onClick={() => setEditing('new')}
           >
-            Nouveau plan
+            Nouveau parterre
           </button>
         </div>
       </section>
@@ -113,7 +113,7 @@ export function PropertyPlansPage() {
               className="primary-button"
               onClick={() => setEditing('new')}
             >
-              Dessiner un plan
+              Dessiner un parterre
             </button>
           </section>
         ) : (
