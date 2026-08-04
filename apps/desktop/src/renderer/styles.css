@@ -1260,16 +1260,23 @@ td:last-child {
   background: #e8f2e6;
 }
 .selection-preview-list {
+  width: max-content;
   min-width: 252px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
+}
+.selection-preview-cell {
+  width: 290px;
+  min-width: 290px;
 }
 .selection-preview-list .plant-photo,
 .selection-preview-list .photo-fallback {
   width: 48px;
   height: 48px;
+  flex: 0 0 48px;
   border-radius: 6px;
 }
 .selection-preview-list .photo-fallback {
@@ -1279,6 +1286,7 @@ td:last-child {
   min-width: 42px;
   height: 33px;
   padding: 0 8px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
