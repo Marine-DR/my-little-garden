@@ -812,6 +812,72 @@ describe('App catalog', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:catalog-template');
   });
 
+  it('downloads the CSV template from the empty catalog screen', async () => {
+    listPlants.mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 25,
+      total: 0,
+    });
+    const createObjectURL = vi.fn(() => 'blob:empty-catalog-template');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+
+    render(<App />);
+
+    expect(
+      await screen.findByText('Le catalogue est vide pour le moment.'),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Télécharger le modèle du catalogue',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(window.catalogManagementService.getTemplate).toHaveBeenCalled(),
+    );
+    expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:empty-catalog-template');
+  });
+
+  it('does not offer the CSV template when filters have no results', async () => {
+    listPlants.mockImplementation(async (_page, filters) => ({
+      items: filters?.soils.length ? [] : [rose],
+      page: 1,
+      pageSize: 25,
+      total: filters?.soils.length ? 0 : 1,
+    }));
+    render(<App />);
+    await screen.findByText('Rose ancienne');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (0)' }));
+    fireEvent.click(screen.getByLabelText('Drainé'));
+    fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
+
+    expect(
+      await screen.findByText(
+        'Aucune plante ne correspond aux filtres appliqués.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: 'Télécharger le modèle du catalogue',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it('opens catalog management and refreshes the first page after replacement', async () => {
     const timeoutSpy = vi.spyOn(window, 'setTimeout');
     render(<App />);

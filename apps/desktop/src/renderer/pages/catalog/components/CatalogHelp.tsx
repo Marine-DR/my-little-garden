@@ -4,6 +4,7 @@ import downloadIcon from '@renderer/assets/download.svg';
 import expandIcon from '@renderer/assets/expand.svg';
 import helpIcon from '@renderer/assets/help.svg';
 import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
+import { downloadCatalogTemplate } from '../download-catalog-template';
 
 export function CatalogHelp() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,15 +13,7 @@ export function CatalogHelp() {
   useCloseOnOutsidePointer(menu, menuOpen, () => setMenuOpen(false));
 
   const downloadTemplate = async (): Promise<void> => {
-    const csv = await window.catalogManagementService.getTemplate();
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: 'text/csv;charset=utf-8' }),
-    );
-    const download = document.createElement('a');
-    download.href = url;
-    download.download = 'template_catalog.csv';
-    download.click();
-    URL.revokeObjectURL(url);
+    await downloadCatalogTemplate();
     setMenuOpen(false);
   };
 

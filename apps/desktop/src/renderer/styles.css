@@ -1455,6 +1455,17 @@ abbr {
   color: #969191;
   font-size: 14px;
 }
+.empty-catalog-download {
+  margin-top: 18px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.empty-catalog-download .primary-button img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1);
+}
 @media (max-width: 1050px) {
   .app-header nav button:last-child {
     display: none;
