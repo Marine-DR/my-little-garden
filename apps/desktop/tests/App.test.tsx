@@ -1869,7 +1869,7 @@ describe('App catalog', () => {
       await screen.findByRole('button', { name: 'Dessiner un parterre' }),
     );
 
-    expect(screen.getByLabelText('Nom du plan')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nom du parterre')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Plan interactif du parterre'),
     ).toBeInTheDocument();
