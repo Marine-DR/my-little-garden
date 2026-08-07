@@ -9,6 +9,7 @@ import type {
 
 export const SELECTION_CHANNELS = {
   list: 'selections:list',
+  delete: 'selections:delete',
   create: 'selections:create',
   addPlants: 'selections:add-plants',
   get: 'selections:get',
@@ -19,6 +20,7 @@ export const SELECTION_CHANNELS = {
 
 export interface SelectionService {
   listSelections(): Promise<readonly SelectionSummary[]>;
+  deleteSelections(selectionIds: readonly string[]): Promise<number>;
   getSelection(selectionId: string): Promise<SelectionDetails | null>;
   removePlantsFromSelection(
     selectionId: string,

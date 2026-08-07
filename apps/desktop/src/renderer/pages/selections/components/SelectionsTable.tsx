@@ -50,13 +50,25 @@ function SelectionPreview({
 
 function SelectionRow({
   selection,
+  selected,
+  onToggle,
   onViewDetails,
 }: {
   readonly selection: SelectionSummary;
+  readonly selected: boolean;
+  readonly onToggle: (selectionId: string) => void;
   readonly onViewDetails: (selectionId: string) => void;
 }) {
   return (
     <tr>
+      <td className="plant-selection-cell">
+        <input
+          type="checkbox"
+          aria-label={`Sélectionner ${selection.name}`}
+          checked={selected}
+          onChange={() => onToggle(selection.id)}
+        />
+      </td>
       <th scope="row" className="selection-name">
         {selection.name}
       </th>
@@ -90,10 +102,18 @@ function SelectionRow({
 
 export function SelectionsTable({
   selections,
+  selectedSelectionIds,
+  onSelectionToggle,
+  onToggleAll,
+  selectingAll,
   onBackToCatalog,
   onViewDetails,
 }: {
   readonly selections: readonly SelectionSummary[];
+  readonly selectedSelectionIds: readonly string[];
+  readonly onSelectionToggle: (selectionId: string) => void;
+  readonly onToggleAll: () => void;
+  readonly selectingAll: boolean;
   readonly onBackToCatalog: () => void;
   readonly onViewDetails: (selectionId: string) => void;
 }) {
@@ -123,6 +143,21 @@ export function SelectionsTable({
           <table>
             <thead>
               <tr>
+                <th scope="col">
+                  <span className="visually-hidden">Sélection</span>
+                  <input
+                    className="catalog-select-all"
+                    type="checkbox"
+                    aria-label={
+                      selectedSelectionIds.length > 0
+                        ? 'Désélectionner toutes les sélections'
+                        : 'Sélectionner toutes les sélections'
+                    }
+                    checked={selectedSelectionIds.length > 0}
+                    disabled={selectingAll}
+                    onChange={onToggleAll}
+                  />
+                </th>
                 <th scope="col">Nom</th>
                 <th scope="col">Aperçu</th>
                 <th scope="col">Plantes</th>
@@ -137,6 +172,8 @@ export function SelectionsTable({
                 <SelectionRow
                   key={selection.id}
                   selection={selection}
+                  selected={selectedSelectionIds.includes(selection.id)}
+                  onToggle={onSelectionToggle}
                   onViewDetails={onViewDetails}
                 />
               ))}
