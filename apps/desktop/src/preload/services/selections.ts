@@ -9,6 +9,8 @@ export function createSelectionService(
 ): SelectionService {
   return {
     listSelections: () => ipcRenderer.invoke(SELECTION_CHANNELS.list),
+    deleteSelections: (selectionIds) =>
+      ipcRenderer.invoke(SELECTION_CHANNELS.delete, selectionIds),
     getSelection: (selectionId) =>
       ipcRenderer.invoke(SELECTION_CHANNELS.get, selectionId),
     removePlantsFromSelection: (selectionId, plantIds) =>

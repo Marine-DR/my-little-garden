@@ -163,6 +163,9 @@ describe('App catalog', () => {
     >();
   const deletePhoto = vi.fn<(plantId: string) => Promise<PhotoDeleteResult>>();
   const listSelections = vi.fn<() => Promise<readonly SelectionSummary[]>>();
+  const deleteSelections = vi.fn(
+    async (selectionIds: readonly string[]) => selectionIds.length,
+  );
   const getSelection =
     vi.fn<(selectionId: string) => Promise<SelectionDetails | null>>();
   const removePlantsFromSelection =
@@ -286,6 +289,7 @@ describe('App catalog', () => {
     };
     window.selectionService = {
       listSelections,
+      deleteSelections,
       getSelection,
       removePlantsFromSelection,
       acknowledgeModifiedPlants,
@@ -1145,6 +1149,7 @@ describe('App catalog', () => {
     expect(
       screen.getAllByRole('columnheader').map((heading) => heading.textContent),
     ).toEqual([
+      'Sélection',
       'Nom',
       'Aperçu',
       'Plantes',
@@ -1256,6 +1261,70 @@ describe('App catalog', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('row', { name: /Bordure plein soleil/u }),
+    ).toBeInTheDocument();
+  });
+
+  it('deletes checked selections only after confirmation', async () => {
+    listSelections
+      .mockResolvedValueOnce([sunnyBorder])
+      .mockResolvedValueOnce([]);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+
+    const deleteButton = await screen.findByRole('button', {
+      name: 'Supprimer',
+    });
+    expect(deleteButton).toBeDisabled();
+    const selectionHeaderCheckbox = screen.getByRole('checkbox', {
+      name: 'Sélectionner toutes les sélections',
+    });
+    expect(selectionHeaderCheckbox).not.toBeChecked();
+    fireEvent.click(selectionHeaderCheckbox);
+    expect(selectionHeaderCheckbox).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Sélectionner Bordure plein soleil',
+      }),
+    ).toBeChecked();
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Désélectionner toutes les sélections',
+      }),
+    );
+    expect(selectionHeaderCheckbox).not.toBeChecked();
+    expect(deleteButton).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Sélectionner Bordure plein soleil',
+      }),
+    );
+    expect(deleteButton).toBeEnabled();
+    fireEvent.click(deleteButton);
+
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Supprimer 1 sélection ?',
+    });
+    expect(dialog).toHaveTextContent('Bordure plein soleil');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Annuler' }));
+    expect(deleteSelections).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('row', { name: /Bordure plein soleil/u }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(deleteButton);
+    fireEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', {
+        name: 'Supprimer',
+      }),
+    );
+    await waitFor(() =>
+      expect(deleteSelections).toHaveBeenCalledWith(['sunny-border']),
+    );
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Aucune sélection enregistrée',
+      }),
     ).toBeInTheDocument();
   });
 

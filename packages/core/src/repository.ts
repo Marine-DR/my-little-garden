@@ -117,6 +117,7 @@ export interface PlantPhotoRepository {
 
 export interface SelectionRepository {
   listSummaries(): Promise<SelectionSummaryRecord[]>;
+  deleteSelections(selectionIds: readonly string[]): Promise<number>;
   get(selectionId: string): Promise<SelectionDetailsRecord | null>;
   removePlants(
     selectionId: string,
