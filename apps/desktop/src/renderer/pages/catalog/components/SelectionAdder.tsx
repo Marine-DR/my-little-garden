@@ -38,7 +38,6 @@ export function SelectionAdder({
   useEffect(() => {
     let active = true;
     if (selectedPlantIds.length === 0) {
-      setExistingSelections(null);
       return () => {
         active = false;
       };
