@@ -611,6 +611,7 @@ main {
 .selection-modal {
   width: min(480px, 100%);
   padding: 22px;
+  color: #000;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 18px 45px rgb(0 0 0 / 20%);
@@ -629,9 +630,9 @@ main {
 .selection-modal-heading > button {
   width: 33px;
   height: 33px;
-  color: #2f7d32;
+  color: #000;
   background: #fff;
-  border: 1px solid #2f7d32;
+  border: 1px solid #000;
   border-radius: 4px;
   font-size: 24px;
   line-height: 1;
@@ -660,7 +661,7 @@ main {
 }
 .selection-form-error {
   margin: 4px 0 0;
-  color: #991b1b;
+  color: #000;
   font-size: 14px;
 }
 .selection-modal-actions {
@@ -684,7 +685,7 @@ main {
 .plant-deletion-warning {
   margin: 0 0 16px;
   padding: 10px 12px;
-  color: #991b1b;
+  color: #000;
   background: #fef2f2;
   border: 1px solid #fca5a5;
   border-radius: 4px;
@@ -759,9 +760,9 @@ main {
   max-height: 80vh;
   overflow: auto;
   padding: 20px;
-  color: #991b1b;
+  color: #000;
   background: #fff;
-  border: 1px solid #fecaca;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   box-shadow: 0 18px 45px rgb(0 0 0 / 20%);
 }
@@ -773,13 +774,14 @@ main {
 }
 .error-modal h2 {
   margin: 0;
+  color: #2f7d32;
   font-size: 18px;
 }
 .error-modal-heading button {
   width: 33px;
   height: 33px;
   flex: 0 0 auto;
-  color: #991b1b;
+  color: #000;
   background: #fff;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -788,7 +790,7 @@ main {
   cursor: pointer;
 }
 .error-modal-heading button:hover {
-  background: #ffdddd;
+  background: #f3f4f6;
 }
 .error-modal ul {
   margin: 18px 0 0;
@@ -796,6 +798,18 @@ main {
 }
 .error-modal li + li {
   margin-top: 10px;
+}
+.catalog-replacement-warning {
+  width: min(700px, 100%);
+  max-height: 90vh;
+}
+.catalog-replacement-warning h3 {
+  margin: 20px 0 8px;
+  color: #2f7d32;
+  font-size: 16px;
+}
+.catalog-replacement-warning p {
+  line-height: 1.45;
 }
 .error-banner {
   color: #991b1b;

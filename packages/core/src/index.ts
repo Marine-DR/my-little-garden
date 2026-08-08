@@ -1,6 +1,7 @@
 export * from './catalog';
 export * from './catalog-deletion';
 export * from './catalog-modification';
+export * from './catalog-replacement';
 export * from './communication';
 export * from './constants';
 export * from './desktop-api';

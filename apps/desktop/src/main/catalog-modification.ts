@@ -55,13 +55,14 @@ export class CatalogModificationImportService {
     if (!parsed.ok) {
       return parsed;
     }
-    const analysis = await this.modification.analyze(parsed.records);
+    const records = parsed.records.map(({ plant }) => plant);
+    const analysis = await this.modification.analyze(records);
     if (!isAnalysis(analysis)) {
       return { ok: false, errors: analysis };
     }
     const token = randomUUID();
     this.previews.set(token, {
-      records: parsed.records,
+      records,
       analysis,
       expiresAt: Date.now() + 5 * 60_000,
     });

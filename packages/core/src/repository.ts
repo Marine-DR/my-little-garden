@@ -1,4 +1,5 @@
 import type { Plant, PlantWriteInput } from './plant';
+import type { CatalogImportPlantRecord } from './catalog-replacement';
 import type { PlantCatalogFilterOptions, PlantCatalogFilters } from './catalog';
 import type {
   SelectionCreationInput,
@@ -94,7 +95,17 @@ export interface PlantCatalogRepository extends PlantRepository {
 }
 
 export interface PlantCatalogReplacementRepository {
-  replace(plants: Iterable<PlantWriteInput>): number;
+  replace(plants: Iterable<CatalogImportPlantRecord>): CatalogReplacementCommit;
+}
+
+/** Loads the current catalog state required to plan a full replacement. */
+export interface PlantCatalogReplacementSnapshotRepository {
+  listAllForReplacement(): readonly Plant[];
+}
+
+export interface CatalogReplacementCommit {
+  readonly imported: number;
+  readonly obsoleteManagedPhotoFilenames: readonly string[];
 }
 
 export interface IncrementalPlantCatalogRepository {

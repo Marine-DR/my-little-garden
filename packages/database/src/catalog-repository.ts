@@ -91,6 +91,11 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     return { items: this.hydrate(rows), total };
   }
 
+  /** Synchronous snapshot used by the atomic full-catalog replacement. */
+  listAllForReplacement(): readonly Plant[] {
+    return this.hydrate(this.queries.page(2_147_483_647, 0));
+  }
+
   async listByIds(ids: readonly string[]): Promise<readonly Plant[]> {
     return this.hydrate(this.queries.byIds([...new Set(ids)]));
   }
