@@ -6,7 +6,7 @@ import type {
 } from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
 import {
-  replaceCatalogFromCsv,
+  replaceCatalogFromCsvWithResult,
   validateCatalogCsvStructure,
 } from './catalog-import.js';
 
@@ -22,12 +22,9 @@ export function replaceCatalog(
   }
 
   try {
-    const obsoletePhotos = database
-      .prepare('SELECT managed_filename FROM plant_photos')
-      .all()
-      .map((row) => String(row.managed_filename));
-    const imported = replaceCatalogFromCsv(database, csv);
-    for (const filename of obsoletePhotos) {
+    const { imported, obsoleteManagedPhotoFilenames } =
+      replaceCatalogFromCsvWithResult(database, csv);
+    for (const filename of obsoleteManagedPhotoFilenames) {
       rmSync(join(photoDirectory, filename), { force: true });
     }
     return { ok: true, imported };

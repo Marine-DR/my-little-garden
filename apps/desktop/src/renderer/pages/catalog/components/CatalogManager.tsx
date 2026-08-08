@@ -21,6 +21,11 @@ type PendingCatalogAction =
       readonly impactedSelections: readonly CatalogModifyImpactedSelection[];
     };
 
+type PendingCatalogReplacement = {
+  readonly filename: string;
+  readonly csv: string;
+};
+
 export function CatalogManager({
   onReplaced,
   onSuccess,
@@ -35,6 +40,8 @@ export function CatalogManager({
   const [importing, setImporting] = useState(false);
   const [pendingAction, setPendingAction] =
     useState<PendingCatalogAction | null>(null);
+  const [pendingReplacement, setPendingReplacement] =
+    useState<PendingCatalogReplacement | null>(null);
   const [fileAction, setFileAction] = useState<
     'add' | 'modify' | 'replace' | null
   >(null);
@@ -63,9 +70,25 @@ export function CatalogManager({
     setErrors([]);
     setMenuOpen(false);
     try {
+      setPendingReplacement({ filename: file.name, csv: await file.text() });
+    } catch {
+      setErrors(['Le fichier CSV n’a pas pu être importé.']);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const confirmCatalogReplacement = async (): Promise<void> => {
+    if (!pendingReplacement) {
+      return;
+    }
+    const replacement = pendingReplacement;
+    setImporting(true);
+    setPendingReplacement(null);
+    try {
       const result = await window.catalogManagementService.replaceCatalog(
-        file.name,
-        await file.text(),
+        replacement.filename,
+        replacement.csv,
       );
       if (!result.ok) {
         setErrors(result.errors.map(({ message }) => message));
@@ -307,6 +330,63 @@ export function CatalogManager({
                 <li key={message}>{message}</li>
               ))}
             </ul>
+          </section>
+        </div>
+      ) : null}
+      {pendingReplacement ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="error-modal catalog-replacement-warning"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="catalog-replacement-warning-title"
+          >
+            <div className="error-modal-heading">
+              <h2 id="catalog-replacement-warning-title">
+                Remplacer tout le catalogue ?
+              </h2>
+              <button
+                type="button"
+                aria-label="Annuler le remplacement du catalogue"
+                onClick={() => setPendingReplacement(null)}
+              >
+                ×
+              </button>
+            </div>
+            <p>
+              Le catalogue actuel sera remplacé par le contenu du fichier CSV.
+            </p>
+            <h3>Comment les plantes sont reconnues :</h3>
+            <ul>
+              <li>Même nom : la plante et ses liens sont conservés.</li>
+              <li>
+                Nom modifié : l’ancienne plante sera supprimée et la ligne sera
+                créée comme une nouvelle plante.
+              </li>
+              <li>Une plante absente du fichier sera supprimée.</li>
+            </ul>
+            <h3>Conséquences possibles :</h3>
+            <ul>
+              <li>Les plantes supprimées seront retirées des sélections.</li>
+            </ul>
+            <div className="modal-actions">
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={importing}
+                onClick={() => setPendingReplacement(null)}
+              >
+                Annuler
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={importing}
+                onClick={() => void confirmCatalogReplacement()}
+              >
+                Confirmer le remplacement
+              </button>
+            </div>
           </section>
         </div>
       ) : null}

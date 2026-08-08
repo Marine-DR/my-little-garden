@@ -939,6 +939,18 @@ describe('App catalog', () => {
     });
     fireEvent.change(input!, { target: { files: [file] } });
 
+    const warning = await screen.findByRole('dialog', {
+      name: 'Remplacer tout le catalogue ?',
+    });
+    expect(warning).toHaveTextContent(
+      'Même nom : la plante et ses liens sont conservés',
+    );
+    expect(replaceCatalog).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(warning).getByRole('button', {
+        name: 'Confirmer le remplacement',
+      }),
+    );
     await waitFor(() =>
       expect(replaceCatalog).toHaveBeenCalledWith(
         'catalogue.csv',
@@ -1074,6 +1086,14 @@ describe('App catalog', () => {
     Object.defineProperty(file, 'text', { value: async () => 'invalid' });
     fireEvent.change(input!, { target: { files: [file] } });
 
+    const warning = await screen.findByRole('dialog', {
+      name: 'Remplacer tout le catalogue ?',
+    });
+    fireEvent.click(
+      within(warning).getByRole('button', {
+        name: 'Confirmer le remplacement',
+      }),
+    );
     const dialog = await screen.findByRole('alertdialog');
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(2);
     expect(dialog).toHaveTextContent("La colonne Sol n'est pas présente");
@@ -1087,6 +1107,37 @@ describe('App catalog', () => {
       }),
     );
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('keeps the catalog unchanged when replacement is cancelled', async () => {
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Gérer le catalogue/u }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /Remplacer tout le catalogue/u }),
+    );
+    const input =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(['csv'], 'catalogue.csv', { type: 'text/csv' });
+    Object.defineProperty(file, 'text', { value: async () => 'contenu csv' });
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    const warning = await screen.findByRole('dialog', {
+      name: 'Remplacer tout le catalogue ?',
+    });
+    fireEvent.click(
+      within(warning).getByRole('button', {
+        name: 'Annuler',
+      }),
+    );
+
+    expect(replaceCatalog).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('dialog', { name: 'Remplacer tout le catalogue ?' }),
+    ).not.toBeInTheDocument();
+    expect(listPlants).toHaveBeenCalledTimes(1);
   });
 
   it('imports one plant image and refreshes the visible page', async () => {
@@ -1124,6 +1175,14 @@ describe('App catalog', () => {
     Object.defineProperty(csv, 'text', { value: async () => 'catalogue' });
     fireEvent.change(csvInput!, { target: { files: [csv] } });
 
+    const warning = await screen.findByRole('dialog', {
+      name: 'Remplacer tout le catalogue ?',
+    });
+    fireEvent.click(
+      within(warning).getByRole('button', {
+        name: 'Confirmer le remplacement',
+      }),
+    );
     expect(
       await screen.findByText(/catalogue a été remplacé avec succès/u),
     ).toBeInTheDocument();

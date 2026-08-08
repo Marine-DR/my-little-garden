@@ -242,6 +242,143 @@ describe('demo catalog', () => {
     ).toEqual(expect.arrayContaining(['rose', 'blanc']));
   });
 
+  it('preserves selection links by normalized name and records replacement impacts', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const achillee = database
+      .prepare("SELECT id FROM plants WHERE name = 'Achilée Ornementale'")
+      .get();
+    const pavot = database
+      .prepare("SELECT id FROM plants WHERE normalized_name = 'pavot'")
+      .get();
+    database
+      .prepare(
+        `INSERT INTO selections (id, name, created_at, updated_at)
+         VALUES ('selection-1', 'Massif', '2026-08-01', '2026-08-01')`,
+      )
+      .run();
+    const link = database.prepare(
+      `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+       VALUES ('selection-1', ?, '2026-08-01')`,
+    );
+    link.run(String(achillee?.id));
+    link.run(String(pavot?.id));
+    const lines = demoCsv.split(/\r?\n/u);
+    const replacement = `${lines[0]}\n${lines[1]?.replace(',50,80,', ',25,80,')}\n`;
+
+    expect(replaceCatalogFromCsv(database, replacement)).toBe(1);
+    expect(
+      database
+        .prepare('SELECT plant_id FROM selection_plants')
+        .all()
+        .map(({ plant_id }) => plant_id),
+    ).toEqual([achillee?.id]);
+    expect(
+      database
+        .prepare(
+          `SELECT plant_id, change_kind FROM selection_plant_changes
+           ORDER BY change_kind`,
+        )
+        .all()
+        .map(({ plant_id, change_kind }) => ({ plant_id, change_kind })),
+    ).toEqual([
+      { plant_id: pavot?.id, change_kind: 'deleted' },
+      { plant_id: achillee?.id, change_kind: 'modified' },
+    ]);
+  });
+
+  it('renames by UUID while preserving the stable id and selection link', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const plant = database
+      .prepare("SELECT id FROM plants WHERE name = 'Achilée Ornementale'")
+      .get();
+    database
+      .prepare(
+        `INSERT INTO selections (id, name, created_at, updated_at)
+         VALUES ('selection-1', 'Massif', '2026-08-01', '2026-08-01')`,
+      )
+      .run();
+    database
+      .prepare(
+        `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+         VALUES ('selection-1', ?, '2026-08-01')`,
+      )
+      .run(String(plant?.id));
+    const lines = demoCsv.split(/\r?\n/u);
+    const replacement = `plant_id,${lines[0]}\n${plant?.id},${lines[1]?.replace('Achilée Ornementale', 'Achillée renommée')}\n`;
+
+    expect(replaceCatalogFromCsv(database, replacement)).toBe(1);
+    expect(database.prepare('SELECT id, name FROM plants').get()).toMatchObject(
+      { id: plant?.id, name: 'Achillée renommée' },
+    );
+    expect(
+      database.prepare('SELECT plant_id FROM selection_plants').get(),
+    ).toMatchObject({ plant_id: plant?.id });
+    expect(
+      database.prepare('SELECT change_kind FROM selection_plant_changes').get(),
+    ).toMatchObject({ change_kind: 'modified' });
+  });
+
+  it('treats a rename without UUID as deletion plus creation', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    const lines = demoCsv.split(/\r?\n/u);
+    seedDemoCatalog(database, `${lines[0]}\n${lines[1]}\n`);
+    const oldPlant = database.prepare('SELECT id FROM plants').get();
+    database
+      .prepare(
+        `INSERT INTO selections (id, name, created_at, updated_at)
+         VALUES ('selection-1', 'Massif', '2026-08-01', '2026-08-01')`,
+      )
+      .run();
+    database
+      .prepare(
+        `INSERT INTO selection_plants (selection_id, plant_id, added_at)
+         VALUES ('selection-1', ?, '2026-08-01')`,
+      )
+      .run(String(oldPlant?.id));
+    const replacement = `${lines[0]}\n${lines[1]?.replace('Achilée Ornementale', 'Achillée renommée')}\n`;
+
+    replaceCatalogFromCsv(database, replacement);
+    const newPlant = database.prepare('SELECT id, name FROM plants').get();
+    expect(newPlant).toMatchObject({ name: 'Achillée renommée' });
+    expect(newPlant?.id).not.toBe(oldPlant?.id);
+    expect(
+      database.prepare('SELECT count(*) AS count FROM selection_plants').get()
+        ?.count,
+    ).toBe(0);
+    expect(
+      database
+        .prepare('SELECT plant_id, change_kind FROM selection_plant_changes')
+        .get(),
+    ).toMatchObject({ plant_id: oldPlant?.id, change_kind: 'deleted' });
+  });
+
+  it('rolls back a replacement when UUID and name identify different plants', () => {
+    database = new DatabaseSync(':memory:');
+    database.exec(initialMigration);
+    database.exec('PRAGMA foreign_keys = ON');
+    seedDemoCatalog(database, demoCsv);
+    const achillee = database
+      .prepare("SELECT id FROM plants WHERE name = 'Achilée Ornementale'")
+      .get();
+    const lines = demoCsv.split(/\r?\n/u);
+    const conflicting = `plant_id,${lines[0]}\n${achillee?.id},${lines[2]}\n`;
+
+    expect(() => replaceCatalogFromCsv(database!, conflicting)).toThrow(
+      /deux plantes différentes/u,
+    );
+    expect(
+      database.prepare('SELECT count(*) AS count FROM plants').get()?.count,
+    ).toBe(4);
+  });
+
   it('imports empty and N/A heights including plants with only a maximum height', async () => {
     database = new DatabaseSync(':memory:');
     database.exec(initialMigration);

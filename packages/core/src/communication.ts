@@ -1,4 +1,5 @@
-import type { Plant, PlantWriteInput } from './plant';
+import type { Plant } from './plant';
+import type { CatalogImportPlantRecord } from './catalog-replacement';
 
 export interface DataImportError {
   readonly code: string;
@@ -18,6 +19,9 @@ export interface DataExporter<TRecord, TOutput> {
   exportData(records: readonly TRecord[]): TOutput;
 }
 
-export type PlantCatalogImporter = DataImporter<string, PlantWriteInput>;
+export type PlantCatalogImporter = DataImporter<
+  string,
+  CatalogImportPlantRecord
+>;
 
 export type PlantCatalogExporter = DataExporter<Plant, string>;
