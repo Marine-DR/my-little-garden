@@ -443,7 +443,7 @@ describe('App catalog', () => {
       name: 'Coin parfumé',
       plantCount: 1,
     };
-    listSelections.mockResolvedValueOnce([createdSelection]);
+    listSelections.mockResolvedValue([createdSelection]);
     render(<App />);
     await screen.findByText('Rose page 1');
 
@@ -598,7 +598,7 @@ describe('App catalog', () => {
     fireEvent.click(
       screen.getByRole('checkbox', { name: 'Sélectionner Rose page 1' }),
     );
-    expect(addButton).toBeEnabled();
+    await waitFor(() => expect(addButton).toBeEnabled());
     fireEvent.click(addButton);
 
     const dialog = await screen.findByRole('dialog', {
@@ -624,6 +624,22 @@ describe('App catalog', () => {
         '1 plante ajoutée à la sélection « Bordure plein soleil ». 1 association existante ignorée.',
       ),
     ).toBeInTheDocument();
+    expect(addButton).toBeDisabled();
+  });
+
+  it('keeps the add-to-selection action disabled without an existing selection', async () => {
+    listSelections.mockResolvedValue([]);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+
+    const addButton = screen.getByRole('button', {
+      name: 'Ajouter à une sélection',
+    });
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Sélectionner Rose page 1' }),
+    );
+
+    await waitFor(() => expect(listSelections).toHaveBeenCalledTimes(1));
     expect(addButton).toBeDisabled();
   });
 
