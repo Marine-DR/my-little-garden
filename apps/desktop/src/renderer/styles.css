@@ -212,6 +212,10 @@ main {
   border-bottom: 1px solid #e5e7eb;
   border-left: 1px solid #e5e7eb;
 }
+.selection-actions.selections-list-actions {
+  margin-top: 15px;
+  margin-bottom: 0;
+}
 .selection-count {
   color: #2f7d32ff;
   font-family: Inter, sans-serif;

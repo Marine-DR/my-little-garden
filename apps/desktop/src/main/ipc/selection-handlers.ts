@@ -22,6 +22,11 @@ export function registerSelectionHandlers(
     listSelectionSummaries(selectionRepository),
   );
   ipcMain.handle(
+    SELECTION_CHANNELS.delete,
+    (_event, selectionIds: readonly string[]) =>
+      selectionRepository.deleteSelections(selectionIds),
+  );
+  ipcMain.handle(
     SELECTION_CHANNELS.create,
     (_event, input: SelectionCreationInput) =>
       selectionRepository.create(input),

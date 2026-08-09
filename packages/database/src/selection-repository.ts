@@ -200,6 +200,21 @@ export class SqliteSelectionRepository implements SelectionRepository {
     }));
   }
 
+  async deleteSelections(selectionIds: readonly string[]): Promise<number> {
+    const uniqueSelectionIds = [...new Set(selectionIds)];
+    if (uniqueSelectionIds.length === 0) {
+      return 0;
+    }
+
+    return runInTransaction(this.database, () => {
+      const placeholders = uniqueSelectionIds.map(() => '?').join(', ');
+      const result = this.database
+        .prepare(`DELETE FROM selections WHERE id IN (${placeholders})`)
+        .run(...uniqueSelectionIds);
+      return Number(result.changes);
+    });
+  }
+
   async get(selectionId: string): Promise<SelectionDetailsRecord | null> {
     const selection = this.database
       .prepare('SELECT id, name FROM selections WHERE id = ?')
