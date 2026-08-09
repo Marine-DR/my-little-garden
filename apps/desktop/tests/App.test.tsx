@@ -345,7 +345,7 @@ describe('App catalog', () => {
       screen.getByRole('heading', { name: 'Mon Catalogue' }),
     ).toBeInTheDocument();
     const propertyPlansButton = screen.getByRole('button', {
-      name: 'Mes Plans',
+      name: 'Mes Parterres',
     });
     expect(propertyPlansButton).toBeVisible();
     expect(propertyPlansButton).toBeEnabled();
@@ -1430,13 +1430,15 @@ describe('App catalog', () => {
     render(<App />);
     await screen.findByText('Rose page 1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mes Plans' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'Mes Plans' }),
+      await screen.findByRole('heading', { name: 'Mes Parterres' }),
     ).toBeInTheDocument();
     expect(listPropertyPlans).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole('button', { name: 'Dessiner un plan' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dessiner un parterre' }),
+    );
 
     expect(
       screen.getByRole('heading', { name: 'Nouveau plan' }),
@@ -1804,7 +1806,7 @@ describe('App catalog', () => {
     getPropertyPlan.mockResolvedValueOnce(design);
     render(<App />);
     await screen.findByText('Rose page 1');
-    fireEvent.click(screen.getByRole('button', { name: 'Mes Plans' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
 
     const title = await screen.findByText(/Rose ancienne · diamètre 40 cm/);
@@ -1862,12 +1864,12 @@ describe('App catalog', () => {
     render(<App />);
     await screen.findByText('Rose page 1');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mes Plans' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Parterres' }));
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Dessiner un plan' }),
+      await screen.findByRole('button', { name: 'Dessiner un parterre' }),
     );
 
-    expect(screen.getByLabelText('Nom du plan')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nom du parterre')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Plan interactif du parterre'),
     ).toBeInTheDocument();

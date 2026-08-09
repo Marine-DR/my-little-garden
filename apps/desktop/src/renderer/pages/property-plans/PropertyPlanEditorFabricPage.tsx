@@ -691,14 +691,14 @@ export function PropertyPlanEditorPage({
           ← Retour
         </button>
         <label className="planner-name">
-          <span className="sr-only">Nom du plan</span>
+          <span className="sr-only">Nom du parterre</span>
           <input
             value={name}
             onChange={(event) => {
               setName(event.target.value);
               setDirty(true);
             }}
-            placeholder="Nom du plan"
+            placeholder="Nom du parterre"
           />
         </label>
         <span className={`planner-save-state ${dirty ? 'dirty' : ''}`}>
