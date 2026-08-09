@@ -83,10 +83,11 @@
     "node": ">=24"
   },
   "dependencies": {
-    "@my-little-garden/core": "*",
     "@my-little-garden/communication": "*",
+    "@my-little-garden/core": "*",
     "@my-little-garden/database": "*",
     "@my-little-garden/photo-handling": "*",
+    "fabric": "^7.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
