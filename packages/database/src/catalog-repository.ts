@@ -57,7 +57,7 @@ function groupCodes<T extends string>(
 
 function vocabularyId(
   database: DatabaseSync,
-  table: 'plant_types' | 'soil_types' | 'colors',
+  table: 'plant_types' | 'plant_kinds' | 'soil_types' | 'colors',
   label: string,
 ): number {
   const normalized = normalizeDatabaseKey(label);
@@ -258,6 +258,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
 
     const ids = rows.map(({ id }) => id);
     const relationQueries = this.queries.relations(ids);
+    const kinds = groupValues(relationQueries.kinds.all(...ids));
     const soils = groupValues(relationQueries.soils.all(...ids));
     const flowerColors = groupValues(relationQueries.flowerColors.all(...ids));
     const leafColors = groupValues(relationQueries.leafColors.all(...ids));
@@ -279,7 +280,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
         row.typeId === null || row.typeLabel === null
           ? null
           : { id: row.typeId, label: row.typeLabel },
-      kind: row.kind,
+      kinds: kinds.get(row.id) ?? [],
       soils: requireNonEmpty(soils.get(row.id) ?? [], 'soil', row.id),
       exposures: requireNonEmpty(
         exposures.get(row.id) ?? [],
@@ -325,17 +326,16 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     this.database
       .prepare(
         `INSERT INTO plants (
-          id, name, normalized_name, height_min_cm, height_max_cm, type_id, plant_kind,
+          id, name, normalized_name, height_min_cm, height_max_cm, type_id,
           bloom_start_month, bloom_end_month, minimum_temperature_celsius,
           foliage_persistence, spacing_cm, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name,
           normalized_name = excluded.normalized_name,
           height_min_cm = excluded.height_min_cm,
           height_max_cm = excluded.height_max_cm,
           type_id = excluded.type_id,
-          plant_kind = excluded.plant_kind,
           bloom_start_month = excluded.bloom_start_month,
           bloom_end_month = excluded.bloom_end_month,
           minimum_temperature_celsius = excluded.minimum_temperature_celsius,
@@ -352,7 +352,6 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
         plant.typeLabel
           ? vocabularyId(this.database, 'plant_types', plant.typeLabel)
           : null,
-        plant.kind,
         plant.bloom?.startMonth ?? null,
         plant.bloom?.endMonth ?? null,
         plant.minimumTemperatureCelsius,
@@ -365,6 +364,9 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
 
   private replaceRelations(plant: PlantWriteInput): void {
     const { id } = plant;
+    this.database
+      .prepare('DELETE FROM plant_plant_kinds WHERE plant_id = ?')
+      .run(id);
     this.database.prepare('DELETE FROM plant_soils WHERE plant_id = ?').run(id);
     this.database
       .prepare('DELETE FROM plant_exposures WHERE plant_id = ?')
@@ -379,6 +381,13 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
       .prepare('DELETE FROM plant_planting_seasons WHERE plant_id = ?')
       .run(id);
 
+    for (const kind of plant.kindLabels) {
+      this.database
+        .prepare(
+          'INSERT INTO plant_plant_kinds (plant_id, plant_kind_id) VALUES (?, ?)',
+        )
+        .run(id, vocabularyId(this.database, 'plant_kinds', kind));
+    }
     for (const soil of plant.soilLabels) {
       this.database
         .prepare(

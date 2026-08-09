@@ -9,6 +9,7 @@ export interface PlantCatalogFilters {
   readonly soils?: readonly string[];
   readonly exposures?: readonly ExposureCode[];
   readonly bloomMonths?: readonly number[];
+  readonly plantKinds?: readonly string[];
   readonly flowerColors?: readonly string[];
 }
 
@@ -16,6 +17,7 @@ export interface PlantCatalogFilterOptions {
   readonly soils: readonly string[];
   readonly exposures: readonly ExposureCode[];
   readonly bloomMonths: readonly number[];
+  readonly plantKinds: readonly string[];
   readonly flowerColors: readonly string[];
 }
 
@@ -50,6 +52,9 @@ export function sanitizeCatalogFilters(
           ?.map((value) => Math.trunc(value))
           .filter((value) => MONTH_NUMBERS.includes(value)) ?? [],
       ),
+    ],
+    plantKinds: [
+      ...new Set(filters?.plantKinds?.filter((value) => value.trim()) ?? []),
     ],
     flowerColors: [
       ...new Set(filters?.flowerColors?.filter((value) => value.trim()) ?? []),

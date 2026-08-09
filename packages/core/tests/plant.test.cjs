@@ -14,7 +14,7 @@ function validPlant(overrides = {}) {
     name: 'Rosé ancienne',
     heightCm: { min: 40, max: 80 },
     typeLabel: 'Vivace',
-    kind: 'flower',
+    kindLabels: ['Fleur', 'Arbuste'],
     soilLabels: ['Drainé'],
     exposures: ['sun'],
     bloom: { startMonth: 5, endMonth: 9 },
@@ -44,6 +44,15 @@ test('accepts a complete valid plant', () => {
   assert.deepEqual(validatePlantWriteInput(validPlant()), []);
 });
 
+test('rejects duplicate normalized plant kind labels', () => {
+  assert.deepEqual(
+    validatePlantWriteInput(
+      validPlant({ kindLabels: ['Plante grasse', 'plante grasse'] }),
+    ).map(({ field, code }) => ({ field, code })),
+    [{ field: 'kindLabels', code: 'duplicate_value' }],
+  );
+});
+
 test('compares complete material records independently of technical fields', () => {
   const imported = validPlant();
   const existing = {
@@ -51,7 +60,10 @@ test('compares complete material records independently of technical fields', () 
     name: 'Rosé ancienne',
     heightCm: { min: 40, max: 80 },
     type: { id: 1, label: 'Vivace' },
-    kind: 'flower',
+    kinds: [
+      { id: 4, label: 'Arbuste' },
+      { id: 5, label: 'Fleur' },
+    ],
     soils: [{ id: 1, label: 'Drainé' }],
     exposures: ['sun'],
     bloom: { startMonth: 5, endMonth: 9 },

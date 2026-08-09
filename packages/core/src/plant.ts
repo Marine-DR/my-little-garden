@@ -3,14 +3,12 @@ import type {
   FOLIAGE_PERSISTENCE_VALUES,
   PHOTO_MEDIA_TYPES,
   PLANTING_SEASON_CODES,
-  PLANT_KINDS,
 } from './constants';
 import type { NonEmptyArray } from './types';
 import { normalizeDatabaseKey } from './normalization';
 
 export type ExposureCode = (typeof EXPOSURE_CODES)[number];
 export type PlantingSeasonCode = (typeof PLANTING_SEASON_CODES)[number];
-export type PlantKind = (typeof PLANT_KINDS)[number];
 export type FoliagePersistence = (typeof FOLIAGE_PERSISTENCE_VALUES)[number];
 export type PhotoMediaType = (typeof PHOTO_MEDIA_TYPES)[number];
 
@@ -33,7 +31,7 @@ export interface Plant {
     readonly max: number | null;
   } | null;
   readonly type: VocabularyValue | null;
-  readonly kind: PlantKind | null;
+  readonly kinds: readonly VocabularyValue[];
   readonly soils: NonEmptyArray<VocabularyValue>;
   readonly exposures: NonEmptyArray<ExposureCode>;
   readonly bloom: {
@@ -63,7 +61,7 @@ export interface PlantWriteInput {
     readonly max: number | null;
   } | null;
   readonly typeLabel: string | null;
-  readonly kind: PlantKind | null;
+  readonly kindLabels: readonly string[];
   readonly soilLabels: readonly string[];
   readonly exposures: readonly ExposureCode[];
   readonly bloom: {
@@ -83,7 +81,6 @@ type MaterialPlantFields = Pick<
   PlantWriteInput,
   | 'name'
   | 'heightCm'
-  | 'kind'
   | 'exposures'
   | 'bloom'
   | 'minimumTemperatureCelsius'
@@ -105,6 +102,7 @@ function normalizeLabels(
 function materialRecord(
   input: MaterialPlantFields,
   typeLabel: string | null,
+  kindLabels: readonly string[] | readonly VocabularyValue[],
   soilLabels: readonly string[] | readonly VocabularyValue[],
   flowerColorLabels: readonly string[] | readonly VocabularyValue[],
   leafColorLabels: readonly string[] | readonly VocabularyValue[],
@@ -113,7 +111,7 @@ function materialRecord(
     name: normalizeDatabaseKey(input.name),
     height: input.heightCm,
     type: typeLabel ? normalizeDatabaseKey(typeLabel) : null,
-    kind: input.kind,
+    kinds: normalizeLabels(kindLabels),
     soils: normalizeLabels(soilLabels),
     exposures: [...input.exposures].sort(),
     bloom: input.bloom,
@@ -138,6 +136,7 @@ export function hasSameMaterialPlantRecord(
     materialRecord(
       existing,
       existing.type?.label ?? null,
+      existing.kinds,
       existing.soils,
       existing.flowerColors,
       existing.leafColors,
@@ -145,6 +144,7 @@ export function hasSameMaterialPlantRecord(
     materialRecord(
       imported,
       imported.typeLabel,
+      imported.kindLabels,
       imported.soilLabels,
       imported.flowerColorLabels,
       imported.leafColorLabels,

@@ -3,7 +3,6 @@ import type {
   FoliagePersistence,
   PlantCatalogFilterOptions,
   PlantCatalogFilters,
-  PlantKind,
 } from '@my-little-garden/core';
 import {
   EXPOSURE_CODES,
@@ -27,7 +26,6 @@ export type CatalogScalarRow = {
   heightMaxCm: number | null;
   typeId: number | null;
   typeLabel: string | null;
-  kind: PlantKind | null;
   bloomStartMonth: number | null;
   bloomEndMonth: number | null;
   minimumTemperatureCelsius: number | null;
@@ -59,7 +57,6 @@ function decodeScalar(row: SqliteRow): CatalogScalarRow {
     heightMaxCm: nullableNumberColumn(row, 'height_max_cm'),
     typeId: nullableNumberColumn(row, 'type_id'),
     typeLabel: nullableStringColumn(row, 'type_label'),
-    kind: nullableStringColumn(row, 'plant_kind') as PlantKind | null,
     bloomStartMonth: nullableNumberColumn(row, 'bloom_start_month'),
     bloomEndMonth: nullableNumberColumn(row, 'bloom_end_month'),
     minimumTemperatureCelsius: nullableNumberColumn(
@@ -95,6 +92,7 @@ function decodeCode(row: SqliteRow): CatalogCodeRow {
 }
 
 type RelationQueries = {
+  kinds: TypedQuery<SQLInputValue[], CatalogValueRow>;
   soils: TypedQuery<SQLInputValue[], CatalogValueRow>;
   flowerColors: TypedQuery<SQLInputValue[], CatalogValueRow>;
   leafColors: TypedQuery<SQLInputValue[], CatalogValueRow>;
@@ -111,7 +109,8 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
   const joins: string[] = [];
   const clauses: string[] = [];
   const parameters: SQLInputValue[] = [];
-  const { soils, exposures, bloomMonths, flowerColors } = activeFilters;
+  const { soils, exposures, bloomMonths, plantKinds, flowerColors } =
+    activeFilters;
 
   if (soils.length > 0) {
     joins.push(`JOIN plant_soils ps_filter ON ps_filter.plant_id = p.id`);
@@ -149,6 +148,19 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
     }
   }
 
+  if (plantKinds.length > 0) {
+    joins.push(
+      `JOIN plant_plant_kinds ppk_filter ON ppk_filter.plant_id = p.id`,
+    );
+    joins.push(
+      `JOIN plant_kinds pk_filter ON pk_filter.id = ppk_filter.plant_kind_id`,
+    );
+    clauses.push(
+      `pk_filter.label IN (${plantKinds.map(() => '?').join(', ')})`,
+    );
+    parameters.push(...plantKinds);
+  }
+
   if (flowerColors.length > 0) {
     joins.push(
       `JOIN plant_flower_colors pfc_filter ON pfc_filter.plant_id = p.id`,
@@ -181,7 +193,7 @@ export class CatalogQueries {
     this.plants = new TypedQuery(
       database,
       `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
-              p.type_id, pt.label AS type_label, p.plant_kind,
+              p.type_id, pt.label AS type_label,
               p.bloom_start_month, p.bloom_end_month,
               p.minimum_temperature_celsius, p.foliage_persistence,
               p.spacing_cm, p.created_at, p.updated_at,
@@ -236,7 +248,7 @@ export class CatalogQueries {
     return this.database
       .prepare(
         `SELECT DISTINCT p.id, p.name, p.height_min_cm, p.height_max_cm,
-                p.type_id, pt.label AS type_label, p.plant_kind,
+                p.type_id, pt.label AS type_label,
                 p.bloom_start_month, p.bloom_end_month,
                 p.minimum_temperature_celsius, p.foliage_persistence,
                 p.spacing_cm, p.created_at, p.updated_at,
@@ -261,7 +273,7 @@ export class CatalogQueries {
     return this.database
       .prepare(
         `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
-                p.type_id, pt.label AS type_label, p.plant_kind,
+                p.type_id, pt.label AS type_label,
                 p.bloom_start_month, p.bloom_end_month,
                 p.minimum_temperature_celsius, p.foliage_persistence,
                 p.spacing_cm, p.created_at, p.updated_at,
@@ -280,7 +292,7 @@ export class CatalogQueries {
     return this.database
       .prepare(
         `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
-                p.type_id, pt.label AS type_label, p.plant_kind,
+                p.type_id, pt.label AS type_label,
                 p.bloom_start_month, p.bloom_end_month,
                 p.minimum_temperature_celsius, p.foliage_persistence,
                 p.spacing_cm, p.created_at, p.updated_at,
@@ -340,7 +352,15 @@ export class CatalogQueries {
       )
       .all()
       .map((row) => stringColumn(row as SqliteRow, 'label'));
-    return { soils, exposures, bloomMonths, flowerColors };
+    const plantKinds = this.database
+      .prepare(
+        `SELECT DISTINCT pk.label, pk.normalized_label FROM plant_kinds pk
+         JOIN plant_plant_kinds ppk ON ppk.plant_kind_id = pk.id
+         ORDER BY pk.normalized_label`,
+      )
+      .all()
+      .map((row) => stringColumn(row as SqliteRow, 'label'));
+    return { soils, exposures, bloomMonths, plantKinds, flowerColors };
   }
 
   relations(ids: readonly string[]): RelationQueries {
@@ -350,6 +370,13 @@ export class CatalogQueries {
     }
     const placeholders = ids.map(() => '?').join(', ');
     const queries: RelationQueries = {
+      kinds: new TypedQuery(
+        this.database,
+        `SELECT ppk.plant_id, pk.id, pk.label FROM plant_plant_kinds ppk
+         JOIN plant_kinds pk ON pk.id = ppk.plant_kind_id
+         WHERE ppk.plant_id IN (${placeholders}) ORDER BY pk.normalized_label`,
+        decodeValue,
+      ),
       soils: new TypedQuery(
         this.database,
         `SELECT ps.plant_id, st.id, st.label FROM plant_soils ps

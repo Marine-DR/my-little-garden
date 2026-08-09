@@ -3,7 +3,6 @@ import {
   FOLIAGE_PERSISTENCE_VALUES,
   PHOTO_MEDIA_TYPES,
   PLANTING_SEASON_CODES,
-  PLANT_KINDS,
 } from './constants';
 import type { PlantWriteInput } from './plant';
 import { normalizeDatabaseKey } from './normalization';
@@ -131,12 +130,20 @@ class VocabularyValidationRule implements PlantValidationRule {
       );
     }
 
-    if (plant.kind !== null && !PLANT_KINDS.includes(plant.kind)) {
+    const normalizedKinds = plant.kindLabels.map(normalizeDatabaseKey);
+    if (normalizedKinds.some((kind) => !kind)) {
       addIssue(
         issues,
-        'kind',
-        'unknown_constant',
-        'Plant kind is not supported.',
+        'kindLabels',
+        'empty_value',
+        'Plant kinds cannot be blank.',
+      );
+    } else if (hasDuplicates(plant.kindLabels)) {
+      addIssue(
+        issues,
+        'kindLabels',
+        'duplicate_value',
+        'A plant kind may only appear once.',
       );
     }
 

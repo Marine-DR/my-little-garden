@@ -3,7 +3,6 @@ import type { DataImportError } from './communication';
 import type {
   ExposureCode,
   FoliagePersistence,
-  PlantKind,
   PlantingSeasonCode,
 } from './plant';
 
@@ -14,7 +13,7 @@ export interface CatalogPlant {
   readonly heightMinCm: number | null;
   readonly heightMaxCm: number | null;
   readonly type: string | null;
-  readonly kind: PlantKind | null;
+  readonly kinds: readonly string[];
   readonly soils: readonly string[];
   readonly exposures: readonly ExposureCode[];
   readonly bloomStartMonth: number | null;

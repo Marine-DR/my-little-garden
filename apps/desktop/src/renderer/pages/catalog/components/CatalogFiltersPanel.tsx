@@ -12,6 +12,7 @@ export const EMPTY_FILTERS: CatalogFilters = {
   soils: [],
   exposures: [],
   bloomMonths: [],
+  plantKinds: [],
   flowerColors: [],
 };
 
@@ -20,6 +21,7 @@ export function countFilters(filters: CatalogFilters): number {
     filters.soils.length +
     filters.exposures.length +
     filters.bloomMonths.length +
+    filters.plantKinds.length +
     filters.flowerColors.length
   );
 }
@@ -38,6 +40,7 @@ function sameFilters(left: CatalogFilters, right: CatalogFilters): boolean {
     sameValues(left.soils, right.soils) &&
     sameValues(left.exposures, right.exposures) &&
     sameValues(left.bloomMonths, right.bloomMonths) &&
+    sameValues(left.plantKinds, right.plantKinds) &&
     sameValues(left.flowerColors, right.flowerColors)
   );
 }
@@ -200,6 +203,36 @@ export function CatalogFiltersPanel({
                         <span>{MONTH_LABELS[month - 1]}</span>
                       </label>
                     ))
+                  ) : (
+                    <p>Aucune valeur disponible</p>
+                  )}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>Fleur / autre</legend>
+                <div className="filter-option-grid">
+                  {options?.plantKinds.length ? (
+                    [...options.plantKinds]
+                      .sort((left, right) => left.localeCompare(right, 'fr'))
+                      .map((plantKind) => (
+                        <label key={plantKind} className="filter-check-option">
+                          <input
+                            type="checkbox"
+                            aria-label={plantKind}
+                            checked={draft.plantKinds.includes(plantKind)}
+                            onChange={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                plantKinds: toggleValue(
+                                  current.plantKinds,
+                                  plantKind,
+                                ),
+                              }))
+                            }
+                          />
+                          <span>{plantKind}</span>
+                        </label>
+                      ))
                   ) : (
                     <p>Aucune valeur disponible</p>
                   )}

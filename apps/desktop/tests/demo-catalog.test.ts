@@ -37,6 +37,18 @@ afterEach(() => {
 });
 
 describe('demo catalog', () => {
+  it('preserves multiple Fleur/autre values separated by pipes', () => {
+    const header = catalogTemplate.split(/\r?\n/u)[0];
+    const result = new CsvPlantCatalogImporter().importData(
+      `${header}\n,Pivoine,60,90,Vivace,Fleur|Arbuste,Drainé,Soleil,Mai,Juin,Rose,Vert,-15,non,60,automne`,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.records[0]?.plant.kindLabels).toEqual(['Fleur', 'Arbuste']);
+    }
+  });
+
   it('modifies existing plants, ignores identical records, and resolves missing plants', async () => {
     database = new DatabaseSync(':memory:');
     database.exec(initialMigration);

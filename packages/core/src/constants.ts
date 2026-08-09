@@ -7,8 +7,6 @@ export const PLANTING_SEASON_CODES = [
   'winter',
 ] as const;
 
-export const PLANT_KINDS = ['flower', 'foliage', 'grass', 'other'] as const;
-
 export const FOLIAGE_PERSISTENCE_VALUES = [
   'evergreen',
   'semi_evergreen',

@@ -16,6 +16,9 @@ const initialMigration = migrations.get('001_initial_schema.sql');
 const selectionNameMigration = migrations.get(
   '002_remove_selection_normalized_name.sql',
 );
+const normalizePlantKindsMigration = migrations.get(
+  '006_normalize_plant_kinds.sql',
+);
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -75,10 +78,12 @@ test('migration creates the expected tables', (t) => {
     tables,
     new Set([
       'plant_types',
+      'plant_kinds',
       'soil_types',
       'colors',
       'plants',
       'plant_soils',
+      'plant_plant_kinds',
       'plant_flower_colors',
       'plant_leaf_colors',
       'plant_exposures',
@@ -114,7 +119,6 @@ test('plants table contains the complete scalar field set', (t) => {
       'height_min_cm',
       'height_max_cm',
       'type_id',
-      'plant_kind',
       'bloom_start_month',
       'bloom_end_month',
       'minimum_temperature_celsius',
@@ -124,6 +128,47 @@ test('plants table contains the complete scalar field set', (t) => {
       'updated_at',
     ]),
   );
+});
+
+test('migration preserves legacy plant kinds as normalized relationships', (t) => {
+  const database = new DatabaseSync(':memory:');
+  t.after(() => database.close());
+  for (const [filename, sql] of migrations) {
+    if (filename === '006_normalize_plant_kinds.sql') {
+      break;
+    }
+    database.exec(sql);
+  }
+  database
+    .prepare(
+      `INSERT INTO plants (
+        id, name, normalized_name, plant_kind, created_at, updated_at
+       ) VALUES ('legacy-flower', 'Pivoine', 'pivoine', 'flower', ?, ?)`,
+    )
+    .run(now, now);
+
+  database.exec(normalizePlantKindsMigration);
+  database.exec('PRAGMA foreign_keys = ON');
+
+  assert.deepEqual(
+    database
+      .prepare(
+        `SELECT pk.label FROM plant_plant_kinds ppk
+         JOIN plant_kinds pk ON pk.id = ppk.plant_kind_id
+         WHERE ppk.plant_id = 'legacy-flower'`,
+      )
+      .all()
+      .map(({ label }) => String(label)),
+    ['Fleur'],
+  );
+  assert.equal(
+    database
+      .prepare('PRAGMA table_info(plants)')
+      .all()
+      .some(({ name }) => name === 'plant_kind'),
+    false,
+  );
+  assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
 });
 
 test('selection plant changes use the selection and plant as their key', (t) => {

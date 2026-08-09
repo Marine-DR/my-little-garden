@@ -210,7 +210,7 @@ function toCatalogPlant(plant: Plant): CatalogPlant {
     heightMinCm: plant.heightCm?.min ?? null,
     heightMaxCm: plant.heightCm?.max ?? null,
     type: plant.type?.label ?? null,
-    kind: plant.kind,
+    kinds: plant.kinds.map(({ label }) => label),
     soils: plant.soils.map(({ label }) => label),
     exposures: plant.exposures,
     bloomStartMonth: plant.bloom?.startMonth ?? null,
