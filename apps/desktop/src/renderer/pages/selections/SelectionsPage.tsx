@@ -1,8 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SelectionSummary } from '@my-little-garden/core';
 import { SelectionsTable } from './components/SelectionsTable';
+import { SelectionsCards } from './components/SelectionsCards';
 import { SelectionDetailsPage } from './SelectionDetailsPage';
+import cardIcon from '@renderer/assets/card.svg';
+import collapseIcon from '@renderer/assets/collapse.svg';
 import deleteIcon from '@renderer/assets/sup.svg';
+import expandIcon from '@renderer/assets/expand.svg';
+import tableIcon from '@renderer/assets/table.svg';
+import { useCloseOnOutsidePointer } from '@renderer/hooks/useCloseOnOutsidePointer';
+
+type SelectionPresentation = 'cards' | 'table';
+const presentationStorageKey = 'my-little-garden:selections-presentation';
+
+function storedPresentation(): SelectionPresentation {
+  const value = window.localStorage.getItem(presentationStorageKey);
+  return value === 'table' ? 'table' : 'cards';
+}
 
 export function SelectionsPage({
   onBackToCatalog,
@@ -21,6 +35,29 @@ export function SelectionsPage({
   >([]);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [presentation, setPresentation] =
+    useState<SelectionPresentation>(storedPresentation);
+  const [presentationOpen, setPresentationOpen] = useState(false);
+  const presentationButton = useRef<HTMLButtonElement>(null);
+  const presentationOptions = useRef<(HTMLButtonElement | null)[]>([]);
+  const presentationMenu = useRef<HTMLDivElement>(null);
+
+  useCloseOnOutsidePointer(presentationMenu, presentationOpen, () =>
+    setPresentationOpen(false),
+  );
+
+  const changePresentation = (value: SelectionPresentation): void => {
+    window.localStorage.setItem(presentationStorageKey, value);
+    setPresentation(value);
+    setPresentationOpen(false);
+    presentationButton.current?.focus();
+  };
+
+  useEffect(() => {
+    if (presentationOpen) {
+      presentationOptions.current[presentation === 'cards' ? 0 : 1]?.focus();
+    }
+  }, [presentation, presentationOpen]);
 
   useEffect(() => {
     let active = true;
@@ -99,6 +136,69 @@ export function SelectionsPage({
           <div className="catalog-search-group">
             <h1 id="selections-title">Mes Sélections</h1>
           </div>
+          <div ref={presentationMenu} className="selection-presentation-menu">
+            <button
+              ref={presentationButton}
+              type="button"
+              className="secondary-button"
+              aria-expanded={presentationOpen}
+              aria-haspopup="menu"
+              aria-controls="selection-presentation-options"
+              onClick={() => setPresentationOpen((open) => !open)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  setPresentationOpen(true);
+                }
+              }}
+            >
+              Présentation
+              <img src={presentationOpen ? collapseIcon : expandIcon} alt="" />
+            </button>
+            {presentationOpen ? (
+              <div
+                id="selection-presentation-options"
+                className="selection-presentation-options"
+                role="menu"
+                aria-label="Présentation"
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setPresentationOpen(false);
+                    presentationButton.current?.focus();
+                  }
+                  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    const currentIndex = presentationOptions.current.indexOf(
+                      document.activeElement as HTMLButtonElement,
+                    );
+                    const nextIndex =
+                      currentIndex === 0 || event.key === 'ArrowUp' ? 1 : 0;
+                    presentationOptions.current[nextIndex]?.focus();
+                  }
+                }}
+              >
+                {(['cards', 'table'] as const).map((value) => (
+                  <button
+                    key={value}
+                    ref={(element) => {
+                      presentationOptions.current[value === 'cards' ? 0 : 1] =
+                        element;
+                    }}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={presentation === value}
+                    onClick={() => changePresentation(value)}
+                  >
+                    <img
+                      src={value === 'cards' ? cardIcon : tableIcon}
+                      alt=""
+                    />
+                    {value === 'cards' ? 'Cartes' : 'Tableau'}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
       <section
@@ -131,8 +231,19 @@ export function SelectionsPage({
           Chargement des sélections…
         </div>
       ) : null}
-      {selections ? (
+      {selections && presentation === 'table' ? (
         <SelectionsTable
+          selections={selections}
+          selectedSelectionIds={selectedSelectionIds}
+          onSelectionToggle={toggleSelection}
+          onToggleAll={toggleAllSelections}
+          selectingAll={deleting}
+          onBackToCatalog={onBackToCatalog}
+          onViewDetails={setSelectedSelectionId}
+        />
+      ) : null}
+      {selections && presentation === 'cards' ? (
+        <SelectionsCards
           selections={selections}
           selectedSelectionIds={selectedSelectionIds}
           onSelectionToggle={toggleSelection}
