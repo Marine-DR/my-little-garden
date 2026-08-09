@@ -210,6 +210,7 @@ describe('App catalog', () => {
       bloomMonths: [6, 9],
       plantKinds: ['Fleur', 'Arbuste', 'Plante grasse'],
       flowerColors: ['Blanc', 'Rose', 'Violet'],
+      leafColors: ['Vert', 'Jaune'],
     });
     listPlantIds.mockResolvedValue(['rose-1', 'rose-2', 'rose-3']);
     replaceCatalog.mockResolvedValue({ ok: true, imported: 1 });
@@ -439,6 +440,7 @@ describe('App catalog', () => {
         bloomMonths: [],
         plantKinds: [],
         flowerColors: [],
+        leafColors: [],
       }),
     );
     expect(await screen.findByText('Rose page 2')).toBeInTheDocument();
@@ -666,6 +668,7 @@ describe('App catalog', () => {
         bloomMonths: [],
         plantKinds: [],
         flowerColors: [],
+        leafColors: [],
       }),
     );
 
@@ -680,6 +683,7 @@ describe('App catalog', () => {
         bloomMonths: [],
         plantKinds: [],
         flowerColors: [],
+        leafColors: [],
       }),
     );
     expect(document.querySelector('.selection-count')).toHaveTextContent(
@@ -743,8 +747,8 @@ describe('App catalog', () => {
       within(filterPanel).getByText('Couleurs fleurs'),
     ).toBeInTheDocument();
     expect(
-      within(filterPanel).queryByText('Couleurs Feuilles'),
-    ).not.toBeInTheDocument();
+      within(filterPanel).getByText('Couleurs feuilles'),
+    ).toBeInTheDocument();
     expect(within(filterPanel).queryByText('Type')).not.toBeInTheDocument();
     expect(within(filterPanel).getByText('Fleur / autre')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Drainé'));
@@ -754,6 +758,8 @@ describe('App catalog', () => {
     fireEvent.click(screen.getByLabelText('Plante grasse'));
     fireEvent.click(screen.getByLabelText('Rose'));
     fireEvent.click(screen.getByLabelText('Violet'));
+    fireEvent.click(screen.getByLabelText('Vert'));
+    fireEvent.click(screen.getByLabelText('Jaune'));
     expect(listPlants).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }));
@@ -764,19 +770,20 @@ describe('App catalog', () => {
         bloomMonths: [6],
         plantKinds: ['Fleur', 'Plante grasse'],
         flowerColors: ['Rose', 'Violet'],
+        leafColors: ['Vert', 'Jaune'],
       }),
     );
     expect(
       screen.queryByRole('complementary', { name: 'Filtres du catalogue' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres (7)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (9)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Fermer les filtres' }));
     expect(
       screen.queryByRole('complementary', { name: 'Filtres du catalogue' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres (7)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (9)' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Désactiver les filtres' }),
     );
@@ -787,6 +794,7 @@ describe('App catalog', () => {
         bloomMonths: [],
         plantKinds: [],
         flowerColors: [],
+        leafColors: [],
       }),
     );
   });
@@ -975,6 +983,7 @@ describe('App catalog', () => {
         bloomMonths: [],
         plantKinds: [],
         flowerColors: [],
+        leafColors: [],
       }),
     );
     expect(

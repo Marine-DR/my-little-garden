@@ -14,6 +14,7 @@ export const EMPTY_FILTERS: CatalogFilters = {
   bloomMonths: [],
   plantKinds: [],
   flowerColors: [],
+  leafColors: [],
 };
 
 export function countFilters(filters: CatalogFilters): number {
@@ -22,7 +23,8 @@ export function countFilters(filters: CatalogFilters): number {
     filters.exposures.length +
     filters.bloomMonths.length +
     filters.plantKinds.length +
-    filters.flowerColors.length
+    filters.flowerColors.length +
+    filters.leafColors.length
   );
 }
 
@@ -41,7 +43,8 @@ function sameFilters(left: CatalogFilters, right: CatalogFilters): boolean {
     sameValues(left.exposures, right.exposures) &&
     sameValues(left.bloomMonths, right.bloomMonths) &&
     sameValues(left.plantKinds, right.plantKinds) &&
-    sameValues(left.flowerColors, right.flowerColors)
+    sameValues(left.flowerColors, right.flowerColors) &&
+    sameValues(left.leafColors, right.leafColors)
   );
 }
 
@@ -255,6 +258,37 @@ export function CatalogFiltersPanel({
                                 ...current,
                                 flowerColors: toggleValue(
                                   current.flowerColors,
+                                  color,
+                                ),
+                              }))
+                            }
+                          />
+                          <span title={color}>{emoji ?? color}</span>
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <p>Aucune valeur disponible</p>
+                  )}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>Couleurs feuilles</legend>
+                <div className="color-filter-picker">
+                  {options?.leafColors.length ? (
+                    options.leafColors.map((color) => {
+                      const emoji = colorEmoji(color);
+                      return (
+                        <label key={color} className="color-filter-option">
+                          <input
+                            type="checkbox"
+                            aria-label={color}
+                            checked={draft.leafColors.includes(color)}
+                            onChange={() =>
+                              setDraft((current) => ({
+                                ...current,
+                                leafColors: toggleValue(
+                                  current.leafColors,
                                   color,
                                 ),
                               }))

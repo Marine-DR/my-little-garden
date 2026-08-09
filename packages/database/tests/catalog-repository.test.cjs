@@ -123,6 +123,16 @@ function createCatalog(t) {
         )
         .run(id, colors.get(color));
     }
+    const leafColors =
+      index === 0 ? ['Blanc', 'Rose'] : index === 1 ? ['Violet'] : ['Rose'];
+    for (const color of leafColors) {
+      database
+        .prepare(
+          `INSERT INTO plant_leaf_colors (plant_id, color_id)
+           VALUES (?, ?)`,
+        )
+        .run(id, colors.get(color));
+    }
   }
   return new SqlitePlantCatalogRepository(database);
 }
@@ -486,6 +496,33 @@ test('combines flower colors with other filter attributes', async (t) => {
   assert.deepEqual(plantNames(result), ['Achillée']);
 });
 
+test('filters by one or more leaf colors and combines them with other attributes', async (t) => {
+  const repository = createCatalog(t);
+  const colors = await repository.list({
+    offset: 0,
+    limit: 30,
+    filters: { leafColors: ['Blanc', 'Rose'] },
+  });
+
+  assert.equal(colors.total, 29);
+  assert.equal(new Set(colors.items.map(({ id }) => id)).size, 29);
+  assert.ok(!plantNames(colors).includes('Achillée'));
+
+  const combined = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: {
+      soils: ['Humide'],
+      exposures: ['shade'],
+      flowerColors: ['Violet'],
+      leafColors: ['Violet'],
+    },
+  });
+
+  assert.equal(combined.total, 1);
+  assert.deepEqual(plantNames(combined), ['Achillée']);
+});
+
 test('filters by soil, exposure, and cyclic bloom months', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.list({
@@ -539,6 +576,7 @@ test('lists catalog filter options from stored values', async (t) => {
   assert.deepEqual(options.soils, ['Drainé', 'Humide']);
   assert.deepEqual(options.exposures, ['sun', 'shade']);
   assert.deepEqual(options.flowerColors, ['Blanc', 'Rose', 'Violet']);
+  assert.deepEqual(options.leafColors, ['Blanc', 'Rose', 'Violet']);
   const wrapStart = options.bloomMonths.indexOf(11);
   assert.deepEqual(options.bloomMonths.slice(wrapStart), [11, 12, 1, 2]);
 });
