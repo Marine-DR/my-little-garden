@@ -1,6 +1,6 @@
 import { readCatalogCsvTemplate } from '@my-little-garden/communication';
 import {
-  SqliteFlowerbedRepository,
+  SqlitePropertyPlanRepository,
   SqlitePlantCatalogRepository,
   SqliteSelectionRepository,
 } from '@my-little-garden/database';
@@ -17,7 +17,7 @@ import { registerCatalogHandlers } from './ipc/catalog-handlers.js';
 import { registerCatalogManagementHandlers } from './ipc/catalog-management-handlers.js';
 import { registerPhotoHandlers } from './ipc/photo-handlers.js';
 import { registerSelectionHandlers } from './ipc/selection-handlers.js';
-import { registerFlowerbedHandlers } from './ipc/flowerbed-handlers.js';
+import { registerPropertyPlanHandlers } from './ipc/property-plan-handlers.js';
 import { handlePhotoRequests, registerPhotoScheme } from './photo-protocol.js';
 import { configureRuntimeEnvironment } from './runtime-environments/index.js';
 import { createMainWindow } from './window.js';
@@ -36,7 +36,9 @@ app.whenReady().then(async () => {
     openedDatabase,
     catalogRepository,
   );
-  const flowerbedRepository = new SqliteFlowerbedRepository(openedDatabase);
+  const propertyPlanRepository = new SqlitePropertyPlanRepository(
+    openedDatabase,
+  );
   seedDemoCatalogIfNeeded(app, (csv) => seedDemoCatalog(openedDatabase, csv));
   const catalogTemplate = readCatalogCsvTemplate();
 
@@ -44,7 +46,7 @@ app.whenReady().then(async () => {
   registerAboutHandlers(ipcMain, { version: app.getVersion() });
   registerCatalogHandlers(ipcMain, catalogRepository);
   registerSelectionHandlers(ipcMain, selectionRepository, photoDirectory);
-  registerFlowerbedHandlers(ipcMain, flowerbedRepository);
+  registerPropertyPlanHandlers(ipcMain, propertyPlanRepository);
   registerCatalogManagementHandlers(
     ipcMain,
     openedDatabase,

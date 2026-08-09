@@ -26,7 +26,7 @@
     "lint": "prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint . --fix",
     "test:core": "npm run build:core && node --test packages/core/tests/plant.test.cjs packages/core/tests/geometry.test.cjs",
-    "test:database": "npm run build:database && node --test packages/database/tests/initial-schema.test.cjs packages/database/tests/catalog-repository.test.cjs packages/database/tests/selection-repository.test.cjs packages/database/tests/flowerbed-repository.test.cjs",
+    "test:database": "npm run build:database && node --test packages/database/tests/initial-schema.test.cjs packages/database/tests/catalog-repository.test.cjs packages/database/tests/selection-repository.test.cjs packages/database/tests/property-plan-repository.test.cjs",
     "test:desktop": "vitest run",
     "test": "npm run lint && npm run typecheck && npm run test:core && npm run test:database && npm run test:desktop",
     "start": "npm run build:desktop && node scripts/start-electron.cjs",

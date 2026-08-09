@@ -3,7 +3,7 @@ import flowerbedIcon from '../assets/flowerbed.svg';
 import listIcon from '../assets/list.svg';
 import appIcon from '../assets/app-icon.png';
 
-export type AppScreen = 'catalog' | 'selections' | 'flowerbeds';
+export type AppScreen = 'catalog' | 'selections' | 'property-plans';
 
 const NAVIGATION_ACTIONS: Record<
   AppScreen,
@@ -20,9 +20,9 @@ const NAVIGATION_ACTIONS: Record<
     icon: listIcon,
     label: 'Mes Sélections',
   },
-  flowerbeds: {
+  'property-plans': {
     icon: flowerbedIcon,
-    label: 'Mes Parterres',
+    label: 'Mes Plans',
   },
 };
 
@@ -56,7 +56,7 @@ export function AppHeader({
                 type="button"
                 onClick={() => onScreenChange(target)}
               >
-                {target === 'flowerbeds' ? (
+                {target === 'property-plans' ? (
                   <span
                     className="flowerbed-icon"
                     aria-hidden="true"
