@@ -1,6 +1,8 @@
 import type { CatalogPage } from '@my-little-garden/core';
+import downloadIcon from '@renderer/assets/download.svg';
 import { Pagination } from '@renderer/components/Pagination';
 import { PlantsTable } from '@renderer/components/PlantsTable';
+import { downloadCatalogTemplate } from '../download-catalog-template';
 
 export function CatalogTable({
   data,
@@ -34,6 +36,22 @@ export function CatalogTable({
               ? 'Aucune plante ne correspond aux filtres appliqués.'
               : 'Le catalogue est vide pour le moment.'}
           </p>
+          {!isFiltered ? (
+            <div className="empty-catalog-download">
+              <p>
+                Téléchargez le modèle du catalogue pour ajouter vos premières
+                plantes.
+              </p>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => void downloadCatalogTemplate()}
+              >
+                <img src={downloadIcon} alt="" />
+                Télécharger le modèle du catalogue
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <>
