@@ -25,7 +25,7 @@ function createCatalog(t) {
   const soil = database
     .prepare(
       `
-    INSERT INTO soil_types (label, normalized_label, created_at)
+    INSERT INTO referential_soil_types (label, normalized_label, created_at)
     VALUES ('Drainé', 'draine', '2026-06-28') RETURNING id
   `,
     )
@@ -33,7 +33,7 @@ function createCatalog(t) {
   const humidSoil = database
     .prepare(
       `
-    INSERT INTO soil_types (label, normalized_label, created_at)
+    INSERT INTO referential_soil_types (label, normalized_label, created_at)
     VALUES ('Humide', 'humide', '2026-06-28') RETURNING id
   `,
     )
@@ -42,7 +42,7 @@ function createCatalog(t) {
   for (const label of ['Blanc', 'Rose', 'Violet']) {
     const color = database
       .prepare(
-        `INSERT INTO colors (label, normalized_label, created_at)
+        `INSERT INTO referential_colors (label, normalized_label, created_at)
          VALUES (?, ?, '2026-06-28') RETURNING id`,
       )
       .get(label, label.toLowerCase());
@@ -52,7 +52,7 @@ function createCatalog(t) {
   for (const label of ['Fleur', 'Arbuste', 'Plante grasse']) {
     const kind = database
       .prepare(
-        `INSERT INTO plant_kinds (label, normalized_label, created_at)
+        `INSERT INTO referential_plant_kinds (label, normalized_label, created_at)
          VALUES (?, ?, '2026-06-28') RETURNING id`,
       )
       .get(label, label.toLowerCase());
@@ -66,12 +66,16 @@ function createCatalog(t) {
     const normalized =
       index === 0 ? 'echinacee' : index === 1 ? 'achillee' : `plante ${suffix}`;
     const plantKinds =
-      index === 0 ? 'Fleur|Arbuste' : index === 1 ? 'Arbuste' : 'Plante grasse';
+      index === 0
+        ? ['Fleur', 'Arbuste']
+        : index === 1
+          ? ['Arbuste']
+          : ['Plante grasse'];
     plant.run(id, name, normalized);
-    for (const kind of plantKinds.split('|')) {
+    for (const kind of plantKinds) {
       database
         .prepare(
-          `INSERT INTO plant_plant_kinds (plant_id, plant_kind_id)
+          `INSERT INTO plant_kind_assignments (plant_id, plant_kind_id)
            VALUES (?, ?)`,
         )
         .run(id, kinds.get(kind));

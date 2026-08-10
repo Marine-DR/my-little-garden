@@ -5,5 +5,4 @@ export const databaseMigrationFilenames = [
   '003_selection_plant_changes.sql',
   '004_deleted_plant_photo.sql',
   '005_property_plans.sql',
-  '006_normalize_plant_kinds.sql',
 ] as const;

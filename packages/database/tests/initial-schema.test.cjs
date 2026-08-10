@@ -16,9 +16,6 @@ const initialMigration = migrations.get('001_initial_schema.sql');
 const selectionNameMigration = migrations.get(
   '002_remove_selection_normalized_name.sql',
 );
-const normalizePlantKindsMigration = migrations.get(
-  '006_normalize_plant_kinds.sql',
-);
 const now = '2026-06-27T12:00:00.000Z';
 
 function createDatabase(t) {
@@ -77,13 +74,13 @@ test('migration creates the expected tables', (t) => {
   assert.deepEqual(
     tables,
     new Set([
-      'plant_types',
-      'plant_kinds',
-      'soil_types',
-      'colors',
+      'referential_plant_types',
+      'referential_plant_kinds',
+      'referential_soil_types',
+      'referential_colors',
       'plants',
+      'plant_kind_assignments',
       'plant_soils',
-      'plant_plant_kinds',
       'plant_flower_colors',
       'plant_leaf_colors',
       'plant_exposures',
@@ -130,43 +127,29 @@ test('plants table contains the complete scalar field set', (t) => {
   );
 });
 
-test('migration preserves legacy plant kinds as normalized relationships', (t) => {
-  const database = new DatabaseSync(':memory:');
-  t.after(() => database.close());
-  for (const [filename, sql] of migrations) {
-    if (filename === '006_normalize_plant_kinds.sql') {
-      break;
-    }
-    database.exec(sql);
-  }
-  database
-    .prepare(
-      `INSERT INTO plants (
-        id, name, normalized_name, plant_kind, created_at, updated_at
-       ) VALUES ('legacy-flower', 'Pivoine', 'pivoine', 'flower', ?, ?)`,
-    )
-    .run(now, now);
-
-  database.exec(normalizePlantKindsMigration);
-  database.exec('PRAGMA foreign_keys = ON');
-
-  assert.deepEqual(
-    database
-      .prepare(
-        `SELECT pk.label FROM plant_plant_kinds ppk
-         JOIN plant_kinds pk ON pk.id = ppk.plant_kind_id
-         WHERE ppk.plant_id = 'legacy-flower'`,
-      )
-      .all()
-      .map(({ label }) => String(label)),
-    ['Fleur'],
+test('plants may reference several plant-kind referential values', (t) => {
+  const database = createDatabase(t);
+  const insertKind = database.prepare(
+    `INSERT INTO referential_plant_kinds (label, normalized_label, created_at)
+     VALUES (?, ?, ?) RETURNING id`,
   );
+  const flower = insertKind.get('Fleur', 'fleur', now);
+  const shrub = insertKind.get('Arbuste', 'arbuste', now);
+  insertPlant(database, { id: 'pivoine' });
+  const assignKind = database.prepare(
+    `INSERT INTO plant_kind_assignments (plant_id, plant_kind_id)
+     VALUES (?, ?)`,
+  );
+  assignKind.run('pivoine', flower.id);
+  assignKind.run('pivoine', shrub.id);
+
   assert.equal(
     database
-      .prepare('PRAGMA table_info(plants)')
-      .all()
-      .some(({ name }) => name === 'plant_kind'),
-    false,
+      .prepare(
+        'SELECT count(*) AS count FROM plant_kind_assignments WHERE plant_id = ?',
+      )
+      .get('pivoine').count,
+    2,
   );
   assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
 });
@@ -272,7 +255,7 @@ test('normalized plant names are unique', (t) => {
 test('normalized vocabulary labels are unique', (t) => {
   const database = createDatabase(t);
   const insertSoil = database.prepare(
-    'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
+    'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
   );
   insertSoil.run('Drainé', 'draine', now);
 
@@ -366,7 +349,7 @@ test('plant deletion cascades and vocabulary deletion is restricted', (t) => {
   const database = createDatabase(t);
   const soil = database
     .prepare(
-      'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
+      'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
     )
     .get('Drainé', 'draine', now);
   insertPlant(database);
@@ -381,7 +364,9 @@ test('plant deletion cascades and vocabulary deletion is restricted', (t) => {
     .run(plantId, 'sun');
 
   assert.throws(() =>
-    database.prepare('DELETE FROM soil_types WHERE id = ?').run(soil.id),
+    database
+      .prepare('DELETE FROM referential_soil_types WHERE id = ?')
+      .run(soil.id),
   );
   database.prepare('DELETE FROM plants WHERE id = ?').run(plantId);
   assert.equal(
@@ -403,7 +388,7 @@ test('a failed graph write rolls back every table', (t) => {
     try {
       database
         .prepare(
-          'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
+          'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
         )
         .run('Argileux', 'argileux', now);
       insertPlant(database);
@@ -424,7 +409,9 @@ test('a failed graph write rolls back every table', (t) => {
     0,
   );
   assert.equal(
-    database.prepare('SELECT count(*) AS total FROM soil_types').get().total,
+    database
+      .prepare('SELECT count(*) AS total FROM referential_soil_types')
+      .get().total,
     0,
   );
 });
@@ -434,7 +421,7 @@ test('catalog has no application-defined entry limit', (t) => {
   const total = 50_000;
   const soil = database
     .prepare(
-      'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
+      'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
     )
     .get('Drainé', 'draine', now);
   const insertCatalogPlant = database.prepare(`

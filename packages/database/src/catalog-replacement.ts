@@ -14,7 +14,11 @@ import { runInTransaction } from './transaction';
 
 function vocabularyId(
   database: DatabaseSync,
-  table: 'plant_types' | 'plant_kinds' | 'soil_types' | 'colors',
+  table:
+    | 'referential_plant_types'
+    | 'referential_plant_kinds'
+    | 'referential_soil_types'
+    | 'referential_colors',
   label: string,
 ): number {
   const normalized = normalizeDatabaseKey(label);
@@ -203,7 +207,11 @@ export class SqliteCatalogReplacement implements PlantCatalogReplacementReposito
         plant.heightCm?.min ?? null,
         plant.heightCm?.max ?? null,
         plant.typeLabel
-          ? vocabularyId(this.database, 'plant_types', plant.typeLabel)
+          ? vocabularyId(
+              this.database,
+              'referential_plant_types',
+              plant.typeLabel,
+            )
           : null,
         plant.bloom?.startMonth ?? null,
         plant.bloom?.endMonth ?? null,
@@ -218,7 +226,7 @@ export class SqliteCatalogReplacement implements PlantCatalogReplacementReposito
   private replaceRelations(plant: PlantWriteInput): void {
     const { id } = plant;
     this.database
-      .prepare('DELETE FROM plant_plant_kinds WHERE plant_id = ?')
+      .prepare('DELETE FROM plant_kind_assignments WHERE plant_id = ?')
       .run(id);
     this.database.prepare('DELETE FROM plant_soils WHERE plant_id = ?').run(id);
     this.database
@@ -237,16 +245,16 @@ export class SqliteCatalogReplacement implements PlantCatalogReplacementReposito
     for (const kind of plant.kindLabels) {
       this.database
         .prepare(
-          'INSERT INTO plant_plant_kinds (plant_id, plant_kind_id) VALUES (?, ?)',
+          'INSERT INTO plant_kind_assignments (plant_id, plant_kind_id) VALUES (?, ?)',
         )
-        .run(id, vocabularyId(this.database, 'plant_kinds', kind));
+        .run(id, vocabularyId(this.database, 'referential_plant_kinds', kind));
     }
     for (const soil of plant.soilLabels) {
       this.database
         .prepare(
           'INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)',
         )
-        .run(id, vocabularyId(this.database, 'soil_types', soil));
+        .run(id, vocabularyId(this.database, 'referential_soil_types', soil));
     }
     for (const code of plant.exposures) {
       this.database
@@ -260,14 +268,14 @@ export class SqliteCatalogReplacement implements PlantCatalogReplacementReposito
         .prepare(
           'INSERT INTO plant_flower_colors (plant_id, color_id) VALUES (?, ?)',
         )
-        .run(id, vocabularyId(this.database, 'colors', color));
+        .run(id, vocabularyId(this.database, 'referential_colors', color));
     }
     for (const color of plant.leafColorLabels) {
       this.database
         .prepare(
           'INSERT INTO plant_leaf_colors (plant_id, color_id) VALUES (?, ?)',
         )
-        .run(id, vocabularyId(this.database, 'colors', color));
+        .run(id, vocabularyId(this.database, 'referential_colors', color));
     }
     for (const code of plant.plantingSeasons) {
       this.database
