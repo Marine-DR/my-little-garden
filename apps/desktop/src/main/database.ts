@@ -4,13 +4,30 @@ import type { App } from 'electron';
 import { DatabaseSync } from 'node:sqlite';
 import { databaseMigrationFilenames } from '@my-little-garden/database';
 
+const databaseBootstrapQueries = {
+  enableForeignKeys: 'PRAGMA foreign_keys = ON',
+  findPlantsTable:
+    "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
+  readUserVersion: 'PRAGMA user_version',
+  listSelectionColumns: 'PRAGMA table_info(selections)',
+} as const;
+
+function setUserVersionQuery(version: number): string {
+  if (!Number.isInteger(version) || version < 0) {
+    throw new RangeError('SQLite user_version must be a non-negative integer.');
+  }
+  // SQLite pragmas do not accept bound parameters. `version` is validated and
+  // derived solely from the ordered migration manifest.
+  return `PRAGMA user_version = ${version}`;
+}
+
 export function openApplicationDatabase(app: App): DatabaseSync {
   const demoMode = process.env.MY_LITTLE_GARDEN_DEMO === '1';
   const dataDirectory = app.getPath('userData');
   const database = new DatabaseSync(
     demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'),
   );
-  database.exec('PRAGMA foreign_keys = ON');
+  database.exec(databaseBootstrapQueries.enableForeignKeys);
   ensureSchema(app, database);
   return database;
 }
@@ -39,9 +56,7 @@ export function seedDemoCatalogIfNeeded(
 
 function ensureSchema(app: App, database: DatabaseSync): void {
   const hasPlants = database
-    .prepare(
-      "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
-    )
+    .prepare(databaseBootstrapQueries.findPlantsTable)
     .get();
   const migrationDirectory = join(
     app.getAppPath(),
@@ -49,13 +64,13 @@ function ensureSchema(app: App, database: DatabaseSync): void {
     'database',
     'migrations',
   );
-  const storedVersion = database.prepare('PRAGMA user_version').get() as {
-    user_version: number;
-  };
+  const storedVersion = database
+    .prepare(databaseBootstrapQueries.readUserVersion)
+    .get() as { user_version: number };
   let version = hasPlants ? storedVersion.user_version : 0;
   if (hasPlants && version === 0) {
     const selectionColumns = database
-      .prepare('PRAGMA table_info(selections)')
+      .prepare(databaseBootstrapQueries.listSelectionColumns)
       .all()
       .map(({ name }) => String(name));
     version = selectionColumns.includes('normalized_name') ? 1 : 2;
@@ -72,9 +87,9 @@ function ensureSchema(app: App, database: DatabaseSync): void {
     }
     try {
       database.exec(readFileSync(join(migrationDirectory, filename), 'utf8'));
-      database.exec(`PRAGMA user_version = ${index + 1}`);
+      database.exec(setUserVersionQuery(index + 1));
     } finally {
-      database.exec('PRAGMA foreign_keys = ON');
+      database.exec(databaseBootstrapQueries.enableForeignKeys);
     }
   }
 }

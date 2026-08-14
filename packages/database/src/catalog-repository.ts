@@ -11,13 +11,16 @@ import type {
   PlantingSeasonCode,
   VocabularyValue,
 } from '@my-little-garden/core';
-import { normalizeDatabaseKey } from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
 import {
   CatalogQueries,
   type CatalogCodeRow,
   type CatalogValueRow,
 } from './catalog-queries';
+import { CatalogWriter } from './catalog-writer';
+import { upsertPlantPhotoQuery } from './plant-photo-queries';
+import { inClausePlaceholders } from './query-builders';
+import { recordDeletedPlantChanges } from './selection-change-writer';
 import { runInTransaction } from './transaction';
 
 function requireNonEmpty<T>(
@@ -55,35 +58,13 @@ function groupCodes<T extends string>(
   return grouped;
 }
 
-function vocabularyId(
-  database: DatabaseSync,
-  table:
-    | 'referential_plant_types'
-    | 'referential_plant_kinds'
-    | 'referential_soil_types'
-    | 'referential_colors',
-  label: string,
-): number {
-  const normalized = normalizeDatabaseKey(label);
-  const existing = database
-    .prepare(`SELECT id FROM ${table} WHERE normalized_label = ?`)
-    .get(normalized);
-  if (existing) {
-    return Number(existing.id);
-  }
-  const result = database
-    .prepare(
-      `INSERT INTO ${table} (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id`,
-    )
-    .get(label, normalized, new Date().toISOString());
-  return Number(result?.id);
-}
-
 export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
   private readonly queries: CatalogQueries;
+  private readonly writer: CatalogWriter;
 
   constructor(private readonly database: DatabaseSync) {
     this.queries = new CatalogQueries(database);
+    this.writer = new CatalogWriter(database);
   }
 
   async list(request: PlantPageRequest): Promise<PlantPage> {
@@ -117,8 +98,8 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
   async upsert(input: PlantWriteInput): Promise<Plant> {
     const now = new Date().toISOString();
     runInTransaction(this.database, () => {
-      this.upsertPlant(input, now);
-      this.replaceRelations(input);
+      this.writer.upsertPlant(input, now);
+      this.writer.replaceRelations(input);
       this.upsertPhoto(input, now);
     });
     const plant = await this.findById(input.id);
@@ -136,7 +117,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     if (ids.length === 0) {
       return [];
     }
-    const placeholders = ids.map(() => '?').join(', ');
+    const placeholders = inClausePlaceholders(ids.length);
     return this.database
       .prepare(
         `SELECT sp.selection_id, s.name AS selection_name, p.id AS plant_id,
@@ -182,8 +163,8 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
         }
       }
       for (const input of inputs) {
-        this.upsertPlant(input, now);
-        this.replaceRelations(input);
+        this.writer.upsertPlant(input, now);
+        this.writer.replaceRelations(input);
       }
     });
   }
@@ -195,7 +176,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     }
 
     return runInTransaction(this.database, () => {
-      const placeholders = ids.map(() => '?').join(', ');
+      const placeholders = inClausePlaceholders(ids.length);
       const existing = this.database
         .prepare(`SELECT id FROM plants WHERE id IN (${placeholders})`)
         .all(...ids);
@@ -214,35 +195,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
         ).count,
       );
       const now = new Date().toISOString();
-      this.database
-        .prepare(
-          `INSERT INTO selection_plant_changes (
-             selection_id, plant_id, change_kind, plant_name,
-             baseline_json, created_at, updated_at, photo_managed_filename
-           )
-           SELECT sp.selection_id, p.id, 'deleted', p.name,
-                  NULL, ?, ?, ph.managed_filename
-           FROM selection_plants sp
-           JOIN plants p ON p.id = sp.plant_id
-           LEFT JOIN plant_photos ph ON ph.plant_id = p.id
-           WHERE p.id IN (${placeholders})
-           ON CONFLICT(selection_id, plant_id) DO UPDATE SET
-             change_kind = 'deleted',
-             plant_name = excluded.plant_name,
-             baseline_json = NULL,
-             updated_at = excluded.updated_at,
-             photo_managed_filename = excluded.photo_managed_filename`,
-        )
-        .run(now, now, ...ids);
-      this.database
-        .prepare(
-          `UPDATE selections SET updated_at = ?
-           WHERE id IN (
-             SELECT DISTINCT selection_id FROM selection_plants
-             WHERE plant_id IN (${placeholders})
-           )`,
-        )
-        .run(now, ...ids);
+      recordDeletedPlantChanges(this.database, ids, now);
       this.database
         .prepare(`DELETE FROM plants WHERE id IN (${placeholders})`)
         .run(...ids);
@@ -326,113 +279,6 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
     return this.queries.ids(filters);
   }
 
-  private upsertPlant(plant: PlantWriteInput, now: string): void {
-    this.database
-      .prepare(
-        `INSERT INTO plants (
-          id, name, normalized_name, height_min_cm, height_max_cm, type_id,
-          bloom_start_month, bloom_end_month, minimum_temperature_celsius,
-          foliage_persistence, spacing_cm, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-          name = excluded.name,
-          normalized_name = excluded.normalized_name,
-          height_min_cm = excluded.height_min_cm,
-          height_max_cm = excluded.height_max_cm,
-          type_id = excluded.type_id,
-          bloom_start_month = excluded.bloom_start_month,
-          bloom_end_month = excluded.bloom_end_month,
-          minimum_temperature_celsius = excluded.minimum_temperature_celsius,
-          foliage_persistence = excluded.foliage_persistence,
-          spacing_cm = excluded.spacing_cm,
-          updated_at = excluded.updated_at`,
-      )
-      .run(
-        plant.id,
-        plant.name,
-        normalizeDatabaseKey(plant.name),
-        plant.heightCm?.min ?? null,
-        plant.heightCm?.max ?? null,
-        plant.typeLabel
-          ? vocabularyId(
-              this.database,
-              'referential_plant_types',
-              plant.typeLabel,
-            )
-          : null,
-        plant.bloom?.startMonth ?? null,
-        plant.bloom?.endMonth ?? null,
-        plant.minimumTemperatureCelsius,
-        plant.foliagePersistence,
-        plant.spacingCm,
-        now,
-        now,
-      );
-  }
-
-  private replaceRelations(plant: PlantWriteInput): void {
-    const { id } = plant;
-    this.database
-      .prepare('DELETE FROM plant_kind_assignments WHERE plant_id = ?')
-      .run(id);
-    this.database.prepare('DELETE FROM plant_soils WHERE plant_id = ?').run(id);
-    this.database
-      .prepare('DELETE FROM plant_exposures WHERE plant_id = ?')
-      .run(id);
-    this.database
-      .prepare('DELETE FROM plant_flower_colors WHERE plant_id = ?')
-      .run(id);
-    this.database
-      .prepare('DELETE FROM plant_leaf_colors WHERE plant_id = ?')
-      .run(id);
-    this.database
-      .prepare('DELETE FROM plant_planting_seasons WHERE plant_id = ?')
-      .run(id);
-
-    for (const kind of plant.kindLabels) {
-      this.database
-        .prepare(
-          'INSERT INTO plant_kind_assignments (plant_id, plant_kind_id) VALUES (?, ?)',
-        )
-        .run(id, vocabularyId(this.database, 'referential_plant_kinds', kind));
-    }
-    for (const soil of plant.soilLabels) {
-      this.database
-        .prepare(
-          'INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)',
-        )
-        .run(id, vocabularyId(this.database, 'referential_soil_types', soil));
-    }
-    for (const code of plant.exposures) {
-      this.database
-        .prepare(
-          'INSERT INTO plant_exposures (plant_id, exposure_code) VALUES (?, ?)',
-        )
-        .run(id, code);
-    }
-    for (const color of plant.flowerColorLabels) {
-      this.database
-        .prepare(
-          'INSERT INTO plant_flower_colors (plant_id, color_id) VALUES (?, ?)',
-        )
-        .run(id, vocabularyId(this.database, 'referential_colors', color));
-    }
-    for (const color of plant.leafColorLabels) {
-      this.database
-        .prepare(
-          'INSERT INTO plant_leaf_colors (plant_id, color_id) VALUES (?, ?)',
-        )
-        .run(id, vocabularyId(this.database, 'referential_colors', color));
-    }
-    for (const code of plant.plantingSeasons) {
-      this.database
-        .prepare(
-          'INSERT INTO plant_planting_seasons (plant_id, season_code) VALUES (?, ?)',
-        )
-        .run(id, code);
-    }
-  }
-
   private upsertPhoto(plant: PlantWriteInput, now: string): void {
     if (!plant.photo) {
       this.database
@@ -441,16 +287,7 @@ export class SqlitePlantCatalogRepository implements PlantCatalogRepository {
       return;
     }
     this.database
-      .prepare(
-        `INSERT INTO plant_photos
-          (plant_id, managed_filename, media_type, checksum_sha256, created_at)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(plant_id) DO UPDATE SET
-          managed_filename = excluded.managed_filename,
-          media_type = excluded.media_type,
-          checksum_sha256 = excluded.checksum_sha256,
-          created_at = excluded.created_at`,
-      )
+      .prepare(upsertPlantPhotoQuery)
       .run(
         plant.id,
         plant.photo.managedFilename,

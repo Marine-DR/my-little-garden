@@ -18,6 +18,7 @@ import {
   stringColumn,
   type SqliteRow,
 } from './typed-query';
+import { inClausePlaceholders } from './query-builders';
 
 export type CatalogScalarRow = {
   id: string;
@@ -100,6 +101,32 @@ type RelationQueries = {
   plantingSeasons: TypedQuery<SQLInputValue[], CatalogCodeRow>;
 };
 
+const catalogScalarProjection = `p.id, p.name, p.height_min_cm, p.height_max_cm,
+  p.type_id, pt.label AS type_label,
+  p.bloom_start_month, p.bloom_end_month,
+  p.minimum_temperature_celsius, p.foliage_persistence,
+  p.spacing_cm, p.created_at, p.updated_at,
+  ph.managed_filename, ph.media_type, ph.checksum_sha256`;
+const catalogScalarSources = `FROM plants p
+  LEFT JOIN referential_plant_types pt ON pt.id = p.type_id
+  LEFT JOIN plant_photos ph ON ph.plant_id = p.id`;
+const catalogScalarOrder = `ORDER BY p.normalized_name COLLATE NOCASE,
+  p.name COLLATE NOCASE, p.id`;
+
+function selectCatalogScalars(options?: {
+  distinct?: boolean;
+  joins?: string;
+  where?: string;
+  paginated?: boolean;
+}): string {
+  return `SELECT ${options?.distinct ? 'DISTINCT ' : ''}${catalogScalarProjection}
+    ${catalogScalarSources}
+    ${options?.joins ?? ''}
+    ${options?.where ?? ''}
+    ${catalogScalarOrder}
+    ${options?.paginated ? 'LIMIT ? OFFSET ?' : ''}`;
+}
+
 function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
   joins: string;
   clause: string;
@@ -123,14 +150,14 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
     joins.push(
       `JOIN referential_soil_types st_filter ON st_filter.id = ps_filter.soil_type_id`,
     );
-    clauses.push(`st_filter.label IN (${soils.map(() => '?').join(', ')})`);
+    clauses.push(`st_filter.label IN (${inClausePlaceholders(soils.length)})`);
     parameters.push(...soils);
   }
 
   if (exposures.length > 0) {
     joins.push(`JOIN plant_exposures pe_filter ON pe_filter.plant_id = p.id`);
     clauses.push(
-      `pe_filter.exposure_code IN (${exposures.map(() => '?').join(', ')})`,
+      `pe_filter.exposure_code IN (${inClausePlaceholders(exposures.length)})`,
     );
     parameters.push(...exposures);
   }
@@ -162,7 +189,7 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
       `JOIN referential_plant_kinds pk_filter ON pk_filter.id = pka_filter.plant_kind_id`,
     );
     clauses.push(
-      `pk_filter.label IN (${plantKinds.map(() => '?').join(', ')})`,
+      `pk_filter.label IN (${inClausePlaceholders(plantKinds.length)})`,
     );
     parameters.push(...plantKinds);
   }
@@ -175,7 +202,7 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
       `JOIN referential_colors fc_filter ON fc_filter.id = pfc_filter.color_id`,
     );
     clauses.push(
-      `fc_filter.label IN (${flowerColors.map(() => '?').join(', ')})`,
+      `fc_filter.label IN (${inClausePlaceholders(flowerColors.length)})`,
     );
     parameters.push(...flowerColors);
   }
@@ -188,7 +215,7 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
       `JOIN referential_colors lc_filter ON lc_filter.id = plc_filter.color_id`,
     );
     clauses.push(
-      `lc_filter.label IN (${leafColors.map(() => '?').join(', ')})`,
+      `lc_filter.label IN (${inClausePlaceholders(leafColors.length)})`,
     );
     parameters.push(...leafColors);
   }
@@ -213,17 +240,7 @@ export class CatalogQueries {
     );
     this.plants = new TypedQuery(
       database,
-      `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
-              p.type_id, pt.label AS type_label,
-              p.bloom_start_month, p.bloom_end_month,
-              p.minimum_temperature_celsius, p.foliage_persistence,
-              p.spacing_cm, p.created_at, p.updated_at,
-              ph.managed_filename, ph.media_type, ph.checksum_sha256
-       FROM plants p
-       LEFT JOIN referential_plant_types pt ON pt.id = p.type_id
-       LEFT JOIN plant_photos ph ON ph.plant_id = p.id
-       ORDER BY p.normalized_name COLLATE NOCASE, p.name COLLATE NOCASE, p.id
-       LIMIT ? OFFSET ?`,
+      selectCatalogScalars({ paginated: true }),
       decodeScalar,
     );
   }
@@ -268,19 +285,12 @@ export class CatalogQueries {
     }
     return this.database
       .prepare(
-        `SELECT DISTINCT p.id, p.name, p.height_min_cm, p.height_max_cm,
-                p.type_id, pt.label AS type_label,
-                p.bloom_start_month, p.bloom_end_month,
-                p.minimum_temperature_celsius, p.foliage_persistence,
-                p.spacing_cm, p.created_at, p.updated_at,
-                ph.managed_filename, ph.media_type, ph.checksum_sha256
-         FROM plants p
-         LEFT JOIN referential_plant_types pt ON pt.id = p.type_id
-         LEFT JOIN plant_photos ph ON ph.plant_id = p.id
-         ${joins}
-         ${clause}
-         ORDER BY p.normalized_name COLLATE NOCASE, p.name COLLATE NOCASE, p.id
-         LIMIT ? OFFSET ?`,
+        selectCatalogScalars({
+          distinct: true,
+          joins,
+          where: clause,
+          paginated: true,
+        }),
       )
       .all(...parameters, limit, offset)
       .map((row) => decodeScalar(row as SqliteRow));
@@ -290,20 +300,10 @@ export class CatalogQueries {
     if (ids.length === 0) {
       return [];
     }
-    const placeholders = ids.map(() => '?').join(', ');
+    const placeholders = inClausePlaceholders(ids.length);
     return this.database
       .prepare(
-        `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
-                p.type_id, pt.label AS type_label,
-                p.bloom_start_month, p.bloom_end_month,
-                p.minimum_temperature_celsius, p.foliage_persistence,
-                p.spacing_cm, p.created_at, p.updated_at,
-                ph.managed_filename, ph.media_type, ph.checksum_sha256
-         FROM plants p
-         LEFT JOIN referential_plant_types pt ON pt.id = p.type_id
-         LEFT JOIN plant_photos ph ON ph.plant_id = p.id
-         WHERE p.id IN (${placeholders})
-         ORDER BY p.normalized_name COLLATE NOCASE, p.name COLLATE NOCASE, p.id`,
+        selectCatalogScalars({ where: `WHERE p.id IN (${placeholders})` }),
       )
       .all(...ids)
       .map((row) => decodeScalar(row as SqliteRow));
@@ -311,18 +311,7 @@ export class CatalogQueries {
 
   byNormalizedName(normalizedName: string): CatalogScalarRow[] {
     return this.database
-      .prepare(
-        `SELECT p.id, p.name, p.height_min_cm, p.height_max_cm,
-                p.type_id, pt.label AS type_label,
-                p.bloom_start_month, p.bloom_end_month,
-                p.minimum_temperature_celsius, p.foliage_persistence,
-                p.spacing_cm, p.created_at, p.updated_at,
-                ph.managed_filename, ph.media_type, ph.checksum_sha256
-         FROM plants p
-         LEFT JOIN referential_plant_types pt ON pt.id = p.type_id
-         LEFT JOIN plant_photos ph ON ph.plant_id = p.id
-         WHERE p.normalized_name = ?`,
-      )
+      .prepare(selectCatalogScalars({ where: 'WHERE p.normalized_name = ?' }))
       .all(normalizedName)
       .map((row) => decodeScalar(row as SqliteRow));
   }
@@ -404,7 +393,7 @@ export class CatalogQueries {
     if (existing) {
       return existing;
     }
-    const placeholders = ids.map(() => '?').join(', ');
+    const placeholders = inClausePlaceholders(ids.length);
     const queries: RelationQueries = {
       kinds: new TypedQuery(
         this.database,
