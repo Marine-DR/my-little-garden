@@ -3,7 +3,10 @@ import type {
   DataImportError,
   PlantCatalogReplacementRepository,
 } from '@my-little-garden/core';
-import { SqliteCatalogReplacement } from '@my-little-garden/database';
+import {
+  SqliteCatalogReplacement,
+  SqlitePlantCatalogRepository,
+} from '@my-little-garden/database';
 import type { DatabaseSync } from 'node:sqlite';
 
 export function validateCatalogCsvStructure(
@@ -17,6 +20,13 @@ export function replaceCatalogFromCsv(
   database: DatabaseSync,
   csv: string,
 ): number {
+  return replaceCatalogFromCsvWithResult(database, csv).imported;
+}
+
+export function replaceCatalogFromCsvWithResult(
+  database: DatabaseSync,
+  csv: string,
+) {
   const importer = new CsvPlantCatalogImporter();
   const result = importer.importData(csv);
   if (!result.ok) {
@@ -24,7 +34,10 @@ export function replaceCatalogFromCsv(
   }
 
   const repository: PlantCatalogReplacementRepository =
-    new SqliteCatalogReplacement(database);
+    new SqliteCatalogReplacement(
+      database,
+      new SqlitePlantCatalogRepository(database),
+    );
   return repository.replace(result.records);
 }
 

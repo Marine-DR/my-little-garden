@@ -45,8 +45,9 @@ export class CatalogAdditionService {
     if (!parsed.ok) {
       return parsed;
     }
+    const records = parsed.records.map(({ plant }) => plant);
     const names = new Set<string>();
-    for (const record of parsed.records) {
+    for (const record of records) {
       const name = normalizeDatabaseKey(record.name);
       if (names.has(name)) {
         return {
@@ -62,27 +63,27 @@ export class CatalogAdditionService {
       names.add(name);
     }
     const existingByName = new Map<string, Plant>();
-    for (const record of parsed.records) {
+    for (const record of records) {
       const key = normalizeDatabaseKey(record.name);
       const existing = await this.repository.findByNormalizedName(key);
       if (existing) {
         existingByName.set(key, existing);
       }
     }
-    const conflicts = parsed.records.flatMap((record) => {
+    const conflicts = records.flatMap((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
       return existing && !hasSameMaterialPlantRecord(existing, record)
         ? [{ record, existing }]
         : [];
     });
     const modifiedPlants = conflicts.map(({ existing }) => existing);
-    const unchanged = parsed.records.filter((record) => {
+    const unchanged = records.filter((record) => {
       const existing = existingByName.get(normalizeDatabaseKey(record.name));
       return existing && hasSameMaterialPlantRecord(existing, record);
     }).length;
     const token = randomUUID();
     this.previews.set(token, {
-      records: parsed.records,
+      records,
       existingByName,
       modifiedPlants,
       expiresAt: Date.now() + 5 * 60_000,
@@ -90,7 +91,7 @@ export class CatalogAdditionService {
     return {
       ok: true,
       token,
-      created: parsed.records.length - existingByName.size,
+      created: records.length - existingByName.size,
       unchanged,
       conflicts: conflicts.map(({ record: { name } }) => name),
       impactedSelections: groupSelectionUsages(

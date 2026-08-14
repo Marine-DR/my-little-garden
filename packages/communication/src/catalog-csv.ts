@@ -4,6 +4,7 @@ import {
   validatePlantWriteInput,
   type DataImportError,
   type DataImportResult,
+  type CatalogImportPlantRecord,
   type ExposureCode,
   type Plant,
   type PlantCatalogExporter,
@@ -45,6 +46,7 @@ const MONTH_LABELS: Record<number, string> = {
 };
 
 export const CATALOG_CSV_HEADERS = [
+  'plant_id',
   'Nom',
   'Taille min',
   'Taille Max',
@@ -61,6 +63,8 @@ export const CATALOG_CSV_HEADERS = [
   'Espace(cm)',
   'Plantation',
 ] as const;
+
+const LEGACY_CATALOG_CSV_HEADERS = CATALOG_CSV_HEADERS.slice(1);
 
 const TOO_MANY_COLUMNS_MESSAGE =
   "Il y a plus de colonne qu'attendu dans le fichier. Si vous avez plusieurs éléments dans une cellule, merci d'utiliser | pour les séparer";
@@ -168,17 +172,24 @@ function addUnique(
   }
 }
 
+function expectedHeaders(header: readonly string[]): readonly string[] {
+  return normalizeDatabaseKey(header[0] ?? '') === 'plant_id'
+    ? CATALOG_CSV_HEADERS
+    : LEGACY_CATALOG_CSV_HEADERS;
+}
+
 function headerErrors(header: readonly string[]): DataImportError[] {
   const actual = header.map((value) => value.trim());
   const normalizedActual = actual.map((value) => value.toLocaleLowerCase('fr'));
   const errors: DataImportError[] = [];
-  for (const expected of CATALOG_CSV_HEADERS) {
-    if (!normalizedActual.includes(expected.toLocaleLowerCase('fr'))) {
+  const expected = expectedHeaders(header);
+  for (const expectedHeader of expected) {
+    if (!normalizedActual.includes(expectedHeader.toLocaleLowerCase('fr'))) {
       errors.push(
         issue(
           'missing_column',
-          `La colonne ${expected} n'est pas présente dans le fichier d'entrée`,
-          expected,
+          `La colonne ${expectedHeader} n'est pas présente dans le fichier d'entrée`,
+          expectedHeader,
         ),
       );
     }
@@ -186,9 +197,10 @@ function headerErrors(header: readonly string[]): DataImportError[] {
   for (const value of actual) {
     if (
       value &&
-      !(CATALOG_CSV_HEADERS as readonly string[]).some(
-        (expected) =>
-          expected.toLocaleLowerCase('fr') === value.toLocaleLowerCase('fr'),
+      !expected.some(
+        (expectedHeader) =>
+          expectedHeader.toLocaleLowerCase('fr') ===
+          value.toLocaleLowerCase('fr'),
       )
     ) {
       errors.push(
@@ -200,7 +212,7 @@ function headerErrors(header: readonly string[]): DataImportError[] {
       );
     }
   }
-  if (header.length > CATALOG_CSV_HEADERS.length) {
+  if (header.length > expected.length) {
     errors.push(issue('too_many_columns', TOO_MANY_COLUMNS_MESSAGE));
   }
   return errors;
@@ -215,18 +227,20 @@ export function validateCatalogCsvStructure(
     if (header.done) {
       return [issue('empty_file', 'Le fichier est vide')];
     }
+    const expected = expectedHeaders(header.value.values);
+    const offset = expected === CATALOG_CSV_HEADERS ? 1 : 0;
     const errors = headerErrors(header.value.values);
     let rowCount = 0;
     for (const { values: row } of iterator) {
       rowCount += 1;
-      const rowHasExpectedShape = row.length === CATALOG_CSV_HEADERS.length;
+      const rowHasExpectedShape = row.length === expected.length;
       if (
-        row.length > CATALOG_CSV_HEADERS.length &&
+        row.length > expected.length &&
         !errors.some(({ code }) => code === 'too_many_columns')
       ) {
         errors.push(issue('too_many_columns', TOO_MANY_COLUMNS_MESSAGE));
-      } else if (row.length < CATALOG_CSV_HEADERS.length) {
-        for (const missing of CATALOG_CSV_HEADERS.slice(row.length)) {
+      } else if (row.length < expected.length) {
+        for (const missing of expected.slice(row.length)) {
           addUnique(
             errors,
             issue(
@@ -244,14 +258,14 @@ export function validateCatalogCsvStructure(
         continue;
       }
       const numericColumns = [
-        ['Taille min', 1, false],
-        ['Taille Max', 2, false],
-        ['T° min (°C)', 11, true],
-        ['Espace(cm)', 13, false],
+        ['Taille min', 1 + offset, false],
+        ['Taille Max', 2 + offset, false],
+        ['T° min (°C)', 11 + offset, true],
+        ['Espace(cm)', 13 + offset, false],
       ] as const;
       for (const [parameter, index, acceptsNegative] of numericColumns) {
         const value = row[index]?.trim() ?? '';
-        const isHeightColumn = index === 1 || index === 2;
+        const isHeightColumn = index === 1 + offset || index === 2 + offset;
         const isMissingHeight = isHeightColumn && optional(value) === null;
         const isValidNumber = acceptsNegative
           ? isIntegerText(value)
@@ -267,7 +281,7 @@ export function validateCatalogCsvStructure(
       }
       if (
         containsUnsupportedValue(
-          row[6],
+          row[6 + offset],
           new Set(['soleil', 'mi-ombre', 'ombre']),
         )
       ) {
@@ -276,7 +290,12 @@ export function validateCatalogCsvStructure(
           issue('unsupported_value', EXPOSURE_ERROR, 'Exposition'),
         );
       }
-      if (containsUnsupportedValue(row[12], new Set(['oui', 'semi', 'non']))) {
+      if (
+        containsUnsupportedValue(
+          row[12 + offset],
+          new Set(['oui', 'semi', 'non']),
+        )
+      ) {
         addUnique(
           errors,
           issue(
@@ -288,7 +307,7 @@ export function validateCatalogCsvStructure(
       }
       if (
         containsUnsupportedValue(
-          row[14],
+          row[14 + offset],
           new Set(['printemps', 'ete', 'automne', 'hiver']),
         )
       ) {
@@ -357,17 +376,21 @@ function seasons(value: string | undefined): PlantingSeasonCode[] {
   return [...codes];
 }
 
-function* plantInputs(csv: string): Generator<PlantWriteInput> {
+function* plantInputs(csv: string): Generator<CatalogImportPlantRecord> {
   const rows = readCsvRows(csv);
-  rows.next();
+  const header = rows.next();
+  const offset =
+    !header.done && expectedHeaders(header.value.values) === CATALOG_CSV_HEADERS
+      ? 1
+      : 0;
   for (const { values: row, lineNumber } of rows) {
     const rowIndex = lineNumber - 2;
-    const name = optional(row[0]);
+    const name = optional(row[offset]);
     if (!name) {
       throw new Error(`Ligne ${rowIndex + 2} : le nom est obligatoire.`);
     }
-    const type = optional(row[3]);
-    const kindKey = normalizeDatabaseKey(row[4] ?? '');
+    const type = optional(row[3 + offset]);
+    const kindKey = normalizeDatabaseKey(row[4 + offset] ?? '');
     const kind: PlantKind | null =
       kindKey === 'fleur'
         ? 'flower'
@@ -378,8 +401,8 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
             : kindKey
               ? 'other'
               : null;
-    const bloomStartText = optional(row[7]);
-    const bloomEndText = optional(row[8]);
+    const bloomStartText = optional(row[7 + offset]);
+    const bloomEndText = optional(row[8 + offset]);
     const bloomStart = bloomStartText
       ? (MONTHS[normalizeDatabaseKey(bloomStartText)] ?? null)
       : null;
@@ -397,7 +420,7 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
         `Ligne ${rowIndex + 2} : les deux mois de floraison sont requis ensemble.`,
       );
     }
-    const persistenceKey = normalizeDatabaseKey(row[12] ?? '');
+    const persistenceKey = normalizeDatabaseKey(row[12 + offset] ?? '');
     const persistence =
       persistenceKey === 'oui'
         ? 'evergreen'
@@ -406,35 +429,36 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
           : persistenceKey === 'semi'
             ? 'semi_evergreen'
             : null;
-    if (optional(row[12]) && persistence === null) {
+    if (optional(row[12 + offset]) && persistence === null) {
       throw new Error(
         `Ligne ${rowIndex + 2} : valeur de feuillage persistant inconnue.`,
       );
     }
-    const id = randomUUID();
-    const heightMin = integer(row[1]);
-    const heightMax = integer(row[2]);
-    const input: PlantWriteInput = {
+    const explicitId = offset === 1 ? optional(row[0]) : null;
+    const id = explicitId ?? randomUUID();
+    const heightMin = integer(row[1 + offset]);
+    const heightMax = integer(row[2 + offset]);
+    const plant: PlantWriteInput = {
       id,
       name,
       heightCm: heightCm(heightMin, heightMax),
       typeLabel: type,
       kind,
-      soilLabels: list(row[5]),
-      exposures: exposures(row[6]),
+      soilLabels: list(row[5 + offset]),
+      exposures: exposures(row[6 + offset]),
       bloom:
         bloomStart !== null && bloomEnd !== null
           ? { startMonth: bloomStart, endMonth: bloomEnd }
           : null,
-      flowerColorLabels: list(row[9]),
-      leafColorLabels: list(row[10]),
-      minimumTemperatureCelsius: integer(row[11]),
+      flowerColorLabels: list(row[9 + offset]),
+      leafColorLabels: list(row[10 + offset]),
+      minimumTemperatureCelsius: integer(row[11 + offset]),
       foliagePersistence: persistence,
-      spacingCm: integer(row[13]),
-      plantingSeasons: seasons(row[14]),
+      spacingCm: integer(row[13 + offset]),
+      plantingSeasons: seasons(row[14 + offset]),
       photo: null,
     };
-    const issues = validatePlantWriteInput(input);
+    const issues = validatePlantWriteInput(plant);
     if (issues.length > 0) {
       const details = issues
         .map(({ field, message }) => `${field}: ${message}`)
@@ -442,7 +466,7 @@ function* plantInputs(csv: string): Generator<PlantWriteInput> {
       throw new Error(`Ligne ${rowIndex + 2} (${name}) : ${details}`);
     }
 
-    yield input;
+    yield { plant, hasExplicitId: explicitId !== null };
   }
 }
 
@@ -507,14 +531,47 @@ function plantingSeasonLabel(value: PlantingSeasonCode): string {
 }
 
 export class CsvPlantCatalogImporter implements PlantCatalogImporter {
-  importData(csv: string): DataImportResult<PlantWriteInput> {
+  importData(csv: string): DataImportResult<CatalogImportPlantRecord> {
     const errors = validateCatalogCsvStructure(csv);
     if (errors.length > 0) {
       return { ok: false, errors };
     }
 
     try {
-      return { ok: true, records: [...plantInputs(csv)] };
+      const records = [...plantInputs(csv)];
+      const names = new Set<string>();
+      const ids = new Set<string>();
+      for (const record of records) {
+        const name = normalizeDatabaseKey(record.plant.name);
+        if (names.has(name)) {
+          return {
+            ok: false,
+            errors: [
+              issue(
+                'duplicate_plant_name',
+                `Le fichier contient plusieurs lignes pour la plante « ${record.plant.name} ».`,
+              ),
+            ],
+          };
+        }
+        names.add(name);
+        if (record.hasExplicitId && ids.has(record.plant.id)) {
+          return {
+            ok: false,
+            errors: [
+              issue(
+                'duplicate_plant_id',
+                `Le fichier contient plusieurs lignes avec l’UUID « ${record.plant.id} ».`,
+                'plant_id',
+              ),
+            ],
+          };
+        }
+        if (record.hasExplicitId) {
+          ids.add(record.plant.id);
+        }
+      }
+      return { ok: true, records };
     } catch (error) {
       return {
         ok: false,
@@ -534,6 +591,7 @@ export class CsvPlantCatalogImporter implements PlantCatalogImporter {
 export class CsvPlantCatalogExporter implements PlantCatalogExporter {
   exportData(plants: readonly Plant[]): string {
     const rows = plants.map((plant) => [
+      plant.id,
       plant.name,
       plant.heightCm?.min?.toString() ?? '',
       plant.heightCm?.max?.toString() ?? '',
