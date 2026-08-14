@@ -9,6 +9,7 @@ import type {
   SelectionSummary,
 } from '@my-little-garden/core';
 import { PlantPhoto } from '../../components/PlantPhoto';
+import { colorLabelToCss } from '../../../shared/design-tokens';
 import {
   FabricPlanCanvas,
   type FabricPlanCanvasHandle,
@@ -54,28 +55,6 @@ function colorsOf(plant: CatalogPlant): readonly string[] {
 
 function firstPlantColor(plant: CatalogPlant): string | null {
   return colorsOf(plant)[0] ?? null;
-}
-
-function colorLabelToCss(label: string | null): string {
-  if (!label) {
-    return '#6fb570';
-  }
-  const colors: Record<string, string> = {
-    blanc: '#f8fafc',
-    bleu: '#60a5fa',
-    jaune: '#facc15',
-    orange: '#fb923c',
-    rose: '#ec4899',
-    rouge: '#ef4444',
-    vert: '#4ade80',
-    violet: '#a78bfa',
-  };
-  const normalized = label
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase('fr-FR')
-    .trim();
-  return colors[normalized] ?? '#6fb570';
 }
 
 function documentsEqual(
