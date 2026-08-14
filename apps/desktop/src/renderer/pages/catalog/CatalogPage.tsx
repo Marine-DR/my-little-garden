@@ -253,6 +253,7 @@ export function CatalogPage({
             filters.soils.length > 0 ||
             filters.exposures.length > 0 ||
             filters.bloomMonths.length > 0 ||
+            filters.plantKinds.length > 0 ||
             filters.flowerColors.length > 0
           }
           onPageChange={changePage}

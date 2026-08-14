@@ -2,28 +2,36 @@ PRAGMA foreign_keys = ON;
 
 BEGIN IMMEDIATE;
 
-CREATE TABLE plant_types (
+CREATE TABLE referential_plant_types (
     id               INTEGER PRIMARY KEY,
     label            TEXT NOT NULL CHECK (length(trim(label)) > 0),
     normalized_label TEXT NOT NULL CHECK (length(normalized_label) > 0),
     created_at       TEXT NOT NULL,
-    CONSTRAINT uq_plant_types_normalized_label UNIQUE (normalized_label)
+    CONSTRAINT uq_referential_plant_types_normalized_label UNIQUE (normalized_label)
 );
 
-CREATE TABLE soil_types (
+CREATE TABLE referential_soil_types (
     id               INTEGER PRIMARY KEY,
     label            TEXT NOT NULL CHECK (length(trim(label)) > 0),
     normalized_label TEXT NOT NULL CHECK (length(normalized_label) > 0),
     created_at       TEXT NOT NULL,
-    CONSTRAINT uq_soil_types_normalized_label UNIQUE (normalized_label)
+    CONSTRAINT uq_referential_soil_types_normalized_label UNIQUE (normalized_label)
 );
 
-CREATE TABLE colors (
+CREATE TABLE referential_colors (
     id               INTEGER PRIMARY KEY,
     label            TEXT NOT NULL CHECK (length(trim(label)) > 0),
     normalized_label TEXT NOT NULL CHECK (length(normalized_label) > 0),
     created_at       TEXT NOT NULL,
-    CONSTRAINT uq_colors_normalized_label UNIQUE (normalized_label)
+    CONSTRAINT uq_referential_colors_normalized_label UNIQUE (normalized_label)
+);
+
+CREATE TABLE referential_plant_kinds (
+    id               INTEGER PRIMARY KEY,
+    label            TEXT NOT NULL CHECK (length(trim(label)) > 0),
+    normalized_label TEXT NOT NULL CHECK (length(normalized_label) > 0),
+    created_at       TEXT NOT NULL,
+    CONSTRAINT uq_referential_plant_kinds_normalized_label UNIQUE (normalized_label)
 );
 
 CREATE TABLE plants (
@@ -35,9 +43,6 @@ CREATE TABLE plants (
     height_min_cm            INTEGER CHECK (height_min_cm >= 0),
     height_max_cm            INTEGER CHECK (height_max_cm >= 0),
     type_id                  INTEGER,
-    plant_kind               TEXT CHECK (
-        plant_kind IN ('flower', 'foliage', 'grass', 'other')
-    ),
     bloom_start_month        INTEGER CHECK (
         bloom_start_month BETWEEN 1 AND 12
     ),
@@ -63,7 +68,7 @@ CREATE TABLE plants (
         OR (bloom_start_month IS NOT NULL AND bloom_end_month IS NOT NULL)
     ),
     CONSTRAINT fk_plants_type FOREIGN KEY (type_id)
-        REFERENCES plant_types (id)
+        REFERENCES referential_plant_types (id)
         ON UPDATE RESTRICT
         ON DELETE RESTRICT
 );
@@ -72,12 +77,24 @@ CREATE INDEX idx_plants_type_id ON plants (type_id);
 CREATE INDEX idx_plants_bloom_period
     ON plants (bloom_start_month, bloom_end_month);
 
+CREATE TABLE plant_kind_assignments (
+    plant_id     TEXT NOT NULL,
+    plant_kind_id INTEGER NOT NULL,
+    PRIMARY KEY (plant_id, plant_kind_id),
+    FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE,
+    FOREIGN KEY (plant_kind_id) REFERENCES referential_plant_kinds (id)
+        ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+
+CREATE INDEX idx_plant_kind_assignments_kind_plant
+    ON plant_kind_assignments (plant_kind_id, plant_id);
+
 CREATE TABLE plant_soils (
     plant_id     TEXT NOT NULL,
     soil_type_id INTEGER NOT NULL,
     PRIMARY KEY (plant_id, soil_type_id),
     FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE,
-    FOREIGN KEY (soil_type_id) REFERENCES soil_types (id)
+    FOREIGN KEY (soil_type_id) REFERENCES referential_soil_types (id)
         ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 
@@ -89,7 +106,7 @@ CREATE TABLE plant_flower_colors (
     color_id INTEGER NOT NULL,
     PRIMARY KEY (plant_id, color_id),
     FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE,
-    FOREIGN KEY (color_id) REFERENCES colors (id)
+    FOREIGN KEY (color_id) REFERENCES referential_colors (id)
         ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 
@@ -101,7 +118,7 @@ CREATE TABLE plant_leaf_colors (
     color_id INTEGER NOT NULL,
     PRIMARY KEY (plant_id, color_id),
     FOREIGN KEY (plant_id) REFERENCES plants (id) ON DELETE CASCADE,
-    FOREIGN KEY (color_id) REFERENCES colors (id)
+    FOREIGN KEY (color_id) REFERENCES referential_colors (id)
         ON UPDATE RESTRICT ON DELETE RESTRICT
 );
 

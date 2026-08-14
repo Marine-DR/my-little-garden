@@ -9,7 +9,6 @@ import {
   type Plant,
   type PlantCatalogExporter,
   type PlantCatalogImporter,
-  type PlantKind,
   type PlantWriteInput,
   type PlantingSeasonCode,
 } from '@my-little-garden/core';
@@ -390,17 +389,7 @@ function* plantInputs(csv: string): Generator<CatalogImportPlantRecord> {
       throw new Error(`Ligne ${rowIndex + 2} : le nom est obligatoire.`);
     }
     const type = optional(row[3 + offset]);
-    const kindKey = normalizeDatabaseKey(row[4 + offset] ?? '');
-    const kind: PlantKind | null =
-      kindKey === 'fleur'
-        ? 'flower'
-        : kindKey === 'feuillage'
-          ? 'foliage'
-          : kindKey === 'graminee'
-            ? 'grass'
-            : kindKey
-              ? 'other'
-              : null;
+    const kindLabels = list(row[4 + offset]);
     const bloomStartText = optional(row[7 + offset]);
     const bloomEndText = optional(row[8 + offset]);
     const bloomStart = bloomStartText
@@ -443,7 +432,7 @@ function* plantInputs(csv: string): Generator<CatalogImportPlantRecord> {
       name,
       heightCm: heightCm(heightMin, heightMax),
       typeLabel: type,
-      kind,
+      kindLabels,
       soilLabels: list(row[5 + offset]),
       exposures: exposures(row[6 + offset]),
       bloom:
@@ -486,21 +475,6 @@ function exposureLabel(value: ExposureCode): string {
       return 'Mi-ombre';
     case 'shade':
       return 'Ombre';
-  }
-}
-
-function kindLabel(value: PlantKind | null): string {
-  switch (value) {
-    case 'flower':
-      return 'Fleur';
-    case 'foliage':
-      return 'Feuillage';
-    case 'grass':
-      return 'Graminee';
-    case 'other':
-      return 'Autre';
-    case null:
-      return '';
   }
 }
 
@@ -596,7 +570,7 @@ export class CsvPlantCatalogExporter implements PlantCatalogExporter {
       plant.heightCm?.min?.toString() ?? '',
       plant.heightCm?.max?.toString() ?? '',
       plant.type?.label ?? '',
-      kindLabel(plant.kind),
+      joinCsvList(plant.kinds.map(({ label }) => label)),
       joinCsvList(plant.soils.map(({ label }) => label)),
       joinCsvList(plant.exposures.map(exposureLabel)),
       plant.bloom ? (MONTH_LABELS[plant.bloom.startMonth] ?? '') : '',

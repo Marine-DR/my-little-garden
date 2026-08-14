@@ -74,10 +74,12 @@ test('migration creates the expected tables', (t) => {
   assert.deepEqual(
     tables,
     new Set([
-      'plant_types',
-      'soil_types',
-      'colors',
+      'referential_plant_types',
+      'referential_plant_kinds',
+      'referential_soil_types',
+      'referential_colors',
       'plants',
+      'plant_kind_assignments',
       'plant_soils',
       'plant_flower_colors',
       'plant_leaf_colors',
@@ -114,7 +116,6 @@ test('plants table contains the complete scalar field set', (t) => {
       'height_min_cm',
       'height_max_cm',
       'type_id',
-      'plant_kind',
       'bloom_start_month',
       'bloom_end_month',
       'minimum_temperature_celsius',
@@ -124,6 +125,33 @@ test('plants table contains the complete scalar field set', (t) => {
       'updated_at',
     ]),
   );
+});
+
+test('plants may reference several plant-kind referential values', (t) => {
+  const database = createDatabase(t);
+  const insertKind = database.prepare(
+    `INSERT INTO referential_plant_kinds (label, normalized_label, created_at)
+     VALUES (?, ?, ?) RETURNING id`,
+  );
+  const flower = insertKind.get('Fleur', 'fleur', now);
+  const shrub = insertKind.get('Arbuste', 'arbuste', now);
+  insertPlant(database, { id: 'pivoine' });
+  const assignKind = database.prepare(
+    `INSERT INTO plant_kind_assignments (plant_id, plant_kind_id)
+     VALUES (?, ?)`,
+  );
+  assignKind.run('pivoine', flower.id);
+  assignKind.run('pivoine', shrub.id);
+
+  assert.equal(
+    database
+      .prepare(
+        'SELECT count(*) AS count FROM plant_kind_assignments WHERE plant_id = ?',
+      )
+      .get('pivoine').count,
+    2,
+  );
+  assert.deepEqual(database.prepare('PRAGMA foreign_key_check').all(), []);
 });
 
 test('selection plant changes use the selection and plant as their key', (t) => {
@@ -227,7 +255,7 @@ test('normalized plant names are unique', (t) => {
 test('normalized vocabulary labels are unique', (t) => {
   const database = createDatabase(t);
   const insertSoil = database.prepare(
-    'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
+    'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
   );
   insertSoil.run('Drainé', 'draine', now);
 
@@ -321,7 +349,7 @@ test('plant deletion cascades and vocabulary deletion is restricted', (t) => {
   const database = createDatabase(t);
   const soil = database
     .prepare(
-      'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
+      'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
     )
     .get('Drainé', 'draine', now);
   insertPlant(database);
@@ -336,7 +364,9 @@ test('plant deletion cascades and vocabulary deletion is restricted', (t) => {
     .run(plantId, 'sun');
 
   assert.throws(() =>
-    database.prepare('DELETE FROM soil_types WHERE id = ?').run(soil.id),
+    database
+      .prepare('DELETE FROM referential_soil_types WHERE id = ?')
+      .run(soil.id),
   );
   database.prepare('DELETE FROM plants WHERE id = ?').run(plantId);
   assert.equal(
@@ -358,7 +388,7 @@ test('a failed graph write rolls back every table', (t) => {
     try {
       database
         .prepare(
-          'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
+          'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?)',
         )
         .run('Argileux', 'argileux', now);
       insertPlant(database);
@@ -379,7 +409,9 @@ test('a failed graph write rolls back every table', (t) => {
     0,
   );
   assert.equal(
-    database.prepare('SELECT count(*) AS total FROM soil_types').get().total,
+    database
+      .prepare('SELECT count(*) AS total FROM referential_soil_types')
+      .get().total,
     0,
   );
 });
@@ -389,7 +421,7 @@ test('catalog has no application-defined entry limit', (t) => {
   const total = 50_000;
   const soil = database
     .prepare(
-      'INSERT INTO soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
+      'INSERT INTO referential_soil_types (label, normalized_label, created_at) VALUES (?, ?, ?) RETURNING id',
     )
     .get('Drainé', 'draine', now);
   const insertCatalogPlant = database.prepare(`

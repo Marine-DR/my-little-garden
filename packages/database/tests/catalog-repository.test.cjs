@@ -25,7 +25,7 @@ function createCatalog(t) {
   const soil = database
     .prepare(
       `
-    INSERT INTO soil_types (label, normalized_label, created_at)
+    INSERT INTO referential_soil_types (label, normalized_label, created_at)
     VALUES ('Drainé', 'draine', '2026-06-28') RETURNING id
   `,
     )
@@ -33,7 +33,7 @@ function createCatalog(t) {
   const humidSoil = database
     .prepare(
       `
-    INSERT INTO soil_types (label, normalized_label, created_at)
+    INSERT INTO referential_soil_types (label, normalized_label, created_at)
     VALUES ('Humide', 'humide', '2026-06-28') RETURNING id
   `,
     )
@@ -42,11 +42,21 @@ function createCatalog(t) {
   for (const label of ['Blanc', 'Rose', 'Violet']) {
     const color = database
       .prepare(
-        `INSERT INTO colors (label, normalized_label, created_at)
+        `INSERT INTO referential_colors (label, normalized_label, created_at)
          VALUES (?, ?, '2026-06-28') RETURNING id`,
       )
       .get(label, label.toLowerCase());
     colors.set(label, Number(color.id));
+  }
+  const kinds = new Map();
+  for (const label of ['Fleur', 'Arbuste', 'Plante grasse']) {
+    const kind = database
+      .prepare(
+        `INSERT INTO referential_plant_kinds (label, normalized_label, created_at)
+         VALUES (?, ?, '2026-06-28') RETURNING id`,
+      )
+      .get(label, label.toLowerCase());
+    kinds.set(label, Number(kind.id));
   }
   for (let index = 0; index < 30; index += 1) {
     const suffix = String(index).padStart(2, '0');
@@ -55,7 +65,21 @@ function createCatalog(t) {
       index === 0 ? 'Échinacée' : index === 1 ? 'Achillée' : `Plante ${suffix}`;
     const normalized =
       index === 0 ? 'echinacee' : index === 1 ? 'achillee' : `plante ${suffix}`;
+    const plantKinds =
+      index === 0
+        ? ['Fleur', 'Arbuste']
+        : index === 1
+          ? ['Arbuste']
+          : ['Plante grasse'];
     plant.run(id, name, normalized);
+    for (const kind of plantKinds) {
+      database
+        .prepare(
+          `INSERT INTO plant_kind_assignments (plant_id, plant_kind_id)
+           VALUES (?, ?)`,
+        )
+        .run(id, kinds.get(kind));
+    }
     database
       .prepare('INSERT INTO plant_soils (plant_id, soil_type_id) VALUES (?, ?)')
       .run(id, Number(soil.id));
@@ -130,6 +154,39 @@ test('uses offset and limit for subsequent pages', async (t) => {
   assert.equal(result.items.length, 5);
 });
 
+test('filters by one or more plant kinds and combines them with other filters', async (t) => {
+  const repository = createCatalog(t);
+
+  const flowers = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: { plantKinds: ['Fleur'] },
+  });
+  assert.deepEqual(plantNames(flowers), ['Échinacée']);
+
+  const severalKinds = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: { plantKinds: ['Fleur', 'Arbuste'] },
+  });
+  assert.deepEqual(plantNames(severalKinds), ['Achillée', 'Échinacée']);
+
+  const combined = await repository.list({
+    offset: 0,
+    limit: 25,
+    filters: { plantKinds: ['Arbuste', 'Plante grasse'], soils: ['Humide'] },
+  });
+  assert.deepEqual(plantNames(combined), ['Achillée']);
+  assert.deepEqual(await repository.listIds({ plantKinds: ['Fleur'] }), [
+    'plant-00',
+  ]);
+  assert.deepEqual((await repository.listFilterOptions()).plantKinds, [
+    'Arbuste',
+    'Fleur',
+    'Plante grasse',
+  ]);
+});
+
 test('lists and hydrates catalog plants by id', async (t) => {
   const repository = createCatalog(t);
   const result = await repository.listByIds([
@@ -162,7 +219,7 @@ test('upserts and finds a hydrated plant by id or normalized name', async (t) =>
     name: 'Sauge officinale',
     heightCm: { min: 30, max: 60 },
     typeLabel: 'Vivace',
-    kind: 'flower',
+    kindLabels: ['Fleur'],
     soilLabels: ['Drainé'],
     exposures: ['sun'],
     bloom: { startMonth: 6, endMonth: 8 },
@@ -181,6 +238,7 @@ test('upserts and finds a hydrated plant by id or normalized name', async (t) =>
 
   assert.equal(created.id, 'plant-sage');
   assert.equal(created.name, 'Sauge officinale');
+  assert.deepEqual(created.kinds, [{ id: 1, label: 'Fleur' }]);
   assert.deepEqual(created.soils, [{ id: 1, label: 'Drainé' }]);
   assert.deepEqual(created.exposures, ['sun']);
   assert.equal(created.photo.managedFilename, 'sage.png');
@@ -194,7 +252,7 @@ test('upserts and finds a hydrated plant by id or normalized name', async (t) =>
     name: 'Sauge officinale',
     heightCm: { min: 40, max: 70 },
     typeLabel: null,
-    kind: 'foliage',
+    kindLabels: ['Feuillage'],
     soilLabels: ['Humide'],
     exposures: ['partial_shade'],
     bloom: null,
@@ -209,6 +267,7 @@ test('upserts and finds a hydrated plant by id or normalized name', async (t) =>
 
   assert.equal(updated.heightCm.min, 40);
   assert.equal(updated.type, null);
+  assert.deepEqual(updated.kinds, [{ id: 2, label: 'Feuillage' }]);
   assert.deepEqual(updated.soils, [{ id: 2, label: 'Humide' }]);
   assert.deepEqual(updated.exposures, ['partial_shade']);
   assert.deepEqual(updated.flowerColors, []);

@@ -3,13 +3,6 @@ import { EXPOSURE_LABELS, MONTH_LABELS } from './catalog-labels';
 
 export const EMPTY_VALUE = '-';
 
-const KIND_LABELS: Record<NonNullable<CatalogPlant['kind']>, string> = {
-  flower: 'Fleur',
-  foliage: 'Feuillage',
-  grass: 'Graminée',
-  other: 'Autre',
-};
-
 export const EXPOSURES = EXPOSURE_LABELS;
 
 export const PERSISTENCE = {
@@ -75,10 +68,6 @@ export function formatBloom(start: number | null, end: number | null): string {
 
 export function formatList(values: readonly string[]): string {
   return values.length === 0 ? EMPTY_VALUE : values.join(', ');
-}
-
-export function formatKind(kind: CatalogPlant['kind']): string {
-  return kind === null ? EMPTY_VALUE : KIND_LABELS[kind];
 }
 
 export function formatSeasons(

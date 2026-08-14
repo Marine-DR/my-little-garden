@@ -40,7 +40,7 @@ const rose: CatalogPlant = {
   heightMinCm: 50,
   heightMaxCm: 80,
   type: 'Vivace|Grimpante',
-  kind: 'flower',
+  kinds: ['Fleur', 'Arbuste'],
   soils: ['Drainé'],
   exposures: ['sun'],
   bloomStartMonth: 6,
@@ -208,6 +208,7 @@ describe('App catalog', () => {
       soils: ['Drainé', 'Humide'],
       exposures: ['sun', 'shade'],
       bloomMonths: [6, 9],
+      plantKinds: ['Fleur', 'Arbuste', 'Plante grasse'],
       flowerColors: ['Blanc', 'Rose', 'Violet'],
     });
     listPlantIds.mockResolvedValue(['rose-1', 'rose-2', 'rose-3']);
@@ -345,6 +346,8 @@ describe('App catalog', () => {
     const row = await screen.findByRole('row', { name: /Rose page 1/ });
     expect(within(row).getByText('Vivace')).toBeInTheDocument();
     expect(within(row).getByText('Grimpante')).toBeInTheDocument();
+    expect(within(row).getByText('Fleur')).toBeInTheDocument();
+    expect(within(row).getByText('Arbuste')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Mon Catalogue' }),
     ).toBeInTheDocument();
@@ -434,6 +437,7 @@ describe('App catalog', () => {
         soils: [],
         exposures: [],
         bloomMonths: [],
+        plantKinds: [],
         flowerColors: [],
       }),
     );
@@ -660,6 +664,7 @@ describe('App catalog', () => {
         soils: [],
         exposures: ['shade'],
         bloomMonths: [],
+        plantKinds: [],
         flowerColors: [],
       }),
     );
@@ -673,6 +678,7 @@ describe('App catalog', () => {
         soils: [],
         exposures: ['shade'],
         bloomMonths: [],
+        plantKinds: [],
         flowerColors: [],
       }),
     );
@@ -740,9 +746,12 @@ describe('App catalog', () => {
       within(filterPanel).queryByText('Couleurs Feuilles'),
     ).not.toBeInTheDocument();
     expect(within(filterPanel).queryByText('Type')).not.toBeInTheDocument();
+    expect(within(filterPanel).getByText('Fleur / autre')).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Drainé'));
     fireEvent.click(screen.getByLabelText('Ombre'));
     fireEvent.click(screen.getByLabelText('Juin'));
+    fireEvent.click(screen.getByLabelText('Fleur'));
+    fireEvent.click(screen.getByLabelText('Plante grasse'));
     fireEvent.click(screen.getByLabelText('Rose'));
     fireEvent.click(screen.getByLabelText('Violet'));
     expect(listPlants).toHaveBeenCalledTimes(1);
@@ -753,6 +762,7 @@ describe('App catalog', () => {
         soils: ['Drainé'],
         exposures: ['shade'],
         bloomMonths: [6],
+        plantKinds: ['Fleur', 'Plante grasse'],
         flowerColors: ['Rose', 'Violet'],
       }),
     );
@@ -760,13 +770,13 @@ describe('App catalog', () => {
       screen.queryByRole('complementary', { name: 'Filtres du catalogue' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres (5)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (7)' }));
     fireEvent.click(screen.getByRole('button', { name: 'Fermer les filtres' }));
     expect(
       screen.queryByRole('complementary', { name: 'Filtres du catalogue' }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres (5)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres (7)' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Désactiver les filtres' }),
     );
@@ -775,6 +785,7 @@ describe('App catalog', () => {
         soils: [],
         exposures: [],
         bloomMonths: [],
+        plantKinds: [],
         flowerColors: [],
       }),
     );
@@ -962,6 +973,7 @@ describe('App catalog', () => {
         soils: [],
         exposures: [],
         bloomMonths: [],
+        plantKinds: [],
         flowerColors: [],
       }),
     );

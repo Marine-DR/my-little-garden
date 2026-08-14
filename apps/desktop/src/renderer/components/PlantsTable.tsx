@@ -6,7 +6,6 @@ import {
   PERSISTENCE,
   colorEmoji,
   formatBloom,
-  formatKind,
   formatNumber,
   formatRange,
   seasonLabels,
@@ -97,7 +96,9 @@ function PlantRow({
       <td>
         <VerticalList values={splitMultiValue(plant.type)} />
       </td>
-      <td>{formatKind(plant.kind)}</td>
+      <td>
+        <VerticalList values={plant.kinds} />
+      </td>
       <td>
         <VerticalList values={plant.soils} />
       </td>
