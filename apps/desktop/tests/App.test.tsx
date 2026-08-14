@@ -1239,43 +1239,38 @@ describe('App catalog', () => {
     const administrationSpace = document.querySelector(
       '.selections-administration-space',
     );
-    const selectionsTable = document.querySelector('#selections-table');
+    const selectionsCards = document.querySelector(
+      '.selection-cards-container',
+    );
     expect(
       selectionsToolbar?.compareDocumentPosition(administrationSpace!),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(administrationSpace?.compareDocumentPosition(selectionsTable!)).toBe(
+    expect(administrationSpace?.compareDocumentPosition(selectionsCards!)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+    const card = screen.getByRole('article');
+    expect(card).toHaveTextContent('6 plantes');
+    expect(card).toHaveTextContent('à jour');
+    expect(card).not.toHaveTextContent('10/07/2026');
+    expect(card).not.toHaveTextContent('14/07/2026');
     expect(
-      screen.getAllByRole('columnheader').map((heading) => heading.textContent),
-    ).toEqual([
-      'Sélection',
-      'Nom',
-      'Aperçu',
-      'Plantes',
-      'Statut',
-      'Date de création',
-      'Dernière modification',
-      'Actions',
-    ]);
-
-    const row = screen.getByRole('row', { name: /Bordure plein soleil/u });
-    expect(row).toHaveTextContent('6');
-    expect(row).toHaveTextContent('à jour');
-    expect(row).toHaveTextContent('10/07/2026');
-    expect(row).toHaveTextContent('14/07/2026');
-    expect(
-      within(row).getByLabelText('2 plantes non affichées'),
+      within(card).getByLabelText('2 plantes non affichées'),
     ).toHaveTextContent('+2');
-    const detailsButton = within(row).getByRole('button', {
+    const detailsButton = within(card).getByRole('button', {
       name: 'Voir les détails de Bordure plein soleil',
     });
     expect(detailsButton).toHaveClass(
       'secondary-button',
-      'selection-details-button',
+      'selection-card-details-button',
     );
-    expect(detailsButton).toHaveTextContent('');
-    expect(detailsButton.querySelector('img')).toBeInTheDocument();
+    expect(detailsButton).toHaveTextContent('Détails');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Présentation' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tableau' }));
+    expect(document.querySelector('#selections-table')).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', { name: /Bordure plein soleil/u }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mon Catalogue' }));
     expect(
@@ -1292,11 +1287,8 @@ describe('App catalog', () => {
     await screen.findByText('Rose page 1');
     fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
 
-    const row = await screen.findByRole('row', {
-      name: /Bordure plein soleil/u,
-    });
     fireEvent.click(
-      within(row).getByRole('button', {
+      await screen.findByRole('button', {
         name: 'Voir les détails de Bordure plein soleil',
       }),
     );
