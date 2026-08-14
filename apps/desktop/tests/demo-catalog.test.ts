@@ -16,7 +16,7 @@ import {
   seedDemoCatalog,
   validateCatalogCsvStructure,
 } from '../src/main/catalog-import';
-import { CatalogAdditionService } from '../src/main/catalog-addition';
+import { CatalogAdditionImportService } from '../src/main/catalog-addition';
 import { CatalogModificationImportService } from '../src/main/catalog-modification';
 
 const initialMigration = databaseMigrationFilenames
@@ -110,7 +110,7 @@ describe('demo catalog', () => {
     seedDemoCatalog(database, demoCsv);
     const lines = demoCsv.split(/\r?\n/u);
     const csv = `${lines[0]}\n${lines[1]}\nAster,10,20,Vivace,Fleur,Drainé,Soleil,Mars,Avril,Rose,Vert,-5,oui,15,printemps\n`;
-    const service = new CatalogAdditionService(
+    const service = new CatalogAdditionImportService(
       new SqlitePlantCatalogRepository(database),
       new CsvPlantCatalogImporter(),
     );

@@ -1,4 +1,5 @@
 export * from './catalog';
+export * from './catalog-addition';
 export * from './catalog-deletion';
 export * from './catalog-modification';
 export * from './catalog-replacement';
