@@ -109,8 +109,14 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
   const joins: string[] = [];
   const clauses: string[] = [];
   const parameters: SQLInputValue[] = [];
-  const { soils, exposures, bloomMonths, plantKinds, flowerColors } =
-    activeFilters;
+  const {
+    soils,
+    exposures,
+    bloomMonths,
+    plantKinds,
+    flowerColors,
+    leafColors,
+  } = activeFilters;
 
   if (soils.length > 0) {
     joins.push(`JOIN plant_soils ps_filter ON ps_filter.plant_id = p.id`);
@@ -172,6 +178,19 @@ function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
       `fc_filter.label IN (${flowerColors.map(() => '?').join(', ')})`,
     );
     parameters.push(...flowerColors);
+  }
+
+  if (leafColors.length > 0) {
+    joins.push(
+      `JOIN plant_leaf_colors plc_filter ON plc_filter.plant_id = p.id`,
+    );
+    joins.push(
+      `JOIN referential_colors lc_filter ON lc_filter.id = plc_filter.color_id`,
+    );
+    clauses.push(
+      `lc_filter.label IN (${leafColors.map(() => '?').join(', ')})`,
+    );
+    parameters.push(...leafColors);
   }
 
   return {
@@ -354,6 +373,14 @@ export class CatalogQueries {
       )
       .all()
       .map((row) => stringColumn(row as SqliteRow, 'label'));
+    const leafColors = this.database
+      .prepare(
+        `SELECT DISTINCT c.label, c.normalized_label FROM referential_colors c
+         JOIN plant_leaf_colors plc ON plc.color_id = c.id
+         ORDER BY c.normalized_label`,
+      )
+      .all()
+      .map((row) => stringColumn(row as SqliteRow, 'label'));
     const plantKinds = this.database
       .prepare(
         `SELECT DISTINCT pk.label, pk.normalized_label FROM referential_plant_kinds pk
@@ -362,7 +389,14 @@ export class CatalogQueries {
       )
       .all()
       .map((row) => stringColumn(row as SqliteRow, 'label'));
-    return { soils, exposures, bloomMonths, plantKinds, flowerColors };
+    return {
+      soils,
+      exposures,
+      bloomMonths,
+      plantKinds,
+      flowerColors,
+      leafColors,
+    };
   }
 
   relations(ids: readonly string[]): RelationQueries {

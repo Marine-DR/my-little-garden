@@ -254,7 +254,8 @@ export function CatalogPage({
             filters.exposures.length > 0 ||
             filters.bloomMonths.length > 0 ||
             filters.plantKinds.length > 0 ||
-            filters.flowerColors.length > 0
+            filters.flowerColors.length > 0 ||
+            filters.leafColors.length > 0
           }
           onPageChange={changePage}
           selectedPlantIds={selectedPlantIds}

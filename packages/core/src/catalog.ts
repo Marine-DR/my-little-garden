@@ -11,6 +11,7 @@ export interface PlantCatalogFilters {
   readonly bloomMonths?: readonly number[];
   readonly plantKinds?: readonly string[];
   readonly flowerColors?: readonly string[];
+  readonly leafColors?: readonly string[];
 }
 
 export interface PlantCatalogFilterOptions {
@@ -19,6 +20,7 @@ export interface PlantCatalogFilterOptions {
   readonly bloomMonths: readonly number[];
   readonly plantKinds: readonly string[];
   readonly flowerColors: readonly string[];
+  readonly leafColors: readonly string[];
 }
 
 export function activeBloomMonths(start: number, end: number): number[] {
@@ -58,6 +60,9 @@ export function sanitizeCatalogFilters(
     ],
     flowerColors: [
       ...new Set(filters?.flowerColors?.filter((value) => value.trim()) ?? []),
+    ],
+    leafColors: [
+      ...new Set(filters?.leafColors?.filter((value) => value.trim()) ?? []),
     ],
   };
 }
