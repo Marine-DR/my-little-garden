@@ -482,6 +482,8 @@ main {
 .selection-modified-details-modal {
   max-height: calc(100vh - 3rem);
   overflow-y: auto;
+  scrollbar-color: var(--color-brand) transparent;
+  scrollbar-width: thin;
 }
 .deleted-plant-details-list {
   margin: var(--space-20) 0 0;
