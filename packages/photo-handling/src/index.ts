@@ -200,3 +200,5 @@ export async function handlePhotoProtocolRequest(
     return new Response('Image not found', { status: 404 });
   }
 }
+
+export * from './photo-import';

@@ -33,7 +33,7 @@ import {
   type PlanCanvasChange,
   type PlanEditorDocument,
   type SelectedBoundaryEdge,
-} from './plan-editor-model';
+} from '@my-little-garden/core';
 
 const DEFAULT_WIDTH_CM = 400;
 const DEFAULT_HEIGHT_CM = 250;

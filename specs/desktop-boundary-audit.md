@@ -11,18 +11,18 @@ the equivalent catalog-modification and deletion rules. Desktop keeps CSV
 adapter invocation and preview-token lifetime, as required by the catalog
 incremental-update architecture.
 
-## Remaining candidates
+Catalog pagination and plant/selection DTO mapping now live in `packages/core`.
+Photo URL creation is an injected port, while desktop wires the `garden-photo`
+implementation to the reusable mapping functions.
 
-- Catalog pagination and plant/selection DTO mapping in `main/catalog-view.ts`
-  are platform-independent. They could move to core once photo URL creation is
-  represented as an injected port rather than a concrete photo-handling call.
-- Photo matching, checksum calculation, staging, and cleanup in
-  `main/photo-import.ts` mix reusable photo workflow with SQLite transactions.
-  A later change could extract a storage/repository-driven photo import service
-  without moving Electron's application-directory selection.
-- Property-plan editor transitions in `renderer/pages/property-plans/plan-editor-model.ts`
-  are framework-independent and could become a core editing model when another
-  client needs the same behavior.
+Photo matching, checksum calculation, staging policy, persistence ordering,
+rollback cleanup, and previous-file cleanup now live in
+`packages/photo-handling` behind repository, storage, and transaction ports.
+Desktop selects the Electron application directory and supplies filesystem and
+SQLite adapters.
+
+Property-plan editor transitions and geometry now live in `packages/core`. The
+renderer owns only Fabric and React interaction around that shared model.
 
 Renderer-only formatting, DOM downloads, IPC handlers, Electron protocol
 registration, dev-server discovery, window creation, and platform runtime

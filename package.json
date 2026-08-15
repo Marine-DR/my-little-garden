@@ -26,10 +26,11 @@
     "lint": "prettier --check . && eslint . && npm run lint:design-system",
     "lint:design-system": "node scripts/check-design-system.cjs",
     "lint:fix": "prettier --write . && eslint . --fix",
-    "test:core": "npm run build:core && node --test packages/core/tests/plant.test.cjs packages/core/tests/geometry.test.cjs packages/core/tests/catalog-addition.test.cjs",
+    "test:core": "npm run build:core && node --test packages/core/tests/*.test.cjs",
+    "test:photo": "npm run build:photo && node --test packages/photo-handling/tests/*.test.cjs",
     "test:database": "npm run build:database && node --test packages/database/tests/*.test.cjs",
     "test:desktop": "vitest run",
-    "test": "npm run lint && npm run typecheck && npm run test:core && npm run test:database && npm run test:desktop",
+    "test": "npm run lint && npm run typecheck && npm run test:core && npm run test:photo && npm run test:database && npm run test:desktop",
     "start": "npm run build:desktop && node scripts/start-electron.cjs",
     "demo": "npm run build:desktop && node scripts/start-electron.cjs --demo"
   },

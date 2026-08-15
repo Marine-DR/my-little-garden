@@ -12,7 +12,7 @@ import {
   sampleBoundary,
   validatePlan,
   type PlanEditorDocument,
-} from '../src/renderer/pages/property-plans/plan-editor-model';
+} from '@my-little-garden/core';
 
 const document: PlanEditorDocument = {
   propertyBoundaryPoints: [
