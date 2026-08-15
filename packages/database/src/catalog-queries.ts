@@ -113,18 +113,25 @@ const catalogScalarSources = `FROM plants p
 const catalogScalarOrder = `ORDER BY p.normalized_name COLLATE NOCASE,
   p.name COLLATE NOCASE, p.id`;
 
-function selectCatalogScalars(options?: {
+type CatalogScalarQueryOptions = {
   distinct?: boolean;
   joins?: string;
   where?: string;
-  paginated?: boolean;
-}): string {
+};
+
+function selectCatalogScalars(options?: CatalogScalarQueryOptions): string {
   return `SELECT ${options?.distinct ? 'DISTINCT ' : ''}${catalogScalarProjection}
     ${catalogScalarSources}
     ${options?.joins ?? ''}
     ${options?.where ?? ''}
-    ${catalogScalarOrder}
-    ${options?.paginated ? 'LIMIT ? OFFSET ?' : ''}`;
+    ${catalogScalarOrder}`;
+}
+
+function selectPaginatedCatalogScalars(
+  options?: CatalogScalarQueryOptions,
+): string {
+  return `${selectCatalogScalars(options)}
+    LIMIT ? OFFSET ?`;
 }
 
 function filteredCatalogParts(filters: PlantCatalogFilters | undefined): {
@@ -240,7 +247,7 @@ export class CatalogQueries {
     );
     this.plants = new TypedQuery(
       database,
-      selectCatalogScalars({ paginated: true }),
+      selectPaginatedCatalogScalars(),
       decodeScalar,
     );
   }
@@ -285,11 +292,10 @@ export class CatalogQueries {
     }
     return this.database
       .prepare(
-        selectCatalogScalars({
+        selectPaginatedCatalogScalars({
           distinct: true,
           joins,
           where: clause,
-          paginated: true,
         }),
       )
       .all(...parameters, limit, offset)

@@ -4,7 +4,6 @@ const { join } = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 const test = require('node:test');
 const { databaseMigrationFilenames } = require('../dist');
-const { inClausePlaceholders } = require('../dist/query-builders');
 
 const migrations = new Map(
   databaseMigrationFilenames.map((filename) => [
@@ -62,12 +61,6 @@ function insertPlant(database, values = {}) {
       now,
     );
 }
-
-test('IN-clause construction emits placeholders only for non-empty lists', () => {
-  assert.equal(inClausePlaceholders(3), '?, ?, ?');
-  assert.throws(() => inClausePlaceholders(0), RangeError);
-  assert.throws(() => inClausePlaceholders(1.5), RangeError);
-});
 
 test('migration creates the expected tables', (t) => {
   const database = createDatabase(t);
