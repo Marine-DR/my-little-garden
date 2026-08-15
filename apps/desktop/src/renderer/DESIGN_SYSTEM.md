@@ -8,12 +8,11 @@ literal design values.
 ## Token choices
 
 - Prefer semantic color names such as `--color-brand` and
-  `--color-danger-surface`. The `--color-planner-*` group is deliberately scoped
-  to the focused planner, whose softer palette differs from the application
-  chrome.
-- Use the numeric spacing tokens (`--space-8`, `--space-16`, and so on) for gaps
-  and repeated padding. Their suffix is the rendered pixel value, which makes
-  dense desktop layouts easy to review.
+  `--color-danger-surface`. Features use the same application palette; do not
+  create feature-specific themes.
+- Use the fixed four-pixel spacing scale (`--space-4`, `--space-8`, and so on)
+  for gaps and repeated padding. `--space-2` is reserved for small optical
+  adjustments.
 - Reuse the radius, control, icon, focus, overlay, and shadow tokens before
   introducing another literal effect.
 - Add a new token only when a value represents a reusable visual decision. A
@@ -21,10 +20,11 @@ literal design values.
   with its component.
 
 Fabric.js and Electron's window configuration need concrete color strings rather
-than CSS custom properties. Their equivalent runtime palette and the shared
-plant-label mapping live in `../shared/design-tokens.ts`; components should
-import from there rather than define local color maps.
+than CSS custom properties. Their equivalent runtime palette lives in
+`../shared/design-tokens.ts`. Every value is annotated with its CSS counterpart
+and checked by the linter. French catalog color values are translated at the
+property-plan domain boundary rather than being part of the design system.
 
-`npm run lint:design-system` protects the boundary: component CSS may not add
-raw colors, font sizes, numeric font weights, gaps, or box shadows. Define or
-reuse a token first.
+`npm run lint:design-system` protects the boundary: it rejects unused or missing
+tokens, inconsistent runtime counterparts, feature-specific planner tokens, and
+raw pixels, colors, numeric font weights, or box shadows in component CSS.

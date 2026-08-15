@@ -9,7 +9,7 @@ import type {
   SelectionSummary,
 } from '@my-little-garden/core';
 import { PlantPhoto } from '../../components/PlantPhoto';
-import { colorLabelToCss } from '../../../shared/design-tokens';
+import { catalogColorToCss } from './catalog-color';
 import {
   FabricPlanCanvas,
   type FabricPlanCanvasHandle,
@@ -880,7 +880,7 @@ export function PropertyPlanEditorPage({
                                 aria-label={`Choisir ${item} pour ${plant.name}`}
                                 aria-pressed={color === item}
                                 className={color === item ? 'selected' : ''}
-                                style={{ background: colorLabelToCss(item) }}
+                                style={{ background: catalogColorToCss(item) }}
                                 onPointerDown={(event) =>
                                   event.stopPropagation()
                                 }
@@ -1164,7 +1164,7 @@ export function PropertyPlanEditorPage({
                             <i
                               key={color}
                               title={color}
-                              style={{ background: colorLabelToCss(color) }}
+                              style={{ background: catalogColorToCss(color) }}
                             />
                           ))}
                         </span>
@@ -1327,7 +1327,7 @@ export function PropertyPlanEditorPage({
                 <ul>
                   {[...entry.colors].map(([color, count]) => (
                     <li key={color}>
-                      <i style={{ background: colorLabelToCss(color) }} />
+                      <i style={{ background: catalogColorToCss(color) }} />
                       {color} <strong>× {count}</strong>
                     </li>
                   ))}

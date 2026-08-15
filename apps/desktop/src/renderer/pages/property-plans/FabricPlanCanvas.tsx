@@ -17,7 +17,8 @@ import {
   type FabricObject,
   type TPointerEventInfo,
 } from 'fabric';
-import { canvasColor, colorLabelToCss } from '../../../shared/design-tokens';
+import { canvasColor } from '../../../shared/design-tokens';
+import { catalogColorToCss } from './catalog-color';
 import {
   boundaryPathData,
   boundsFromPoints,
@@ -171,7 +172,7 @@ function createPlantObject(
     radius: markerRadius,
     originX: 'center',
     originY: 'center',
-    fill: colorLabelToCss(placement.colorSnapshot),
+    fill: catalogColorToCss(placement.colorSnapshot),
     stroke: overlapping ? canvasColor.dangerDark : canvasColor.brandDark,
     strokeWidth: 2,
     strokeUniform: true,
@@ -536,7 +537,7 @@ function FabricPlanCanvasComponent(
         originY: 'center',
         fill:
           preview.status === 'valid'
-            ? `${colorLabelToCss(preview.color)}44`
+            ? `${catalogColorToCss(preview.color)}44`
             : preview.status === 'outside'
               ? canvasColor.previewWarningFill
               : canvasColor.previewDangerFill,
