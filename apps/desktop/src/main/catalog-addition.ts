@@ -56,10 +56,11 @@ export class CatalogAdditionImportService {
       return parsed;
     }
     const records = parsed.records.map(({ plant }) => plant);
-    const analysis = await this.addition.analyze(records);
-    if (!isAnalysis(analysis)) {
-      return { ok: false, errors: analysis };
+    const analysisOrErrors = await this.addition.analyze(records);
+    if (!isAnalysis(analysisOrErrors)) {
+      return { ok: false, errors: analysisOrErrors };
     }
+    const analysis = analysisOrErrors;
     const token = randomUUID();
     this.previews.set(token, {
       records,
