@@ -20,7 +20,7 @@ export function openApplicationDatabase(app: App): DatabaseSync {
     demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'),
   );
   database.exec('PRAGMA foreign_keys = ON');
-  ensureSchema(app, database);
+  ensureDatabaseCreated(app, database);
   return database;
 }
 
@@ -46,7 +46,7 @@ export function seedDemoCatalogIfNeeded(
   seedCatalog(readFileSync(csvPath, 'utf8'));
 }
 
-function ensureSchema(app: App, database: DatabaseSync): void {
+function ensureDatabaseCreated(app: App, database: DatabaseSync): void {
   const hasPlants = database
     .prepare(
       "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
