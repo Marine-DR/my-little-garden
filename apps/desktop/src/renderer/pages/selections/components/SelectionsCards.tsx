@@ -1,7 +1,7 @@
 import type { SelectionSummary } from '@my-little-garden/core';
 import { PlantPhoto } from '@renderer/components/PlantPhoto';
 import detailsIcon from '@renderer/assets/details.svg';
-import { SelectionStatus } from './SelectionStatus';
+import { SelectionStatuses } from './SelectionStatus';
 
 function SelectionCardPreview({
   selection,
@@ -117,20 +117,11 @@ export function SelectionsCards({
             </p>
             <SelectionCardPreview selection={selection} />
             <div className="selection-card-status">
-              <SelectionStatus
+              <SelectionStatuses
                 status={selection.status}
                 modifiedPlantCount={selection.modifiedPlantCount}
                 deletedPlantCount={selection.deletedPlantCount}
               />
-              {selection.status === 'contains_deleted_plants' &&
-              selection.modifiedPlantCount > 0 ? (
-                <span className="selection-card-secondary-status">
-                  {selection.modifiedPlantCount}{' '}
-                  {selection.modifiedPlantCount === 1
-                    ? 'plante modifiée'
-                    : 'plantes modifiées'}
-                </span>
-              ) : null}
             </div>
             <button
               type="button"

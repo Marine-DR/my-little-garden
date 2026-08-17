@@ -373,6 +373,10 @@ main {
   font-size: var(--font-size-base);
   line-height: 1;
 }
+.selection-status-list {
+  display: inline-grid;
+  gap: var(--space-4);
+}
 .selection-status-up-to-date {
   color: var(--color-brand);
 }
@@ -1427,11 +1431,6 @@ td:last-child {
   margin-top: var(--space-16);
   display: grid;
   gap: var(--space-4);
-}
-.selection-card-secondary-status {
-  color: var(--color-warning);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
 }
 .selection-card-details-button {
   align-self: flex-start;
