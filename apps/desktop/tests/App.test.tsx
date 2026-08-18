@@ -77,6 +77,11 @@ const deletedSunnyBorder: SelectionSummary = {
   plantCount: 0,
 };
 
+const mixedSunnyBorder: SelectionSummary = {
+  ...deletedSunnyBorder,
+  modifiedPlantCount: 1,
+};
+
 const deletedSelectionDetails: SelectionDetails = {
   id: sunnyBorder.id,
   name: sunnyBorder.name,
@@ -1525,6 +1530,37 @@ describe('App catalog', () => {
       document.querySelector('.selection-deleted-message'),
     ).not.toBeInTheDocument();
     expect(screen.getByText('à jour')).toBeInTheDocument();
+  });
+
+  it('shows deleted and modified status icons in card and table views', async () => {
+    window.localStorage.setItem(
+      'my-little-garden:selections-presentation',
+      'cards',
+    );
+    listSelections.mockResolvedValue([mixedSunnyBorder]);
+    render(<App />);
+    await screen.findByText('Rose page 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Mes Sélections' }));
+
+    const card = await screen.findByRole('article');
+    expect(within(card).getByText('1 plante supprimée')).toBeInTheDocument();
+    expect(within(card).getByText('1 plante modifiée')).toBeInTheDocument();
+    expect(
+      Array.from(card.querySelectorAll('.selection-status-icon')).map(
+        (icon) => icon.textContent,
+      ),
+    ).toEqual(['×', '!']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Présentation' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Tableau' }));
+    const row = screen.getByRole('row', { name: /Bordure plein soleil/u });
+    expect(within(row).getByText('1 plante supprimée')).toBeInTheDocument();
+    expect(within(row).getByText('1 plante modifiée')).toBeInTheDocument();
+    expect(
+      Array.from(row.querySelectorAll('.selection-status-icon')).map(
+        (icon) => icon.textContent,
+      ),
+    ).toEqual(['×', '!']);
   });
 
   it('reviews deleted plants in detail and clears the pending status', async () => {

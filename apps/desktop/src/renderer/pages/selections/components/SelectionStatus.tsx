@@ -45,3 +45,29 @@ export function SelectionStatus({
     </span>
   );
 }
+
+export function SelectionStatuses({
+  status,
+  modifiedPlantCount,
+  deletedPlantCount,
+}: {
+  readonly status: SelectionStatusValue;
+  readonly modifiedPlantCount: number;
+  readonly deletedPlantCount: number;
+}) {
+  return (
+    <span className="selection-status-list">
+      <SelectionStatus
+        status={status}
+        modifiedPlantCount={modifiedPlantCount}
+        deletedPlantCount={deletedPlantCount}
+      />
+      {status === 'contains_deleted_plants' && modifiedPlantCount > 0 ? (
+        <SelectionStatus
+          status="contains_modified_plants"
+          modifiedPlantCount={modifiedPlantCount}
+        />
+      ) : null}
+    </span>
+  );
+}
