@@ -4,6 +4,15 @@ import type { App } from 'electron';
 import { DatabaseSync } from 'node:sqlite';
 import { databaseMigrationFilenames } from '@my-little-garden/database';
 
+function setUserVersionQuery(version: number): string {
+  if (!Number.isInteger(version) || version < 0) {
+    throw new RangeError('SQLite user_version must be a non-negative integer.');
+  }
+  // SQLite pragmas do not accept bound parameters. `version` is validated and
+  // derived solely from the ordered migration manifest.
+  return `PRAGMA user_version = ${version}`;
+}
+
 export function openApplicationDatabase(app: App): DatabaseSync {
   const demoMode = process.env.MY_LITTLE_GARDEN_DEMO === '1';
   const dataDirectory = app.getPath('userData');
@@ -11,7 +20,7 @@ export function openApplicationDatabase(app: App): DatabaseSync {
     demoMode ? ':memory:' : join(dataDirectory, 'catalog.sqlite'),
   );
   database.exec('PRAGMA foreign_keys = ON');
-  ensureSchema(app, database);
+  ensureDatabaseCreated(app, database);
   return database;
 }
 
@@ -37,7 +46,7 @@ export function seedDemoCatalogIfNeeded(
   seedCatalog(readFileSync(csvPath, 'utf8'));
 }
 
-function ensureSchema(app: App, database: DatabaseSync): void {
+function ensureDatabaseCreated(app: App, database: DatabaseSync): void {
   const hasPlants = database
     .prepare(
       "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = 'plants'",
@@ -72,7 +81,7 @@ function ensureSchema(app: App, database: DatabaseSync): void {
     }
     try {
       database.exec(readFileSync(join(migrationDirectory, filename), 'utf8'));
-      database.exec(`PRAGMA user_version = ${index + 1}`);
+      database.exec(setUserVersionQuery(index + 1));
     } finally {
       database.exec('PRAGMA foreign_keys = ON');
     }

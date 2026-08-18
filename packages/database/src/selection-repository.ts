@@ -19,7 +19,11 @@ import {
   stringColumn,
   type SqliteRow,
 } from './typed-query';
+import { inClausePlaceholders } from './query-builders';
 import { runInTransaction } from './transaction';
+
+const selectionExistsQuery = 'SELECT 1 FROM selections WHERE id = ?';
+const touchSelectionQuery = 'UPDATE selections SET updated_at = ? WHERE id = ?';
 
 interface SelectionRow {
   readonly id: string;
@@ -58,7 +62,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
   ) {}
 
   private allPlantsExist(plantIds: readonly string[]): boolean {
-    const placeholders = plantIds.map(() => '?').join(', ');
+    const placeholders = inClausePlaceholders(plantIds.length);
     const existingPlantIds = new Set(
       this.database
         .prepare(`SELECT id FROM plants WHERE id IN (${placeholders})`)
@@ -162,7 +166,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
     }
 
     const selectionIds = selections.map(({ id }) => id);
-    const placeholders = selectionIds.map(() => '?').join(', ');
+    const placeholders = inClausePlaceholders(selectionIds.length);
     const previewsBySelection = new Map<string, (string | null)[]>();
     const previewRows = this.database
       .prepare(
@@ -207,7 +211,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
     }
 
     return runInTransaction(this.database, () => {
-      const placeholders = uniqueSelectionIds.map(() => '?').join(', ');
+      const placeholders = inClausePlaceholders(uniqueSelectionIds.length);
       const result = this.database
         .prepare(`DELETE FROM selections WHERE id IN (${placeholders})`)
         .run(...uniqueSelectionIds);
@@ -247,7 +251,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
     plantIds: readonly string[],
   ): Promise<SelectionDetailsRecord | null> {
     const selectionExists = this.database
-      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .prepare(selectionExistsQuery)
       .get(selectionId);
     if (!selectionExists) {
       return null;
@@ -256,7 +260,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
     const uniquePlantIds = [...new Set(plantIds)];
     if (uniquePlantIds.length > 0) {
       runInTransaction(this.database, () => {
-        const placeholders = uniquePlantIds.map(() => '?').join(', ');
+        const placeholders = inClausePlaceholders(uniquePlantIds.length);
         const result = this.database
           .prepare(
             `DELETE FROM selection_plants
@@ -265,7 +269,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
           .run(selectionId, ...uniquePlantIds);
         if (result.changes > 0) {
           this.database
-            .prepare('UPDATE selections SET updated_at = ? WHERE id = ?')
+            .prepare(touchSelectionQuery)
             .run(new Date().toISOString(), selectionId);
         }
       });
@@ -363,9 +367,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
         );
       }
       if (addedCount > 0) {
-        this.database
-          .prepare('UPDATE selections SET updated_at = ? WHERE id = ?')
-          .run(now, selectionId);
+        this.database.prepare(touchSelectionQuery).run(now, selectionId);
       }
 
       return {
@@ -382,7 +384,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
     selectionId: string,
   ): Promise<SelectionDetailsRecord | null> {
     const selectionExists = this.database
-      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .prepare(selectionExistsQuery)
       .get(selectionId);
     if (!selectionExists) {
       return null;
@@ -400,7 +402,7 @@ export class SqliteSelectionRepository implements SelectionRepository {
     selectionId: string,
   ): Promise<SelectionDetailsRecord | null> {
     const selectionExists = this.database
-      .prepare('SELECT 1 FROM selections WHERE id = ?')
+      .prepare(selectionExistsQuery)
       .get(selectionId);
     if (!selectionExists) {
       return null;

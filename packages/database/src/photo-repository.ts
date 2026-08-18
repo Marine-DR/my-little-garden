@@ -4,6 +4,7 @@ import type {
   PlantPhotoTarget,
 } from '@my-little-garden/core';
 import type { DatabaseSync } from 'node:sqlite';
+import { upsertPlantPhotoQuery } from './plant-photo-queries';
 
 export class SqlitePlantPhotoRepository implements PlantPhotoRepository {
   constructor(private readonly database: DatabaseSync) {}
@@ -28,16 +29,7 @@ export class SqlitePlantPhotoRepository implements PlantPhotoRepository {
 
   upsert(record: PlantPhotoRecord): void {
     this.database
-      .prepare(
-        `INSERT INTO plant_photos
-          (plant_id, managed_filename, media_type, checksum_sha256, created_at)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(plant_id) DO UPDATE SET
-          managed_filename = excluded.managed_filename,
-          media_type = excluded.media_type,
-          checksum_sha256 = excluded.checksum_sha256,
-          created_at = excluded.created_at`,
-      )
+      .prepare(upsertPlantPhotoQuery)
       .run(
         record.plantId,
         record.managedFilename,
