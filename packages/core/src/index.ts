@@ -1,7 +1,9 @@
 export * from './catalog';
+export * from './catalog-addition';
 export * from './catalog-deletion';
 export * from './catalog-modification';
 export * from './catalog-replacement';
+export * from './catalog-view';
 export * from './communication';
 export * from './constants';
 export * from './desktop-api';
@@ -9,6 +11,7 @@ export * from './property-plan';
 export * from './geometry';
 export * from './normalization';
 export * from './plant';
+export * from './plan-editor-model';
 export * from './repository';
 export * from './types';
 export * from './validation';

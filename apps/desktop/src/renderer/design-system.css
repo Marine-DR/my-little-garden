@@ -70,6 +70,8 @@
   --color-warning-hover: rgba(161, 98, 7, 0.1);
   --color-link: #0d47a1;
   --color-accent: #f97316;
+  --color-exposure-sun: #edb254;
+  --color-exposure-shade: #000000;
 
   /* Canvas values also have checked runtime counterparts for Fabric.js. */
   --color-transparent-hit-area: rgba(0, 0, 0, 0.001);

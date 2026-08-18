@@ -5,7 +5,7 @@ import { CatalogDeletionService } from '@my-little-garden/core';
 import { SqlitePlantCatalogRepository } from '@my-little-garden/database';
 import { CATALOG_MANAGEMENT_CHANNELS } from '../../shared/catalog-management-service.js';
 import { replaceCatalog } from '../catalog-replacement.js';
-import { CatalogAdditionService } from '../catalog-addition.js';
+import { CatalogAdditionImportService } from '../catalog-addition.js';
 import { CatalogModificationImportService } from '../catalog-modification.js';
 
 export function registerCatalogManagementHandlers(
@@ -14,7 +14,7 @@ export function registerCatalogManagementHandlers(
   photoDirectory: string,
   catalogTemplate: string,
 ): void {
-  const addition = new CatalogAdditionService(
+  const addition = new CatalogAdditionImportService(
     new SqlitePlantCatalogRepository(database),
     new CsvPlantCatalogImporter(),
   );

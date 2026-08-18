@@ -4,7 +4,7 @@ import type {
   PropertyBoundaryPoint,
   PropertyPlanDesign,
   PropertyPlanPlantPlacementInput,
-} from '@my-little-garden/core';
+} from './property-plan';
 
 export interface EditorPoint {
   readonly xCm: number;
@@ -305,8 +305,10 @@ export function insertPointAfter(
     ...points.slice(0, edgeIndex + 1),
     {
       ...midpoint,
-      edgeKind: start.edgeKind,
-      edgeCurvature: start.edgeCurvature,
+      ...(start.edgeKind ? { edgeKind: start.edgeKind } : {}),
+      ...(start.edgeCurvature === undefined
+        ? {}
+        : { edgeCurvature: start.edgeCurvature }),
     },
     ...points.slice(edgeIndex + 1),
   ];

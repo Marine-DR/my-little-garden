@@ -30,7 +30,7 @@ import {
   type PlanEditorDocument,
   type PlanValidation,
   type SelectedBoundaryEdge,
-} from './plan-editor-model';
+} from '@my-little-garden/core';
 
 export interface PlantPreview {
   readonly point: EditorPoint;

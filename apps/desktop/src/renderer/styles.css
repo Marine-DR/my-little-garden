@@ -478,6 +478,13 @@ main {
 .selection-deleted-details-modal {
   width: min(35rem, 100%);
 }
+.selection-deleted-details-modal,
+.selection-modified-details-modal {
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+  scrollbar-color: var(--color-brand) transparent;
+  scrollbar-width: thin;
+}
 .deleted-plant-details-list {
   margin: var(--space-20) 0 0;
   padding: 0;
@@ -1451,14 +1458,14 @@ abbr {
   line-height: 1.75rem;
 }
 .exposure-sun {
-  color: var(--color-warning);
+  color: var(--color-exposure-sun);
 }
 .exposure-partial_shade {
   color: var(--color-text);
   font-size: var(--font-size-6xl);
 }
 .exposure-shade {
-  color: var(--color-brand);
+  color: var(--color-exposure-shade);
   font-size: var(--font-size-6xl);
 }
 .persistence-icon {

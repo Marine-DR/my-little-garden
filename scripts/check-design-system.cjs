@@ -123,6 +123,16 @@ for (const token of tokens.keys()) {
   }
 }
 
+const fixedSemanticColors = new Map([
+  ['--color-exposure-sun', '#edb254'],
+  ['--color-exposure-shade', '#000000'],
+]);
+for (const [token, value] of fixedSemanticColors) {
+  if (tokens.get(token) !== value) {
+    errors.push(`Semantic color requires ${token}: ${value}.`);
+  }
+}
+
 if (errors.length > 0) {
   for (const error of errors) console.error(error);
   process.exitCode = 1;

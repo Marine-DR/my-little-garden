@@ -1,29 +1,39 @@
 import { randomUUID } from 'node:crypto';
 import {
-  hasSameMaterialPlantRecord,
-  groupSelectionUsages,
-  normalizeDatabaseKey,
+  CatalogAdditionService,
   type CatalogAddPreviewResult,
   type CatalogAddResult,
+  type CatalogAdditionAnalysis,
+  type CatalogAdditionPolicy,
+  type CatalogImportError,
   type PlantCatalogImporter,
-  type Plant,
   type PlantWriteInput,
   type IncrementalPlantCatalogRepository,
 } from '@my-little-garden/core';
 
 type Preview = {
   readonly records: readonly PlantWriteInput[];
-  readonly existingByName: ReadonlyMap<string, Plant>;
-  readonly modifiedPlants: readonly Plant[];
+  readonly analysis: CatalogAdditionAnalysis;
   readonly expiresAt: number;
 };
 
-export class CatalogAdditionService {
+function isAnalysis(
+  value: CatalogAdditionAnalysis | readonly CatalogImportError[],
+): value is CatalogAdditionAnalysis {
+  return !Array.isArray(value);
+}
+
+/** Electron orchestration: parse input and own short-lived preview tokens. */
+export class CatalogAdditionImportService {
   private readonly previews = new Map<string, Preview>();
+  private readonly addition: CatalogAdditionService;
+
   constructor(
-    private readonly repository: IncrementalPlantCatalogRepository,
+    repository: IncrementalPlantCatalogRepository,
     private readonly importer: PlantCatalogImporter,
-  ) {}
+  ) {
+    this.addition = new CatalogAdditionService(repository);
+  }
 
   async preview(
     filename: string,
@@ -46,65 +56,30 @@ export class CatalogAdditionService {
       return parsed;
     }
     const records = parsed.records.map(({ plant }) => plant);
-    const names = new Set<string>();
-    for (const record of records) {
-      const name = normalizeDatabaseKey(record.name);
-      if (names.has(name)) {
-        return {
-          ok: false,
-          errors: [
-            {
-              code: 'duplicate_plant_name',
-              message: `Le fichier contient plusieurs lignes pour la plante « ${record.name} ».`,
-            },
-          ],
-        };
-      }
-      names.add(name);
+    const analysisOrErrors = await this.addition.analyze(records);
+    if (!isAnalysis(analysisOrErrors)) {
+      return { ok: false, errors: analysisOrErrors };
     }
-    const existingByName = new Map<string, Plant>();
-    for (const record of records) {
-      const key = normalizeDatabaseKey(record.name);
-      const existing = await this.repository.findByNormalizedName(key);
-      if (existing) {
-        existingByName.set(key, existing);
-      }
-    }
-    const conflicts = records.flatMap((record) => {
-      const existing = existingByName.get(normalizeDatabaseKey(record.name));
-      return existing && !hasSameMaterialPlantRecord(existing, record)
-        ? [{ record, existing }]
-        : [];
-    });
-    const modifiedPlants = conflicts.map(({ existing }) => existing);
-    const unchanged = records.filter((record) => {
-      const existing = existingByName.get(normalizeDatabaseKey(record.name));
-      return existing && hasSameMaterialPlantRecord(existing, record);
-    }).length;
+    const analysis = analysisOrErrors;
     const token = randomUUID();
     this.previews.set(token, {
       records,
-      existingByName,
-      modifiedPlants,
+      analysis,
       expiresAt: Date.now() + 5 * 60_000,
     });
     return {
       ok: true,
       token,
-      created: records.length - existingByName.size,
-      unchanged,
-      conflicts: conflicts.map(({ record: { name } }) => name),
-      impactedSelections: groupSelectionUsages(
-        await this.repository.listSelectionUsages(
-          modifiedPlants.map(({ id }) => id),
-        ),
-      ),
+      created: analysis.created,
+      unchanged: analysis.unchanged,
+      conflicts: analysis.conflicts,
+      impactedSelections: analysis.impactedSelections,
     };
   }
 
   async commit(
     token: string,
-    policy: 'update_existing' | 'ignore_existing',
+    policy: CatalogAdditionPolicy,
   ): Promise<CatalogAddResult> {
     const preview = this.previews.get(token);
     this.previews.delete(token);
@@ -120,55 +95,6 @@ export class CatalogAdditionService {
         ],
       };
     }
-    try {
-      const inputs: PlantWriteInput[] = [];
-      let created = 0;
-      let updated = 0;
-      let alreadyExisted = 0;
-      let notAdded = 0;
-      for (const record of preview.records) {
-        const existing = preview.existingByName.get(
-          normalizeDatabaseKey(record.name),
-        );
-        if (!existing) {
-          inputs.push(record);
-          created += 1;
-          continue;
-        }
-        if (hasSameMaterialPlantRecord(existing, record)) {
-          alreadyExisted += 1;
-          continue;
-        }
-        if (policy === 'ignore_existing') {
-          notAdded += 1;
-          continue;
-        }
-        inputs.push({ ...record, id: existing.id });
-        updated += 1;
-      }
-      this.repository.upsertImportedBatch(
-        inputs,
-        policy === 'update_existing' ? preview.modifiedPlants : [],
-      );
-      return {
-        ok: true,
-        created,
-        updated,
-        ignored: alreadyExisted + notAdded,
-        alreadyExisted,
-        notAdded,
-      };
-    } catch {
-      return {
-        ok: false,
-        errors: [
-          {
-            code: 'catalog_addition_failed',
-            message:
-              "Une erreur est survenue, le catalogue n'a pas pu être mis à jour.",
-          },
-        ],
-      };
-    }
+    return this.addition.commit(preview.records, preview.analysis, policy);
   }
 }
