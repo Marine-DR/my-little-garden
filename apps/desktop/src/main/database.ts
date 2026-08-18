@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { App } from 'electron';
 import { DatabaseSync } from 'node:sqlite';
-import { databaseMigrationFilenames } from '@my-little-garden/database';
+import {
+  databaseMigrationFilenames,
+  legacyCatalogSchemaMigrationFilename,
+} from '@my-little-garden/database';
 
 function setUserVersionQuery(version: number): string {
   if (!Number.isInteger(version) || version < 0) {
@@ -58,6 +61,7 @@ function ensureDatabaseCreated(app: App, database: DatabaseSync): void {
     'database',
     'migrations',
   );
+  upgradeLegacyCatalogSchema(database, migrationDirectory);
   const storedVersion = database.prepare('PRAGMA user_version').get() as {
     user_version: number;
   };
@@ -85,5 +89,47 @@ function ensureDatabaseCreated(app: App, database: DatabaseSync): void {
     } finally {
       database.exec('PRAGMA foreign_keys = ON');
     }
+  }
+}
+
+function upgradeLegacyCatalogSchema(
+  database: DatabaseSync,
+  migrationDirectory: string,
+): void {
+  const tableExists = (name: string): boolean =>
+    database
+      .prepare(
+        "SELECT 1 AS found FROM sqlite_master WHERE type = 'table' AND name = ?",
+      )
+      .get(name) !== undefined;
+  const legacyTables = ['plant_types', 'soil_types', 'colors'];
+  const currentTables = [
+    'referential_plant_types',
+    'referential_soil_types',
+    'referential_colors',
+  ];
+  const legacyTableCount = legacyTables.filter(tableExists).length;
+
+  if (legacyTableCount === 0) {
+    return;
+  }
+  if (
+    legacyTableCount !== legacyTables.length ||
+    currentTables.some(tableExists)
+  ) {
+    throw new Error(
+      'The catalog database has an inconsistent vocabulary schema.',
+    );
+  }
+
+  try {
+    database.exec(
+      readFileSync(
+        join(migrationDirectory, legacyCatalogSchemaMigrationFilename),
+        'utf8',
+      ),
+    );
+  } finally {
+    database.exec('PRAGMA foreign_keys = ON');
   }
 }
