@@ -57,4 +57,6 @@ JOIN referential_plant_kinds pk
     END
 WHERE p.plant_kind IS NOT NULL;
 
+ALTER TABLE plants DROP COLUMN plant_kind;
+
 COMMIT;

@@ -91,6 +91,12 @@ describe('openApplicationDatabase', () => {
     expect(database.prepare('PRAGMA user_version').get()).toEqual({
       user_version: 5,
     });
+    expect(
+      database
+        .prepare('PRAGMA table_info(plants)')
+        .all()
+        .map(({ name }) => name),
+    ).not.toContain('plant_kind');
     database.close();
   });
 });
