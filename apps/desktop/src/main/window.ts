@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import type { App } from 'electron';
 import { BrowserWindow } from 'electron';
+import { desktopColor } from '../shared/design-tokens';
 
 function resolveWindowIcon(app: App): string {
   if (app.isPackaged) {
@@ -41,7 +42,7 @@ export async function createMainWindow(app: App): Promise<void> {
     minWidth: 900,
     minHeight: 600,
     autoHideMenuBar: true,
-    backgroundColor: '#f8faf7',
+    backgroundColor: desktopColor.appSurface,
     icon: resolveWindowIcon(app),
     webPreferences: {
       contextIsolation: true,

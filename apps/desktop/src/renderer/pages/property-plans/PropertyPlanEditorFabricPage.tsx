@@ -9,6 +9,7 @@ import type {
   SelectionSummary,
 } from '@my-little-garden/core';
 import { PlantPhoto } from '../../components/PlantPhoto';
+import { catalogColorToCss } from './catalog-color';
 import {
   FabricPlanCanvas,
   type FabricPlanCanvasHandle,
@@ -54,28 +55,6 @@ function colorsOf(plant: CatalogPlant): readonly string[] {
 
 function firstPlantColor(plant: CatalogPlant): string | null {
   return colorsOf(plant)[0] ?? null;
-}
-
-function colorLabelToCss(label: string | null): string {
-  if (!label) {
-    return '#6fb570';
-  }
-  const colors: Record<string, string> = {
-    blanc: '#f8fafc',
-    bleu: '#60a5fa',
-    jaune: '#facc15',
-    orange: '#fb923c',
-    rose: '#ec4899',
-    rouge: '#ef4444',
-    vert: '#4ade80',
-    violet: '#a78bfa',
-  };
-  const normalized = label
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase('fr-FR')
-    .trim();
-  return colors[normalized] ?? '#6fb570';
 }
 
 function documentsEqual(
@@ -901,7 +880,7 @@ export function PropertyPlanEditorPage({
                                 aria-label={`Choisir ${item} pour ${plant.name}`}
                                 aria-pressed={color === item}
                                 className={color === item ? 'selected' : ''}
-                                style={{ background: colorLabelToCss(item) }}
+                                style={{ background: catalogColorToCss(item) }}
                                 onPointerDown={(event) =>
                                   event.stopPropagation()
                                 }
@@ -1185,7 +1164,7 @@ export function PropertyPlanEditorPage({
                             <i
                               key={color}
                               title={color}
-                              style={{ background: colorLabelToCss(color) }}
+                              style={{ background: catalogColorToCss(color) }}
                             />
                           ))}
                         </span>
@@ -1348,7 +1327,7 @@ export function PropertyPlanEditorPage({
                 <ul>
                   {[...entry.colors].map(([color, count]) => (
                     <li key={color}>
-                      <i style={{ background: colorLabelToCss(color) }} />
+                      <i style={{ background: catalogColorToCss(color) }} />
                       {color} <strong>× {count}</strong>
                     </li>
                   ))}

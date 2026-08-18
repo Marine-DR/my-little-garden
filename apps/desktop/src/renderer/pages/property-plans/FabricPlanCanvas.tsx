@@ -17,6 +17,8 @@ import {
   type FabricObject,
   type TPointerEventInfo,
 } from 'fabric';
+import { canvasColor } from '../../../shared/design-tokens';
+import { catalogColorToCss } from './catalog-color';
 import {
   boundaryPathData,
   boundsFromPoints,
@@ -84,28 +86,6 @@ const MAX_ZOOM = 3;
 const VIEW_MARGIN_PX = 48;
 const DIMENSION_LABEL_MARGIN_CM = 3;
 const DIMENSION_LABEL_HALF_HEIGHT_CM = 7;
-
-function colorLabelToCss(label: string | null): string {
-  if (!label) {
-    return '#6fb570';
-  }
-  const colors: Record<string, string> = {
-    blanc: '#f8fafc',
-    bleu: '#60a5fa',
-    jaune: '#facc15',
-    orange: '#fb923c',
-    rose: '#ec4899',
-    rouge: '#ef4444',
-    vert: '#4ade80',
-    violet: '#a78bfa',
-  };
-  const normalized = label
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLocaleLowerCase('fr-FR')
-    .trim();
-  return colors[normalized] ?? '#6fb570';
-}
 
 function ownerFromObject(object: FabricObject): BoundaryOwner | null {
   const tagged = object as TaggedObject;
@@ -175,8 +155,14 @@ function createPlantObject(
     radius,
     originX: 'center',
     originY: 'center',
-    fill: overlapping ? 'rgba(220, 38, 38, .14)' : 'rgba(47, 125, 50, .12)',
-    stroke: overlapping ? '#dc2626' : outside ? '#d97706' : '#2f7d32',
+    fill: overlapping
+      ? canvasColor.overlappingPlantSpace
+      : canvasColor.plantSpace,
+    stroke: overlapping
+      ? canvasColor.danger
+      : outside
+        ? canvasColor.warning
+        : canvasColor.brand,
     strokeWidth: selected ? 4 : 2,
     strokeDashArray: outside ? [8, 5] : undefined,
     strokeUniform: true,
@@ -186,8 +172,8 @@ function createPlantObject(
     radius: markerRadius,
     originX: 'center',
     originY: 'center',
-    fill: colorLabelToCss(placement.colorSnapshot),
-    stroke: overlapping ? '#991b1b' : '#245e26',
+    fill: catalogColorToCss(placement.colorSnapshot),
+    stroke: overlapping ? canvasColor.dangerDark : canvasColor.brandDark,
     strokeWidth: 2,
     strokeUniform: true,
   });
@@ -198,7 +184,7 @@ function createPlantObject(
       originY: 'center',
       fontSize: Math.max(7, markerRadius),
       fontWeight: '700',
-      fill: '#173e18',
+      fill: canvasColor.text,
     },
   );
   const parts: FabricObject[] = [requiredSpace, marker, initial];
@@ -210,8 +196,8 @@ function createPlantObject(
         top: -radius * 0.7,
         originX: 'center',
         originY: 'center',
-        fill: '#f59e0b',
-        stroke: '#fff',
+        fill: canvasColor.warningMarker,
+        stroke: canvasColor.surface,
         strokeWidth: 2,
         strokeUniform: true,
       }),
@@ -345,9 +331,12 @@ function addBoundary(
       new Path(boundaryPathData(points), {
         fill:
           owner.kind === 'property'
-            ? 'rgba(255, 255, 255, .76)'
-            : 'rgba(104, 155, 93, .16)',
-        stroke: owner.kind === 'property' ? '#315a34' : '#53824d',
+            ? canvasColor.propertyFill
+            : canvasColor.flowerbedFill,
+        stroke:
+          owner.kind === 'property'
+            ? canvasColor.propertyBoundary
+            : canvasColor.flowerbedBoundary,
         strokeWidth: owner.kind === 'property' ? 3 : 2,
         strokeUniform: true,
         selectable: false,
@@ -367,7 +356,9 @@ function addBoundary(
       tagBoundaryObject(
         new Path(edgePathData(start, end), {
           fill: '',
-          stroke: selected ? '#f97316' : 'rgba(0,0,0,0.001)',
+          stroke: selected
+            ? canvasColor.selection
+            : canvasColor.transparentHitArea,
           strokeWidth: selected ? 5 : 14,
           strokeUniform: true,
           selectable: false,
@@ -391,7 +382,7 @@ function addBoundary(
             angle: label.angle,
             fontSize: owner.kind === 'property' ? 11 : 10,
             fontWeight: '600',
-            fill: '#526455',
+            fill: canvasColor.label,
             selectable: false,
             evented: false,
           }),
@@ -412,8 +403,11 @@ function addBoundary(
           radius: owner.kind === 'property' ? 6 : 5,
           originX: 'center',
           originY: 'center',
-          fill: '#fff',
-          stroke: owner.kind === 'property' ? '#315a34' : '#53824d',
+          fill: canvasColor.surface,
+          stroke:
+            owner.kind === 'property'
+              ? canvasColor.propertyBoundary
+              : canvasColor.flowerbedBoundary,
           strokeWidth: 2,
           strokeUniform: true,
           hasControls: false,
@@ -543,16 +537,16 @@ function FabricPlanCanvasComponent(
         originY: 'center',
         fill:
           preview.status === 'valid'
-            ? `${colorLabelToCss(preview.color)}44`
+            ? `${catalogColorToCss(preview.color)}44`
             : preview.status === 'outside'
-              ? 'rgba(217, 119, 6, .18)'
-              : 'rgba(220, 38, 38, .2)',
+              ? canvasColor.previewWarningFill
+              : canvasColor.previewDangerFill,
         stroke:
           preview.status === 'valid'
-            ? '#2f7d32'
+            ? canvasColor.brand
             : preview.status === 'outside'
-              ? '#d97706'
-              : '#dc2626',
+              ? canvasColor.warning
+              : canvasColor.danger,
         strokeWidth: 3,
         strokeDashArray: [8, 5],
         strokeUniform: true,
