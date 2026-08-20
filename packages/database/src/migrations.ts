@@ -6,3 +6,7 @@ export const databaseMigrationFilenames = [
   '004_deleted_plant_photo.sql',
   '005_property_plans.sql',
 ] as const;
+
+/** Repairs databases created before the v0.3 catalog vocabulary redesign. */
+export const legacyCatalogSchemaMigrationFilename =
+  'legacy_v0_2_catalog_schema.sql';
